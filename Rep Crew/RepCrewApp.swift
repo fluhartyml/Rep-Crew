@@ -12,8 +12,21 @@ struct RepCrewApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: [Challenge.self, ExerciseGoal.self, RepEntry.self, CrewMember.self])
+        .modelContainer(container)
     }
+
+    /// Challenges and reps stay on this phone. The app has iCloud turned on for the crew's
+    /// shared space (CrewCloud), and without `.none` SwiftData would try to sync this store
+    /// through iCloud too, fail, and open empty — build 12 did exactly that.
+    private let container: ModelContainer = {
+        let schema = Schema([Challenge.self, ExerciseGoal.self, RepEntry.self, CrewMember.self])
+        let config = ModelConfiguration(schema: schema, cloudKitDatabase: .none)
+        do {
+            return try ModelContainer(for: schema, configurations: config)
+        } catch {
+            fatalError("Rep Crew couldn't open its data: \(error)")
+        }
+    }()
 }
 
 /// Text sizes. 18 pt is the floor for every piece of text in the app.
