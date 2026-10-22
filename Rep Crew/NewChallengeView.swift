@@ -11,6 +11,11 @@ import SwiftData
 struct NewChallengeView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @Query(sort: \CrewMember.addedAt) private var crew: [CrewMember]
+
+    @AppStorage(CrewSettings.name) private var name = ""
+    @AppStorage(CrewSettings.testFlight) private var testFlight = ""
+    @AppStorage(CrewSettings.crewNumber) private var crewNumber = 0
 
     private struct Draft: Identifiable {
         let id = UUID()
@@ -22,6 +27,10 @@ struct NewChallengeView: View {
     @State private var days = 14
     @State private var startDate = Date.now
     @State private var drafts: [Draft] = [Draft(name: "Push-ups", target: 100)]
+    @State private var checked: Set<String> = []
+
+    /// Crew members reachable through iCloud — the ones a check box can actually reach.
+    private var reachable: [CrewMember] { crew.filter { !$0.cloudID.isEmpty } }
 
     private var trimmedTitle: String { title.trimmingCharacters(in: .whitespaces) }
     private var validDrafts: [Draft] {
@@ -71,6 +80,27 @@ struct NewChallengeView: View {
                 } footer: {
                     Text("Swipe left on an exercise to remove it.").font(AppFont.body)
                 }
+
+                Section {
+                    ForEach(reachable) { member in
+                        Button { toggle(member.cloudID) } label: {
+                            HStack {
+                                Image(systemName: checked.contains(member.cloudID) ? "checkmark.circle.fill" : "circle")
+                                    .font(AppFont.heading)
+                                Text(member.name).font(AppFont.bodyBold).foregroundStyle(.primary)
+                                Spacer()
+                                Text("Crew member \(member.crewNumber)").font(AppFont.body).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                } header: {
+                    header("Crew")
+                } footer: {
+                    Text(reachable.isEmpty
+                         ? "No crew yet. After you save, open the challenge and tap Invite to Crew to text or email someone."
+                         : "Checked members get this challenge on their phone to accept. To add someone new, save, then tap Invite to Crew on the challenge.")
+                        .font(AppFont.body)
+                }
             }
             .navigationTitle("New Challenge")
             .navigationBarTitleDisplayMode(.inline)
@@ -83,6 +113,10 @@ struct NewChallengeView: View {
                 }
             }
         }
+    }
+
+    private func toggle(_ id: String) {
+        if checked.contains(id) { checked.remove(id) } else { checked.insert(id) }
     }
 
     private func header(_ text: String) -> some View {
@@ -101,6 +135,18 @@ struct NewChallengeView: View {
             let goal = ExerciseGoal(name: draft.name.trimmingCharacters(in: .whitespaces), dailyTarget: draft.target, order: index)
             goal.challenge = challenge
             context.insert(goal)
+        }
+        if !checked.isEmpty {
+            challenge.crewID = UUID().uuidString
+            let info = Invite.ChallengeInfo(challenge)
+            let leader = name.trimmingCharacters(in: .whitespaces)
+            let link = testFlight.trimmingCharacters(in: .whitespaces)
+            let members = Array(checked)
+            let number = crewNumber
+            Task {
+                await CrewCloud.shared.publish(info, leaderName: leader.isEmpty ? "Your crew leader" : leader,
+                                               leaderNumber: number, testFlight: link, memberIDs: members)
+            }
         }
         dismiss()
     }

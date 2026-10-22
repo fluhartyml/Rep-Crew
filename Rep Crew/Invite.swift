@@ -17,6 +17,8 @@ struct Invite: Codable, Equatable, Identifiable {
     var crewNumber: Int
     var testFlight: String
     var challenge: ChallengeInfo?
+    /// The sender's iCloud ID, so joining can tell the sender's phone (nil if iCloud wasn't ready).
+    var fromID: String?
 
     struct ChallengeInfo: Codable, Equatable {
         var crewID: String
@@ -44,11 +46,12 @@ struct Invite: Codable, Equatable, Identifiable {
         return parts.url
     }
 
-    init(from: String, crewNumber: Int, testFlight: String, challenge: ChallengeInfo?) {
+    init(from: String, crewNumber: Int, testFlight: String, challenge: ChallengeInfo?, fromID: String? = nil) {
         self.from = from
         self.crewNumber = crewNumber
         self.testFlight = testFlight
         self.challenge = challenge
+        self.fromID = fromID
     }
 
     init?(url: URL) {
@@ -119,6 +122,8 @@ enum CrewSettings {
     static let testFlight = "testFlightLink"
     static let crewNumber = "crewNumber"
     static let hasJoined = "hasJoinedACrew"
+    /// Crew IDs of challenges you declined, newline-separated, so they aren't offered again.
+    static let declined = "declinedCrewIDs"
 }
 
 private extension Data {

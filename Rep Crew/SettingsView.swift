@@ -71,6 +71,12 @@ struct SettingsView: View {
                 } header: {
                     header("Your crew")
                 }
+
+                Section {
+                    Text(CrewCloud.shared.status).font(AppFont.body)
+                } header: {
+                    header("iCloud")
+                }
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -90,7 +96,8 @@ struct SettingsView: View {
     /// An invite to the crew with no challenge attached.
     private var crewInvite: Invite? {
         guard linkIsValid, !trimmedName.isEmpty else { return nil }
-        return Invite(from: trimmedName, crewNumber: crewNumber, testFlight: testFlight.trimmingCharacters(in: .whitespaces), challenge: nil)
+        return Invite(from: trimmedName, crewNumber: crewNumber, testFlight: testFlight.trimmingCharacters(in: .whitespaces),
+                      challenge: nil, fromID: CrewCloud.shared.myID)
     }
 
     private func header(_ text: String) -> some View {

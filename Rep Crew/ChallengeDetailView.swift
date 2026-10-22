@@ -91,7 +91,7 @@ struct ChallengeDetailView: View {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty, Invite.isTestFlightLink(testFlight), !challenge.crewID.isEmpty else { return nil }
         return Invite(from: trimmed, crewNumber: crewNumber, testFlight: testFlight.trimmingCharacters(in: .whitespaces),
-                      challenge: Invite.ChallengeInfo(challenge))
+                      challenge: Invite.ChallengeInfo(challenge), fromID: CrewCloud.shared.myID)
     }
 
     /// Every copy of a shared challenge carries the same crew ID, so joining twice doesn't duplicate it.

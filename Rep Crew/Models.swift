@@ -115,17 +115,20 @@ final class RepEntry {
     }
 }
 
-/// Someone you have done a challenge with. Added when you join their invite.
+/// Someone you have done a challenge with: whoever's invite you joined, and whoever joined yours.
 @Model
 final class CrewMember {
     var name: String
     var crewNumber: Int
     var addedAt: Date
+    /// Their iCloud ID. With it, they get a check box when you start a new challenge.
+    var cloudID: String = ""
 
-    init(name: String, crewNumber: Int) {
+    init(name: String, crewNumber: Int, cloudID: String = "") {
         self.name = name
         self.crewNumber = crewNumber
         self.addedAt = .now
+        self.cloudID = cloudID
     }
 }
 

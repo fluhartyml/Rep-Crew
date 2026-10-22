@@ -19,6 +19,8 @@ struct JoinView: View {
     @AppStorage(CrewSettings.testFlight) private var testFlight = ""
     @AppStorage(CrewSettings.crewNumber) private var crewNumber = 0
     @AppStorage(CrewSettings.hasJoined) private var hasJoined = false
+    @AppStorage(CrewSettings.name) private var name = ""
+    @AppStorage(CrewSettings.declined) private var declined = ""
 
     let invite: Invite
 
@@ -56,13 +58,21 @@ struct JoinView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Decline") { dismiss() }.font(AppFont.body)
+                    Button("Decline") { decline() }.font(AppFont.body)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Accept") { accept() }.font(AppFont.bodyBold)
                 }
             }
         }
+    }
+
+    private func decline() {
+        if let crewID = invite.challenge?.crewID {
+            declined += crewID + "\n"
+            CrewCloud.shared.dismissPending(crewID)
+        }
+        dismiss()
     }
 
     private func startText(_ challenge: Invite.ChallengeInfo) -> String {
@@ -78,8 +88,17 @@ struct JoinView: View {
             crewNumber = invite.crewNumber + 1
             hasJoined = true
         }
-        if !crew.contains(where: { $0.name == invite.from && $0.crewNumber == invite.crewNumber }) {
-            context.insert(CrewMember(name: invite.from, crewNumber: invite.crewNumber))
+        if let known = crew.first(where: { $0.name == invite.from && $0.crewNumber == invite.crewNumber }) {
+            if known.cloudID.isEmpty, let id = invite.fromID { known.cloudID = id }
+        } else {
+            context.insert(CrewMember(name: invite.from, crewNumber: invite.crewNumber, cloudID: invite.fromID ?? ""))
+        }
+        // Tell the leader's phone, so they get a check box for you next time.
+        if let leaderID = invite.fromID {
+            let crewID = invite.challenge?.crewID ?? "crew"
+            let me = name.trimmingCharacters(in: .whitespaces)
+            let number = crewNumber
+            Task { await CrewCloud.shared.join(crewID: crewID, leaderID: leaderID, name: me.isEmpty ? "A crew member" : me, crewNumber: number) }
         }
         if let info = invite.challenge, !alreadyHave {
             let start = Invite.date(fromDay: info.startDay) ?? .now

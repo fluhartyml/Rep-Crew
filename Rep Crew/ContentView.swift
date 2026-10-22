@@ -11,6 +11,10 @@ import SwiftData
 struct ContentView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \Challenge.startDate, order: .reverse) private var challenges: [Challenge]
+    @Query private var crew: [CrewMember]
+    @Environment(\.scenePhase) private var scenePhase
+    @AppStorage(CrewSettings.declined) private var declined = ""
+    private var cloud = CrewCloud.shared
 
     @State private var showingNew = false
     @State private var showingAbout = false
@@ -24,15 +28,21 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if challenges.isEmpty {
+                if challenges.isEmpty && cloud.pending.isEmpty {
                     emptyState
                 } else {
                     List {
+                        invitations
                         section("Today", active)
                         section("Starting soon", upcoming)
                         section("Finished", finished)
                     }
+                    .refreshable { await syncCrew() }
                 }
+            }
+            .task { await syncCrew() }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { Task { await syncCrew() } }
             }
             .navigationTitle("Rep Crew")
             .navigationDestination(for: Challenge.self) { ChallengeDetailView(challenge: $0) }
@@ -78,6 +88,35 @@ struct ContentView: View {
                 Text(title).font(AppFont.bodyBold).textCase(nil)
             }
         }
+    }
+
+    /// Challenges a leader checked you off for, waiting on Accept or Decline.
+    @ViewBuilder
+    private var invitations: some View {
+        if !cloud.pending.isEmpty {
+            Section {
+                ForEach(cloud.pending) { invite in
+                    Button { joining = invite } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(invite.challenge?.title ?? "Challenge").font(AppFont.bodyBold).foregroundStyle(.primary)
+                            Text("From \(invite.from) · tap to accept or decline").font(AppFont.body).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            } header: {
+                Text("Invitations").font(AppFont.bodyBold).textCase(nil)
+            }
+        }
+    }
+
+    /// Pulls in who has joined your challenges, and challenges you've been checked off for.
+    private func syncCrew() async {
+        for member in await cloud.members() where !crew.contains(where: { $0.cloudID == member.id }) {
+            context.insert(CrewMember(name: member.name, crewNumber: member.number, cloudID: member.id))
+        }
+        let skip = Set(challenges.map(\.crewID).filter { !$0.isEmpty })
+            .union(declined.split(separator: "\n").map(String.init))
+        await cloud.refreshPending(skipping: skip)
     }
 
     private var emptyState: some View {
