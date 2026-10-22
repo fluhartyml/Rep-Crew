@@ -39,13 +39,25 @@ struct ChallengeDetailView: View {
             }
 
             Section {
-                Button(role: .destructive) { confirmingDelete = true } label: {
-                    Text("Delete Challenge").font(AppFont.bodyBold)
+                ShareLink(item: crewReport) {
+                    Label("Send to Crew", systemImage: "paperplane.fill").font(AppFont.bodyBold)
                 }
             }
         }
         .navigationTitle(challenge.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button(role: .destructive) { confirmingDelete = true } label: {
+                        Label("Delete Challenge", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle").font(AppFont.bodyBold)
+                }
+                .accessibilityLabel("More")
+            }
+        }
         .sheet(item: $customGoal) { goal in CustomRepsView(goal: goal) }
         .confirmationDialog("Delete \(challenge.title)?", isPresented: $confirmingDelete, titleVisibility: .visible) {
             Button("Delete Challenge and All Its Reps", role: .destructive) {
@@ -55,6 +67,21 @@ struct ChallengeDetailView: View {
         } message: {
             Text("This can't be undone.")
         }
+    }
+
+    /// Today's results as plain text, ready for a group message.
+    private var crewReport: String {
+        var lines = [challenge.title]
+        if let day = challenge.dayNumber() {
+            lines[0] += " — Day \(day) of \(challenge.days)"
+            for goal in challenge.sortedGoals {
+                let done = goal.total(on: .now)
+                let mark = done >= goal.dailyTarget ? " ✅" : ""
+                lines.append("\(goal.name): \(done)/\(goal.dailyTarget)\(mark)")
+            }
+        }
+        lines.append("\(challenge.completedDays) of \(challenge.days) days completed")
+        return lines.joined(separator: "\n")
     }
 
     @ViewBuilder
