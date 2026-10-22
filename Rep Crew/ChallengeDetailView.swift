@@ -15,6 +15,11 @@ struct ChallengeDetailView: View {
 
     @State private var customGoal: ExerciseGoal?
     @State private var confirmingDelete = false
+    @State private var showingSettings = false
+
+    @AppStorage(CrewSettings.name) private var name = ""
+    @AppStorage(CrewSettings.testFlight) private var testFlight = ""
+    @AppStorage(CrewSettings.crewNumber) private var crewNumber = 0
 
     var body: some View {
         List {
@@ -42,6 +47,16 @@ struct ChallengeDetailView: View {
                 ShareLink(item: crewReport) {
                     Label("Send to Crew", systemImage: "paperplane.fill").font(AppFont.bodyBold)
                 }
+                if let invite = challengeInvite {
+                    ShareLink(item: invite.message) {
+                        Label("Invite to Crew", systemImage: "person.badge.plus").font(AppFont.bodyBold)
+                    }
+                } else {
+                    // Invites need your name and the TestFlight link; Settings is where they go.
+                    Button { showingSettings = true } label: {
+                        Label("Invite to Crew", systemImage: "person.badge.plus").font(AppFont.bodyBold)
+                    }
+                }
             }
         }
         .navigationTitle(challenge.title)
@@ -59,6 +74,8 @@ struct ChallengeDetailView: View {
             }
         }
         .sheet(item: $customGoal) { goal in CustomRepsView(goal: goal) }
+        .sheet(isPresented: $showingSettings) { SettingsView() }
+        .onAppear { assignCrewID() }
         .confirmationDialog("Delete \(challenge.title)?", isPresented: $confirmingDelete, titleVisibility: .visible) {
             Button("Delete Challenge and All Its Reps", role: .destructive) {
                 context.delete(challenge)
@@ -67,6 +84,19 @@ struct ChallengeDetailView: View {
         } message: {
             Text("This can't be undone.")
         }
+    }
+
+    /// This challenge as an invite, once your name and the TestFlight link are in Settings.
+    private var challengeInvite: Invite? {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty, Invite.isTestFlightLink(testFlight), !challenge.crewID.isEmpty else { return nil }
+        return Invite(from: trimmed, crewNumber: crewNumber, testFlight: testFlight.trimmingCharacters(in: .whitespaces),
+                      challenge: Invite.ChallengeInfo(challenge))
+    }
+
+    /// Every copy of a shared challenge carries the same crew ID, so joining twice doesn't duplicate it.
+    private func assignCrewID() {
+        if challenge.crewID.isEmpty { challenge.crewID = UUID().uuidString }
     }
 
     /// Today's results as plain text, ready for a group message.

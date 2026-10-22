@@ -1,0 +1,137 @@
+//
+//  Invite.swift
+//  Rep Crew
+//
+//  An invitation travels as a text or email. It carries the sender's TestFlight link, so
+//  whoever joins can invite the next person without asking for it (Michael's "hot potato").
+//  It can also carry a challenge, which the friend gets on their own phone when they join.
+//
+//  The join link is repcrew://join?d=<base64url JSON>. No server is involved.
+//
+
+import Foundation
+
+struct Invite: Codable, Equatable, Identifiable {
+    var id: String { url?.absoluteString ?? from }
+    var from: String
+    var crewNumber: Int
+    var testFlight: String
+    var challenge: ChallengeInfo?
+
+    struct ChallengeInfo: Codable, Equatable {
+        var crewID: String
+        var title: String
+        var startDay: String   // yyyy-MM-dd, the sender's calendar day
+        var days: Int
+        var goals: [Goal]
+    }
+
+    struct Goal: Codable, Equatable {
+        var name: String
+        var target: Int
+    }
+
+    static let scheme = "repcrew"
+
+    // MARK: Link
+
+    var url: URL? {
+        guard let json = try? JSONEncoder().encode(self) else { return nil }
+        var parts = URLComponents()
+        parts.scheme = Self.scheme
+        parts.host = "join"
+        parts.queryItems = [URLQueryItem(name: "d", value: json.base64URLEncoded)]
+        return parts.url
+    }
+
+    init(from: String, crewNumber: Int, testFlight: String, challenge: ChallengeInfo?) {
+        self.from = from
+        self.crewNumber = crewNumber
+        self.testFlight = testFlight
+        self.challenge = challenge
+    }
+
+    init?(url: URL) {
+        guard url.scheme == Self.scheme, url.host == "join",
+              let value = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                .queryItems?.first(where: { $0.name == "d" })?.value,
+              let data = Data(base64URLEncoded: value),
+              let invite = try? JSONDecoder().decode(Invite.self, from: data) else { return nil }
+        self = invite
+    }
+
+    // MARK: Message
+
+    /// The text the share sheet sends: what the challenge is, then install, then join.
+    var message: String {
+        guard let link = url?.absoluteString else { return "" }
+        var lines: [String] = []
+        if let challenge {
+            let goals = challenge.goals.map { "\($0.target) \($0.name.lowercased())" }.joined(separator: " and ")
+            lines.append("\(from) challenged you on Rep Crew: \(challenge.title). \(goals) a day for \(challenge.days) days, starting \(Self.displayDay(challenge.startDay)).")
+        } else {
+            lines.append("\(from) invited you to join their crew on Rep Crew.")
+        }
+        lines.append("")
+        lines.append("1. Install Rep Crew with TestFlight: \(testFlight)")
+        lines.append("2. Then tap this to join: \(link)")
+        return lines.joined(separator: "\n")
+    }
+
+    // MARK: Days
+
+    private static let dayFormat: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.calendar = Calendar(identifier: .gregorian)
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    static func dayString(_ date: Date) -> String { dayFormat.string(from: date) }
+    static func date(fromDay day: String) -> Date? { dayFormat.date(from: day) }
+
+    private static func displayDay(_ day: String) -> String {
+        guard let date = date(fromDay: day) else { return day }
+        return date.formatted(.dateTime.weekday(.wide).month(.wide).day())
+    }
+
+    /// A TestFlight public link looks like https://testflight.apple.com/join/XXXXXXXX
+    static func isTestFlightLink(_ text: String) -> Bool {
+        guard let url = URL(string: text.trimmingCharacters(in: .whitespaces)) else { return false }
+        return url.scheme == "https" && url.host == "testflight.apple.com" && url.path.hasPrefix("/join/")
+    }
+}
+
+extension Invite.ChallengeInfo {
+    init(_ challenge: Challenge) {
+        self.init(crewID: challenge.crewID,
+                  title: challenge.title,
+                  startDay: Invite.dayString(challenge.startDate),
+                  days: challenge.days,
+                  goals: challenge.sortedGoals.map { Invite.Goal(name: $0.name, target: $0.dailyTarget) })
+    }
+}
+
+/// Keys for the settings every crew member keeps.
+enum CrewSettings {
+    static let name = "yourName"
+    static let testFlight = "testFlightLink"
+    static let crewNumber = "crewNumber"
+    static let hasJoined = "hasJoinedACrew"
+}
+
+private extension Data {
+    var base64URLEncoded: String {
+        base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
+
+    init?(base64URLEncoded text: String) {
+        var base64 = text.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
+        base64 += String(repeating: "=", count: (4 - base64.count % 4) % 4)
+        self.init(base64Encoded: base64)
+    }
+}

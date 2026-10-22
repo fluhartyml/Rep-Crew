@@ -12,7 +12,7 @@ struct RepCrewApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: [Challenge.self, ExerciseGoal.self, RepEntry.self])
+        .modelContainer(for: [Challenge.self, ExerciseGoal.self, RepEntry.self, CrewMember.self])
     }
 }
 

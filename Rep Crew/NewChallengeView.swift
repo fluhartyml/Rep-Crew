@@ -107,5 +107,5 @@ struct NewChallengeView: View {
 }
 
 #Preview {
-    NewChallengeView().modelContainer(for: [Challenge.self, ExerciseGoal.self, RepEntry.self], inMemory: true)
+    NewChallengeView().modelContainer(for: [Challenge.self, ExerciseGoal.self, RepEntry.self, CrewMember.self], inMemory: true)
 }

@@ -14,6 +14,8 @@ struct ContentView: View {
 
     @State private var showingNew = false
     @State private var showingAbout = false
+    @State private var showingSettings = false
+    @State private var joining: Invite?
 
     private var active: [Challenge] { challenges.filter(\.isActive) }
     private var upcoming: [Challenge] { challenges.filter { !$0.hasStarted } }
@@ -41,6 +43,12 @@ struct ContentView: View {
                     }
                     .accessibilityLabel("About Rep Crew")
                 }
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { showingSettings = true } label: {
+                        Image(systemName: "gearshape").font(AppFont.heading)
+                    }
+                    .accessibilityLabel("Settings")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showingNew = true } label: {
                         Image(systemName: "plus.circle.fill").font(AppFont.heading)
@@ -50,6 +58,9 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showingNew) { NewChallengeView() }
             .sheet(isPresented: $showingAbout) { AboutView() }
+            .sheet(isPresented: $showingSettings) { SettingsView() }
+            .sheet(item: $joining) { JoinView(invite: $0) }
+            .onOpenURL { url in joining = Invite(url: url) }
         }
     }
 
@@ -120,5 +131,5 @@ struct ChallengeRow: View {
 }
 
 #Preview {
-    ContentView().modelContainer(for: [Challenge.self, ExerciseGoal.self, RepEntry.self], inMemory: true)
+    ContentView().modelContainer(for: [Challenge.self, ExerciseGoal.self, RepEntry.self, CrewMember.self], inMemory: true)
 }

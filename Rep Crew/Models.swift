@@ -15,6 +15,8 @@ final class Challenge {
     var startDate: Date
     var days: Int
     var createdAt: Date
+    /// Shared by everyone's copy of the same challenge; set when it is first sent as an invite.
+    var crewID: String = ""
 
     @Relationship(deleteRule: .cascade, inverse: \ExerciseGoal.challenge)
     var goals: [ExerciseGoal] = []
@@ -110,6 +112,20 @@ final class RepEntry {
     init(count: Int, loggedAt: Date = .now) {
         self.count = count
         self.loggedAt = loggedAt
+    }
+}
+
+/// Someone you have done a challenge with. Added when you join their invite.
+@Model
+final class CrewMember {
+    var name: String
+    var crewNumber: Int
+    var addedAt: Date
+
+    init(name: String, crewNumber: Int) {
+        self.name = name
+        self.crewNumber = crewNumber
+        self.addedAt = .now
     }
 }
 
