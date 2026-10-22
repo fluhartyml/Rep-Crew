@@ -49,9 +49,7 @@
 //  Michael: "i was just talking to my friend and he was talking about wanting to
 //  start an app i transcribed some but not all of the facetime chat"
 //
-//  ⚠️ PRIVATE. This is speech-to-text of a private call and names real people.
-//  It is here because he asked for it. This repo has no remote; never publish it,
-//  never quote it in App Store copy.
+//  Not private (his word, 2026-10-22: "privacy is not needed").
 //
 //  --- transcription, as pasted ---
 //  OK now now what was it again like describe the app to me please well know what
