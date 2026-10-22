@@ -102,10 +102,15 @@ private struct GoalRow: View {
                     Button("+\(amount)") { log(amount) }
                         .font(AppFont.bodyBold)
                         .buttonStyle(.bordered)
+                        .lineLimit(1)
+                        .fixedSize()
                 }
+                // Keep "Other" on one line; the Spacer gives up room first.
                 Button("Other") { onCustom() }
                     .font(AppFont.bodyBold)
                     .buttonStyle(.bordered)
+                    .lineLimit(1)
+                    .fixedSize()
                 Spacer()
                 Button { undo() } label: {
                     Image(systemName: "arrow.uturn.backward").font(AppFont.bodyBold)
