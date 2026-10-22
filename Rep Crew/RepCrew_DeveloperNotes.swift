@@ -133,6 +133,16 @@
 //  6  b0b7645  Delete Challenge into the … menu (still confirms); Send to Crew share
 //              button. On his 16e 2026-10-22 ~12:1x.
 //
+//  10 d6be5f7  Crew invites (his design, 2026-10-22 ~12:30): Settings holds your name +
+//              the TestFlight link; Invite to Crew (Settings and each challenge) sends
+//              the TestFlight link + a repcrew://join link; joining adds the challenge,
+//              fills the joiner's TestFlight link ("hot potato"), adds the sender to
+//              Your crew, and makes the joiner crew member sender + 1. Michael = 0.
+//              On his 16e ~12:38; his Pushups challenge survived the update.
+//              Tested: link round trip + message text (swiftc), scheme registered
+//              (simulator offered "Open in Rep Crew"). NOT tested: tapping Accept, and
+//              whether Messages makes repcrew:// tappable. Needs a second phone.
+//
 //  His first real challenge on the 16e: "Pushups challenge", 7 days from Oct 22,
 //  100 push-ups a day.
 
@@ -151,6 +161,14 @@
 //    before every upload that changes the crew data.
 //  • His steps: create the App Store Connect record (it also reserves the name).
 //    Nothing gets uploaded without his word.
+//  His design (2026-10-22): a new challenge assembles a crew. Returning members
+//  (from other challenges) just get a CHECK BOX; new people get a share-sheet text or
+//  email with the TestFlight link. The TestFlight link lives in Settings and passes
+//  along with each invite so any member can invite. "i only expect three". "viral was
+//  a metephore".
+//  ⬜ NOT BUILT: the returning-members check box. Delivering a challenge to someone's
+//     phone without a message needs iCloud (CloudKit). Until then, a check box would
+//     do nothing (no-placeholders rule).
 //  ⬜ Open: can members edit the challenge, or only the leader? · He hasn't said
 //     whether to plan invites this way.
 
