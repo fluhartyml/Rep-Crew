@@ -8,6 +8,8 @@ import SwiftData
 
 @main
 struct RepCrewApp: App {
+    @UIApplicationDelegateAdaptor(CrewNotifications.self) private var notifications
+
     var body: some Scene {
         WindowGroup {
             ContentView()

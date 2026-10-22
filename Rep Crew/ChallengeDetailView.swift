@@ -43,6 +43,8 @@ struct ChallengeDetailView: View {
                 Text("Every day").font(AppFont.bodyBold).textCase(nil)
             }
 
+            CrewMessagesSection(challenge: challenge)
+
             Section {
                 ShareLink(item: crewReport) {
                     Label("Send to Crew", systemImage: "paperplane.fill").font(AppFont.bodyBold)

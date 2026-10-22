@@ -104,6 +104,7 @@ struct JoinView: View {
             let start = Invite.date(fromDay: info.startDay) ?? .now
             let challenge = Challenge(title: info.title, startDate: start, days: info.days)
             challenge.crewID = info.crewID
+            challenge.leaderID = invite.fromID ?? ""
             context.insert(challenge)
             for (index, goal) in info.goals.enumerated() {
                 let exercise = ExerciseGoal(name: goal.name, dailyTarget: goal.target, order: index)

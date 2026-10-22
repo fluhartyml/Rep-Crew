@@ -24,12 +24,12 @@ final class CrewCloud {
     static let shared = CrewCloud()
 
     private let container = CKContainer(identifier: "iCloud.com.nightgard.RepCrew")
-    private var db: CKDatabase { container.publicCloudDatabase }
+    var db: CKDatabase { container.publicCloudDatabase }
 
     /// This person's iCloud user record name; nil until iCloud answers.
     private(set) var myID: String?
     /// What Settings shows about the connection, in plain words.
-    private(set) var status = "Checking iCloud…"
+    var status = "Checking iCloud…"
     /// Challenges a leader checked you off for that you haven't accepted or declined.
     private(set) var pending: [Invite] = []
 

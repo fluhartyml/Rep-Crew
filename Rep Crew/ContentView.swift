@@ -117,6 +117,8 @@ struct ContentView: View {
         let skip = Set(challenges.map(\.crewID).filter { !$0.isEmpty })
             .union(declined.split(separator: "\n").map(String.init))
         await cloud.refreshPending(skipping: skip)
+        await CrewNotifications.requestPermission()
+        await cloud.subscribe(crewIDs: challenges.map(\.crewID).filter { !$0.isEmpty })
     }
 
     private var emptyState: some View {

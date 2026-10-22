@@ -17,6 +17,8 @@ final class Challenge {
     var createdAt: Date
     /// Shared by everyone's copy of the same challenge; set when it is first sent as an invite.
     var crewID: String = ""
+    /// The crew leader's iCloud ID. Empty on the phone of whoever started the challenge.
+    var leaderID: String = ""
 
     @Relationship(deleteRule: .cascade, inverse: \ExerciseGoal.challenge)
     var goals: [ExerciseGoal] = []
