@@ -3,7 +3,7 @@
 //  Rep Crew
 //
 //  The crew's shared space in iCloud (CloudKit public database, container
-//  iCloud.com.nightgard.RepCrew). Two record types:
+//  iCloud.com.accountability.dailyrepcrew). Two record types:
 //
 //    CrewChallenge  name = crewID. Written by the leader: the challenge plus the IDs of the
 //                   crew members checked off for it. A checked member's phone finds it and
@@ -23,7 +23,7 @@ import Observation
 final class CrewCloud {
     static let shared = CrewCloud()
 
-    private let container = CKContainer(identifier: "iCloud.com.nightgard.RepCrew")
+    private let container = CKContainer(identifier: "iCloud.com.accountability.dailyrepcrew")
     var db: CKDatabase { container.publicCloudDatabase }
 
     /// This person's iCloud user record name; nil until iCloud answers.

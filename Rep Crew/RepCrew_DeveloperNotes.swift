@@ -12,7 +12,12 @@
 //
 //  Name:           Rep Crew
 //  Subtitle:       Daily Accountability (App Store subtitle, 20 of 30 characters)
-//  Bundle ID:      com.nightgard.RepCrew
+//  Bundle ID:      com.accountability.dailyrepcrew (his, 2026-10-22: "i want to remove
+//                  nightgard and replace it with accountability"). Was com.nightgard.RepCrew
+//                  through build 16; that build is a separate app on his 16e and still
+//                  holds the Pushups challenge.
+//  Xcode project:  Daily Rep Crew Accountability.xcodeproj, target + scheme of the same
+//                  name, home-screen name "Daily Rep Crew Accountability" (his renames).
 //  Platform:       iOS — iPhone only to start
 //  Version:        1.0
 //  Deployment:     iOS 17.0+ (his ask: "as low as we can to start. but not too low" —
@@ -22,10 +27,10 @@
 //                  was refused by App Store Connect: "The App Name you entered is already
 //                  being used." The home-screen name stays Rep Crew.
 //  App Store ID:   (record being created by Michael from Xcode's Validate)
-//  Location:       /Users/michaelfluharty/Developer.complex/Rep Crew/
+//  Location:       /Users/michaelfluharty/Developer.complex/Rep Crew/  (folder name unchanged)
 //  Built with:     Xcode 27.1 (27A9275)
 //  GitHub:         github.com/fluhartyml/Rep-Crew (public)
-//  iCloud:         iCloud.com.nightgard.RepCrew (CloudKit public database) + push
+//  iCloud:         iCloud.com.accountability.dailyrepcrew (CloudKit public DB) + push
 
 // ============================================================================
 // MARK: - WHAT IT IS
@@ -173,7 +178,7 @@
 //  becomes crew member sender + 1, and a Membership record tells the leader's phone.
 //
 //  iCloud (CrewCloud.swift): CloudKit PUBLIC database, container
-//  iCloud.com.nightgard.RepCrew. Record types:
+//  iCloud.com.accountability.dailyrepcrew. Record types:
 //    CrewChallenge  name = crewID; the challenge + memberIDs checked by the leader.
 //    Membership     name = crewID.memberID; written by whoever joins.
 //    CrewMessage    crewID, text, senderID, senderName, kind (announcement / message /
