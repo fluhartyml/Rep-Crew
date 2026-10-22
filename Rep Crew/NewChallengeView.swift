@@ -76,7 +76,7 @@ struct NewChallengeView: View {
                         Label("Add an exercise", systemImage: "plus.circle").font(AppFont.bodyBold)
                     }
                 } header: {
-                    header("Each daily goal")
+                    header("Daily routine")
                 } footer: {
                     Text("Swipe left on an exercise to remove it.").font(AppFont.body)
                 }
