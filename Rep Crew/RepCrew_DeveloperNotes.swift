@@ -18,7 +18,10 @@
 //  Deployment:     iOS 17.0+ (his ask: "as low as we can to start. but not too low" —
 //                  17 is the floor for SwiftData and @Observable)
 //  Language:       Swift 5.0, SwiftUI, SwiftData
-//  App Store ID:   (not submitted — name not yet reserved in App Store Connect)
+//  App Store name: Daily Rep Crew Accountability (his pick, 2026-10-22 13:2x). "Rep Crew"
+//                  was refused by App Store Connect: "The App Name you entered is already
+//                  being used." The home-screen name stays Rep Crew.
+//  App Store ID:   (record being created by Michael from Xcode's Validate)
 //  Location:       /Users/michaelfluharty/Developer.complex/Rep Crew/
 //  Built with:     Xcode 27.1 (27A9275)
 //  GitHub:         github.com/fluhartyml/Rep-Crew (public)
