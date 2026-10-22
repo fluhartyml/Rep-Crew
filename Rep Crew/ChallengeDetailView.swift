@@ -94,23 +94,11 @@ private struct GoalRow: View {
             }
             ProgressView(value: Double(min(done, goal.dailyTarget)), total: Double(goal.dailyTarget))
                 .tint(left == 0 ? .green : .accentColor)
-            Text(left == 0 ? "Goal met" : "\(left) to go")
-                .font(AppFont.bodyBold)
-                .foregroundStyle(left == 0 ? .green : .primary)
-            HStack(spacing: 10) {
-                ForEach([1, 5, 10], id: \.self) { amount in
-                    Button("+\(amount)") { log(amount) }
-                        .font(AppFont.bodyBold)
-                        .buttonStyle(.bordered)
-                        .lineLimit(1)
-                        .fixedSize()
-                }
-                // Keep "Other" on one line; the Spacer gives up room first.
-                Button("Other") { onCustom() }
+            // Undo sits on the "to go" line so the add buttons get the full width.
+            HStack {
+                Text(left == 0 ? "Goal met" : "\(left) to go")
                     .font(AppFont.bodyBold)
-                    .buttonStyle(.bordered)
-                    .lineLimit(1)
-                    .fixedSize()
+                    .foregroundStyle(left == 0 ? .green : .primary)
                 Spacer()
                 Button { undo() } label: {
                     Image(systemName: "arrow.uturn.backward").font(AppFont.bodyBold)
@@ -119,8 +107,29 @@ private struct GoalRow: View {
                 .disabled(goal.lastEntry(on: .now) == nil)
                 .accessibilityLabel("Undo last entry")
             }
+            // +5, +10, Other, then the whole daily goal in one tap (Michael's layout).
+            HStack(spacing: 10) {
+                ForEach([5, 10], id: \.self) { amount in
+                    addButton(amount)
+                }
+                Button("Other") { onCustom() }
+                    .font(AppFont.bodyBold)
+                    .buttonStyle(.bordered)
+                    .lineLimit(1)
+                    .fixedSize()
+                addButton(goal.dailyTarget)
+                Spacer(minLength: 0)
+            }
         }
         .padding(.vertical, 8)
+    }
+
+    private func addButton(_ amount: Int) -> some View {
+        Button("+\(amount)") { log(amount) }
+            .font(AppFont.bodyBold)
+            .buttonStyle(.bordered)
+            .lineLimit(1)
+            .fixedSize()
     }
 
     private func log(_ count: Int) {
