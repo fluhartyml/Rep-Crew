@@ -143,6 +143,13 @@
 //              (simulator offered "Open in Rep Crew"). NOT tested: tapping Accept, and
 //              whether Messages makes repcrew:// tappable. Needs a second phone.
 //
+//  12 ddd5c8f  iCloud (CloudKit public DB, iCloud.com.nightgard.RepCrew): crew check boxes
+//              on New Challenge, Invitations on Home, Membership records. ⚠️ OPENED EMPTY:
+//              the entitlement made SwiftData try to sync the local store via CloudKit.
+//              Store on the phone untouched (12:38), backed up to the Mac first.
+//  13 4b1d8a1  Fix: ModelConfiguration(cloudKitDatabase: .none). On his 16e 13:03; his
+//              Pushups challenge is back.
+//
 //  His first real challenge on the 16e: "Pushups challenge", 7 days from Oct 22,
 //  100 push-ups a day.
 
