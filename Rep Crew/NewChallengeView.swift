@@ -33,7 +33,7 @@ struct NewChallengeView: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Name, like 14-Day Push-up Pact", text: $title)
+                    TextField("Name, like 14-Day Push-up Challenge", text: $title)
                         .font(AppFont.body)
                 } header: { header("Challenge") }
 
