@@ -21,6 +21,8 @@
 //  App Store ID:   (not submitted — name not yet reserved in App Store Connect)
 //  Location:       /Users/michaelfluharty/Developer.complex/Rep Crew/
 //  Built with:     Xcode 27.1 (27A9275)
+//  GitHub:         github.com/fluhartyml/Rep-Crew (public)
+//  iCloud:         iCloud.com.nightgard.RepCrew (CloudKit public database) + push
 
 // ============================================================================
 // MARK: - WHAT IT IS
@@ -100,25 +102,90 @@
 // MARK: - DECISIONS (his words, 2026-10-22)
 // ============================================================================
 //
+//  Start
 //  • "were going to start this app this morning"
 //  • "iphone first and we will need the ios floor to be as low as we can to start.
 //    but not too low." → iOS 17.
-//  • Name: went through Sweat Pact, Pact/RepPact, Daily Reps, then Rep Crew.
+//  • Name: Sweat Pact, Pact/RepPact, Daily Reps, then Rep Crew.
 //    "rep crew; daily acountability?" → "yes lets try that one".
+//  • "this is a commision". "privacy is not needed" (the transcription above).
+//
+//  Look and logging
 //  • Icon: "use the icons as presented". His light + dark 1024 set (barbell squat,
-//    both opaque) and his Contents.json, copied byte for byte. Tinted slot empty, as
-//    he gave it. The tvOS Top Shelf set in his folder is unused (iPhone only).
+//    both opaque) and his Contents.json, byte for byte. Tinted slot empty, as he gave
+//    it. The tvOS Top Shelf set in his folder is unused (iPhone only).
 //  • "pact should say challenge". No "Pact" anywhere in the app.
 //  • Rep buttons: "(+5)(+10)(other)(+100) because 100 is variable and the chalenge
 //    goal". The last button always adds the FULL daily goal; partial amounts go
 //    through Other ("if i only logged one then i used "other" and need to do 99").
+//  • No save button needed: reps are stored the moment they're tapped.
 //  • "put delete challenge behind a . . . and replace it with a send to crew place
 //    holder". Built as a REAL Send to Crew (no-placeholders rule): the share sheet
 //    with today's results. He: "good catch".
-//  • Crew roles: "the crew leader is just the first user that downloads and sets up
-//    a challenge or whoever initiates a challenge". Everyone who joins = member.
-//  • Distribution: "the app will be test flight for all of our discussions untill we
-//    get ready to distribute to the world".
+//
+//  Crew
+//  • "the crew leader is just the first user that downloads and sets up a challenge
+//    or whoever initiates a challenge". Everyone who joins = a crew member.
+//  • A new challenge assembles a crew. Members already on the app (from other
+//    challenges) just get a CHECK BOX. Someone new, or without TestFlight, gets a
+//    share-sheet text or email with the TestFlight beta link.
+//  • "the test flight invitation link should be a string saved in the settings so it
+//    can populate among all crew members so any crewmember can send anyone a
+//    testflight invite". Crew member 0 = Michael, who types the link into Settings
+//    once; each person who accepts an invite gets it filled in ("hot potato").
+//  • "i only expect three to be in the viral test viral was a metephore".
+//
+//  Crew messages
+//  • "i want the crew leader to be able to push announcements of maybe one string
+//    that pops up on crew members phones as a notification", members can respond
+//    with their own line, and members can message all participants. "im not looking
+//    for a chat session, more of a sending motivationals messages to the team".
+//  • Replies: two buttons on the notification, like email. Reply = just the sender
+//    (leader or member). Reply All = the whole crew. Reply comes first. He: "yes".
+//
+//  Distribution and process
+//  • "the app will be test flight for all of our discussions untill we get ready to
+//    distribute to the world".
+//  • His plan: get the skeleton done → first TestFlight to his friend → the friend
+//    invites his friends → Michael surveys the friend → future additions come from
+//    those talks → TestFlight updates go out that evening to the crew.
+//  • GitHub: github.com/fluhartyml/Rep-Crew, created at his word; first private,
+//    then "it can be public".
+
+// ============================================================================
+// MARK: - HOW THE CREW WORKS (as built)
+// ============================================================================
+//
+//  Settings (gear, top left): your first name, the TestFlight link, your crew number,
+//  Invite to Crew, Your crew list, and the iCloud connection status.
+//
+//  Invite link (Invite.swift). The share-sheet text says what the challenge is, then
+//  "1. Install Rep Crew with TestFlight: <link>" and "2. Then tap this to join:
+//  repcrew://join?d=<base64url JSON>". The JSON carries the sender's name, crew
+//  number, TestFlight link, iCloud ID and (optionally) the challenge. Custom URL
+//  scheme in RepCrew-Info.plist. No server.
+//
+//  Accepting (JoinView): the challenge lands on this phone with the same crewID, the
+//  TestFlight link fills Settings if empty, the sender joins Your crew, this person
+//  becomes crew member sender + 1, and a Membership record tells the leader's phone.
+//
+//  iCloud (CrewCloud.swift): CloudKit PUBLIC database, container
+//  iCloud.com.nightgard.RepCrew. Record types:
+//    CrewChallenge  name = crewID; the challenge + memberIDs checked by the leader.
+//    Membership     name = crewID.memberID; written by whoever joins.
+//    CrewMessage    crewID, text, senderID, senderName, kind (announcement / message /
+//                   reply), toID ("all" or one person), sentAt, title.
+//  Home pulls in new members and "Invitations" (challenges you were checked for) on
+//  launch, on return to the app, and on pull-to-refresh.
+//
+//  Notifications (CrewMessages.swift): CloudKit subscriptions, one per crew for
+//  messages to everyone and one for replies to you. Category CREW_MESSAGE with text
+//  actions Reply and Reply All. The leader's button says Send an Announcement; a
+//  member's says Message the Crew. Each challenge shows its last 10 messages.
+//
+//  ⚠️ The local store (challenges, reps) must stay OFF iCloud:
+//  ModelConfiguration(cloudKitDatabase: .none). Without it, the iCloud entitlement
+//  makes SwiftData try to sync it, fail, and open EMPTY (build 12).
 
 // ============================================================================
 // MARK: - BUILD LOG
@@ -131,66 +198,59 @@
 //  5  b9e6411  Rep buttons +5 · +10 · Other · +daily goal; undo on the "to go" line.
 //              Never installed on its own; build 6 includes it.
 //  6  b0b7645  Delete Challenge into the … menu (still confirms); Send to Crew share
-//              button. On his 16e 2026-10-22 ~12:1x.
+//              button. On his 16e ~12:16.
+//  7–9         Developer notes only.
+//  10 d6be5f7  Crew invites: Settings + TestFlight link, Invite to Crew, repcrew://
+//              join link, Join sheet. On his 16e ~12:38; Pushups challenge survived.
+//  11          Developer notes only.
+//  12 ddd5c8f  iCloud: crew check boxes, Invitations, Membership records. ⚠️ OPENED
+//              EMPTY (SwiftData tried to sync the local store). Store on the phone
+//              untouched since 12:38; backed up to the Mac before any fix.
+//  13 4b1d8a1  Fix: local store opts out of iCloud. On his 16e 13:03; challenge back.
+//  14          Developer notes only.
+//  15 88e220b  Crew messages: announcements, Message the Crew, Reply / Reply All on
+//              the notification; push notifications on. On his 16e 13:13.
 //
-//  10 d6be5f7  Crew invites (his design, 2026-10-22 ~12:30): Settings holds your name +
-//              the TestFlight link; Invite to Crew (Settings and each challenge) sends
-//              the TestFlight link + a repcrew://join link; joining adds the challenge,
-//              fills the joiner's TestFlight link ("hot potato"), adds the sender to
-//              Your crew, and makes the joiner crew member sender + 1. Michael = 0.
-//              On his 16e ~12:38; his Pushups challenge survived the update.
-//              Tested: link round trip + message text (swiftc), scheme registered
-//              (simulator offered "Open in Rep Crew"). NOT tested: tapping Accept, and
-//              whether Messages makes repcrew:// tappable. Needs a second phone.
+//  His first real challenge: "Pushups challenge", 7 days from Oct 22, 100 a day.
 //
-//  12 ddd5c8f  iCloud (CloudKit public DB, iCloud.com.nightgard.RepCrew): crew check boxes
-//              on New Challenge, Invitations on Home, Membership records. ⚠️ OPENED EMPTY:
-//              the entitlement made SwiftData try to sync the local store via CloudKit.
-//              Store on the phone untouched (12:38), backed up to the Mac first.
-//  13 4b1d8a1  Fix: ModelConfiguration(cloudKitDatabase: .none). On his 16e 13:03; his
-//              Pushups challenge is back.
-//
-//  His first real challenge on the 16e: "Pushups challenge", 7 days from Oct 22,
-//  100 push-ups a day.
+//  Tested so far: invite link round trip and message text (swiftc); repcrew://
+//  registered (simulator offered "Open in Rep Crew"); app opens with data intact on
+//  the 16e. NOT tested yet, and each needs a SECOND phone on another iCloud account:
+//  tapping Accept, whether Messages makes repcrew:// tappable, check boxes reaching
+//  a member, notifications arriving, Reply / Reply All. CloudKit queries may also
+//  need queryable indexes (crewID, toID, leaderID, memberIDs) in the CloudKit Console;
+//  if so, the error shows in Settings → iCloud.
 
 // ============================================================================
-// MARK: - CREW + TESTFLIGHT PLAN (proposed, not built)
+// MARK: - BEFORE THE FIRST TESTFLIGHT
 // ============================================================================
 //
-//  • The app can't create TestFlight invites; only the developer can, in App Store
-//    Connect.
-//  • Install: a TestFlight PUBLIC LINK (up to 10,000 testers, after Apple's beta
-//    review, ~1 day for outside testers).
-//  • Join: the leader taps Invite to Crew and sends a crew link (iCloud sharing,
-//    CloudKit, works on iOS 17). The friend installs from TestFlight, then taps the
-//    crew link to join. Proposed: both links in ONE invite message.
-//  • TestFlight builds use CloudKit PRODUCTION. Deploy the schema to Production
-//    before every upload that changes the crew data.
-//  • His steps: create the App Store Connect record (it also reserves the name).
-//    Nothing gets uploaded without his word.
-//  His design (2026-10-22): a new challenge assembles a crew. Returning members
-//  (from other challenges) just get a CHECK BOX; new people get a share-sheet text or
-//  email with the TestFlight link. The TestFlight link lives in Settings and passes
-//  along with each invite so any member can invite. "i only expect three". "viral was
-//  a metephore".
-//  ⬜ NOT BUILT: the returning-members check box. Delivering a challenge to someone's
-//     phone without a message needs iCloud (CloudKit). Until then, a check box would
-//     do nothing (no-placeholders rule).
-//  ⬜ Open: can members edit the challenge, or only the leader? · He hasn't said
-//     whether to plan invites this way.
+//  1. Michael: create the Rep Crew record in App Store Connect (reserves the name).
+//  2. Michael (his sign-in): CloudKit Console → deploy the schema to PRODUCTION, with
+//     indexes. TestFlight builds use Production, not Development. Repeat whenever the
+//     crew data changes shape.
+//  3. Switch aps-environment to production for the TestFlight build (archive does
+//     this through the distribution profile).
+//  4. Claude, at his word only: upload. Then Michael turns on the public link; Apple's
+//     beta review for outside testers takes about a day.
+//  5. Michael pastes the public link into Settings — he is crew member 0.
+//  The app can't create TestFlight invites; only the developer can, in App Store
+//  Connect. Public link cap is 10,000 testers (he expects three).
 
 // ============================================================================
 // MARK: - ROADMAP
 // ============================================================================
 //
-//  1. ✅ Solo challenges on one iPhone. Create a challenge (days, start date, daily
-//        goal per exercise), log reps (+5/+10/Other/+goal, undo), see what's left
-//        today, day-by-day record, Send to Crew (share sheet), About with build number.
-//  2. ⬜ Crew: leader invites, members join, everyone sees each other's progress
-//        (iCloud sharing).
-//  3. ⬜ "Completed today" notifications to the crew.
-//  4. ⬜ TestFlight public link + App Store Connect record.
-//  5. ⬜ Later ideas from the call: strength log, rings, 2-mile run, chat.
+//  1. ✅ Solo challenges on one iPhone. Create, log reps (+5/+10/Other/+goal, undo),
+//        what's left today, day-by-day record, Send to Crew, About with build number.
+//  2. ✅ Crew invites with the hot-potato TestFlight link. (built, untested on 2 phones)
+//  3. ✅ Crew check boxes through iCloud. (built, untested on 2 phones)
+//  4. ✅ Crew messages + Reply / Reply All. (built, untested on 2 phones)
+//  5. ⬜ First TestFlight (see above).
+//  6. ⬜ Everyone sees each other's reps for the day.
+//  7. ⬜ "Completed today" notification ("James completed his daily challenge").
+//  8. ⬜ Later ideas from the call: strength log, rings, 2-mile run.
+//  ⬜ Open question: can members edit a challenge, or only the leader?
 
 // ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE
