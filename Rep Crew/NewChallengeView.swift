@@ -148,6 +148,7 @@ struct NewChallengeView: View {
                                                leaderNumber: number, testFlight: link, memberIDs: members)
             }
         }
+        try? context.save()
         dismiss()
     }
 }

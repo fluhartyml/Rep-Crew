@@ -83,6 +83,7 @@ struct ContentView: View {
                 }
                 .onDelete { offsets in
                     for index in offsets { context.delete(items[index]) }
+                    try? context.save()
                 }
             } header: {
                 Text(title).font(AppFont.bodyBold).textCase(nil)
@@ -114,6 +115,7 @@ struct ContentView: View {
         for member in await cloud.members() where !crew.contains(where: { $0.cloudID == member.id }) {
             context.insert(CrewMember(name: member.name, crewNumber: member.number, cloudID: member.id))
         }
+        try? context.save()
         let skip = Set(challenges.map(\.crewID).filter { !$0.isEmpty })
             .union(declined.split(separator: "\n").map(String.init))
         await cloud.refreshPending(skipping: skip)

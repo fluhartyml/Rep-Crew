@@ -112,6 +112,7 @@ struct JoinView: View {
                 context.insert(exercise)
             }
         }
+        try? context.save()
         dismiss()
     }
 }

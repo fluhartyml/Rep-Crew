@@ -81,6 +81,7 @@ struct ChallengeDetailView: View {
         .confirmationDialog("Delete \(challenge.title)?", isPresented: $confirmingDelete, titleVisibility: .visible) {
             Button("Delete Challenge and All Its Reps", role: .destructive) {
                 context.delete(challenge)
+                try? context.save()
                 dismiss()
             }
         } message: {
@@ -195,10 +196,11 @@ private struct GoalRow: View {
         let entry = RepEntry(count: count)
         entry.goal = goal
         context.insert(entry)
+        try? context.save()
     }
 
     private func undo() {
-        if let last = goal.lastEntry(on: .now) { context.delete(last) }
+        if let last = goal.lastEntry(on: .now) { context.delete(last); try? context.save() }
     }
 }
 
@@ -262,6 +264,7 @@ private struct CustomRepsView: View {
                         let entry = RepEntry(count: count)
                         entry.goal = goal
                         context.insert(entry)
+                        try? context.save()
                         dismiss()
                     }
                     .font(AppFont.bodyBold)
