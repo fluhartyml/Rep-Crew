@@ -133,7 +133,7 @@
 //  5  b9e6411  Rep buttons +5 · +10 · Other · +daily goal; undo on the "to go" line.
 //              Never installed on its own; build 6 includes it.
 //  6  b0b7645  Delete Challenge into the … menu (still confirms); Send to Crew share
-//              button. On his 16e 2026-10-22 ~12:2x.
+//              button. On his 16e 2026-10-22 ~12:1x.
 //
 //  His first real challenge on the 16e: "Pushups challenge", 7 days from Oct 22,
 //  100 push-ups a day.
