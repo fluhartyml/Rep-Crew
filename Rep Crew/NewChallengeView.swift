@@ -136,7 +136,8 @@ struct NewChallengeView: View {
             goal.challenge = challenge
             context.insert(goal)
         }
-        if !checked.isEmpty {
+        // Every challenge goes to the shared space, checked crew or not, so the whole crew sees it.
+        do {
             challenge.crewID = UUID().uuidString
             let info = Invite.ChallengeInfo(challenge)
             let leader = name.trimmingCharacters(in: .whitespaces)

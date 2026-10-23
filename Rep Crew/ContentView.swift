@@ -14,6 +14,10 @@ struct ContentView: View {
     @Query private var crew: [CrewMember]
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage(CrewSettings.declined) private var declined = ""
+    @AppStorage(CrewSettings.name) private var name = ""
+    @AppStorage(CrewSettings.testFlight) private var testFlight = ""
+    @AppStorage(CrewSettings.crewNumber) private var crewNumber = 0
+    @State private var listings: [CrewListing] = []
     private var cloud = CrewCloud.shared
 
     @State private var showingNew = false
@@ -28,13 +32,14 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if challenges.isEmpty && cloud.pending.isEmpty {
+                if challenges.isEmpty && cloud.pending.isEmpty && others.isEmpty {
                     emptyState
                 } else {
                     List {
                         invitations
                         section("Today", active)
                         section("Starting soon", upcoming)
+                        crewChallenges
                         section("Finished", finished)
                     }
                     .refreshable { await syncCrew() }
@@ -46,6 +51,7 @@ struct ContentView: View {
             }
             .navigationTitle("Rep Crew")
             .navigationDestination(for: Challenge.self) { ChallengeDetailView(challenge: $0) }
+            .navigationDestination(for: CrewListing.self) { CrewChallengeView(listing: $0) }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { showingAbout = true } label: {
@@ -110,8 +116,40 @@ struct ContentView: View {
         }
     }
 
+    /// Everyone else's challenges: not on this phone and not already waiting as an invitation.
+    private var others: [CrewListing] {
+        let mine = Set(challenges.map(\.crewID)).union(cloud.pending.compactMap { $0.challenge?.crewID })
+        return listings.filter { !mine.contains($0.id) }.sorted { $0.info.startDay > $1.info.startDay }
+    }
+
+    @ViewBuilder
+    private var crewChallenges: some View {
+        if !others.isEmpty {
+            Section {
+                ForEach(others) { listing in
+                    NavigationLink(value: listing) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(listing.info.title).font(AppFont.bodyBold)
+                            Text("\(listing.leaderName) · \(listing.status)").font(AppFont.body)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            } header: {
+                Text("Crew challenges").font(AppFont.bodyBold).textCase(nil)
+            }
+        }
+    }
+
     /// Pulls in who has joined your challenges, and challenges you've been checked off for.
     private func syncCrew() async {
+        // Challenges you started go to the shared space so the whole crew can see them.
+        let leader = name.trimmingCharacters(in: .whitespaces)
+        for challenge in challenges where challenge.leaderID.isEmpty && !challenge.isFinished {
+            if challenge.crewID.isEmpty { challenge.crewID = UUID().uuidString }
+            await cloud.ensurePublished(Invite.ChallengeInfo(challenge), leaderName: leader.isEmpty ? "Your crew leader" : leader,
+                                        leaderNumber: crewNumber, testFlight: testFlight.trimmingCharacters(in: .whitespaces))
+        }
         for member in await cloud.members() where !crew.contains(where: { $0.cloudID == member.id }) {
             context.insert(CrewMember(name: member.name, crewNumber: member.number, cloudID: member.id))
         }
@@ -121,6 +159,7 @@ struct ContentView: View {
         await cloud.refreshPending(skipping: skip)
         await CrewNotifications.requestPermission()
         await cloud.subscribe(crewIDs: challenges.map(\.crewID).filter { !$0.isEmpty })
+        listings = await cloud.crewChallenges()
     }
 
     private var emptyState: some View {

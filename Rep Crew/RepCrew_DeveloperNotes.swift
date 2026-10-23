@@ -257,6 +257,13 @@
 //  5. ✅ First TestFlight. Build 21 in external review (Smitty's Crew); internal works (his
 //        word 2026-10-22 16:2x).
 //  6. ✅ Leaderboard — everyone sees each other's reps for the day (Leaderboard.swift).
+//     Widened 2026-10-22 ~21:1x, his word: "i want the crew that have access to the app see
+//     all of the challenges where they can see other crew members status" · "the crew is the
+//     app downloader". Every challenge is published to CrewChallenge (with endsAt); Home lists
+//     everyone else's under "Crew challenges", each opening to its board. Needs queryable
+//     CrewChallenge.endsAt in the Production deploy.
+//     ⬜ Step 2, his ask: a button on someone else's challenge to ask its leader to "tap in
+//     and join".
 //        Built 2026-10-22 ~21:00, compiles; untested on 2 phones. New iCloud record type
 //        Progress (crewID, memberID, name, dayNumber, reps, complete, streak) — needs
 //        queryable crewID + dayNumber, and Membership.crewID, in the Production deploy.

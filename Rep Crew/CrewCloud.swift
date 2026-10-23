@@ -63,11 +63,55 @@ final class CrewCloud {
         record["leaderNumber"] = leaderNumber
         record["testFlight"] = testFlight
         record["memberIDs"] = memberIDs
+        record["endsAt"] = Self.endsAt(info)
         do {
             _ = try await db.modifyRecords(saving: [record], deleting: [], savePolicy: .allKeys)
             status = "Connected to iCloud"
         } catch {
             status = "Couldn't share \(info.title): \(error.localizedDescription)"
+        }
+    }
+
+    /// Makes sure a challenge you started is in the shared space, so the whole crew can see it.
+    /// One that's already there keeps its checked members; it only gains an end date if it lacks one.
+    func ensurePublished(_ info: Invite.ChallengeInfo, leaderName: String, leaderNumber: Int, testFlight: String) async {
+        await connect()
+        guard myID != nil else { return }
+        do {
+            let record = try await db.record(for: CKRecord.ID(recordName: info.crewID))
+            guard record["endsAt"] == nil else { return }
+            record["endsAt"] = Self.endsAt(info)
+            _ = try await db.modifyRecords(saving: [record], deleting: [], savePolicy: .changedKeys)
+        } catch let error as CKError where error.code == .unknownItem {
+            await publish(info, leaderName: leaderName, leaderNumber: leaderNumber, testFlight: testFlight, memberIDs: [])
+        } catch {
+            status = "Couldn't share \(info.title): \(error.localizedDescription)"
+        }
+    }
+
+    /// The moment after a challenge's last day, so finished ones drop off the crew list.
+    private static func endsAt(_ info: Invite.ChallengeInfo) -> Date {
+        let start = Invite.date(fromDay: info.startDay) ?? .now
+        return Calendar.current.date(byAdding: .day, value: info.days, to: start) ?? start
+    }
+
+    /// Every challenge anyone on the app is running or about to start. His word, 2026-10-22:
+    /// "the crew is the app downloader" — everyone who has the app sees every challenge.
+    func crewChallenges() async -> [CrewListing] {
+        await connect()
+        guard myID != nil else { return [] }
+        let query = CKQuery(recordType: "CrewChallenge", predicate: NSPredicate(format: "endsAt > %@", Date.now as NSDate))
+        do {
+            let (results, _) = try await db.records(matching: query, resultsLimit: 200)
+            return results.compactMap { try? $0.1.get() }.compactMap { record in
+                guard let invite = Self.invite(from: record), let info = invite.challenge else { return nil }
+                return CrewListing(info: info, leaderID: invite.fromID ?? "", leaderName: invite.from)
+            }
+        } catch let error as CKError where error.code == .unknownItem {
+            return []   // No challenge has been shared yet, so the record type doesn't exist yet.
+        } catch {
+            status = "Couldn't load the crew's challenges: \(error.localizedDescription)"
+            return []
         }
     }
 

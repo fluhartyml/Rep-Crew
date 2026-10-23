@@ -24,6 +24,35 @@ struct CrewStanding: Identifiable {
     var streak = 0
 }
 
+/// Someone else's challenge, as the whole crew sees it.
+struct CrewListing: Identifiable, Hashable {
+    let info: Invite.ChallengeInfo
+    let leaderID: String
+    let leaderName: String
+
+    var id: String { info.crewID }
+    static func == (a: Self, b: Self) -> Bool { a.id == b.id }
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+
+    private var startDate: Date { Calendar.current.startOfDay(for: Invite.date(fromDay: info.startDay) ?? .now) }
+
+    /// 1-based day number today, or nil before it starts.
+    var dayNumber: Int? {
+        guard let offset = Calendar.current.dateComponents([.day], from: startDate, to: Calendar.current.startOfDay(for: .now)).day,
+              offset >= 0, offset < info.days else { return nil }
+        return offset + 1
+    }
+
+    var status: String {
+        if let day = dayNumber { return "Day \(day) of \(info.days)" }
+        return "Starts \(startDate.formatted(date: .abbreviated, time: .omitted))"
+    }
+
+    var goalsText: String {
+        info.goals.map { "\($0.target) \($0.name.lowercased())" }.joined(separator: " and ") + " a day for \(info.days) days"
+    }
+}
+
 // MARK: - iCloud
 
 extension CrewCloud {
@@ -186,5 +215,48 @@ private struct StandingRow: View {
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(row.name), \(row.reps) reps today" + (row.streak > 0 ? ", \(row.streak) day streak" : ""))
+    }
+}
+
+// MARK: - Someone else's challenge
+
+struct CrewChallengeView: View {
+    let listing: CrewListing
+    @State private var rows: [CrewStanding] = []
+
+    private var sorted: [CrewStanding] {
+        rows.sorted { $0.reps != $1.reps ? $0.reps > $1.reps : $0.name < $1.name }
+    }
+
+    var body: some View {
+        List {
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(listing.status).font(AppFont.title)
+                    Text(listing.goalsText).font(AppFont.body)
+                    Text("Led by \(listing.leaderName)").font(AppFont.body).foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 6)
+            }
+            if let day = listing.dayNumber {
+                Section {
+                    ForEach(sorted) { row in
+                        StandingRow(row: row, isMe: false)
+                    }
+                } header: {
+                    Text("Day \(day) of \(listing.info.days) · Crew \(rows.filter(\.complete).count)/\(rows.count) ✓")
+                        .font(AppFont.bodyBold).textCase(nil)
+                }
+                // Keeps the board current while the screen is open.
+                .task(id: day) {
+                    while !Task.isCancelled {
+                        rows = await CrewCloud.shared.standings(crewID: listing.id, dayNumber: day)
+                        try? await Task.sleep(for: .seconds(60))
+                    }
+                }
+            }
+        }
+        .navigationTitle(listing.info.title)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
