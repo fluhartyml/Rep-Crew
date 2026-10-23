@@ -20,7 +20,6 @@ struct SettingsView: View {
     @State private var isGod = false
 
     private var linkIsValid: Bool { Invite.isTestFlightLink(testFlight) }
-    private var trimmedName: String { name.trimmingCharacters(in: .whitespaces) }
 
     var body: some View {
         NavigationStack {
@@ -48,15 +47,8 @@ struct SettingsView: View {
                     Text(linkFooter).font(AppFont.body)
                 }
 
-                Section {
-                    if let invite = crewInvite {
-                        ShareLink(item: invite.message) {
-                            Label("Invite to Crew", systemImage: "person.badge.plus").font(AppFont.bodyBold)
-                        }
-                    } else {
-                        Text("Add your name to send invites.").font(AppFont.body)
-                    }
-                }
+                // REM: His word 2026-10-22: "yes remove it" — Invite to Crew is gone; Share Challenge on
+                // each challenge carries the join link.
 
                 Section {
                     if crew.isEmpty {
@@ -101,13 +93,6 @@ struct SettingsView: View {
     private var linkFooter: String {
         if testFlight.isEmpty { return "Invites use Rep Crew's public TestFlight link. Paste a different one here to override it." }
         return linkIsValid ? "Every invite you send includes this link." : "This doesn't look like a TestFlight link. It should start with https://testflight.apple.com/join/"
-    }
-
-    /// An invite to the crew with no challenge attached.
-    private var crewInvite: Invite? {
-        guard !trimmedName.isEmpty else { return nil }
-        return Invite(from: trimmedName, crewNumber: crewNumber, testFlight: Invite.testFlightLink(testFlight),
-                      challenge: nil, fromID: CrewCloud.shared.myID)
     }
 
     private func header(_ text: String) -> some View {
