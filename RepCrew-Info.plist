@@ -13,5 +13,9 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Take a photo of your crew to share on the challenge.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Save crew photos to your photo library.</string>
 </dict>
 </plist>

@@ -37,6 +37,8 @@ struct ChallengeDetailView: View {
 
             LeaderboardSection(challenge: challenge)
 
+            PhotoBoardSection(crewID: challenge.crewID, leaderID: challenge.leaderID, canAdd: true)
+
             Section {
                 ForEach(challenge.allDays, id: \.self) { day in
                     DayRow(challenge: challenge, day: day)

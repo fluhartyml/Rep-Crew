@@ -281,7 +281,12 @@
 //  7. ⬜ "Completed today" notification ("James completed his daily challenge").
 //  8. ⬜ Watch sets + Health (rings). See PLAN below.
 //  9. ⬜ Later ideas from the call: strength log, 2-mile run.
-//  10. ⬜ Photo board per challenge (his, 2026-10-22 ~21:3x): "photo board or photo thumbnails
+//  10. ✅ Photo board per challenge (PhotoBoard.swift, built ~21:4x, compiles; untested).
+//        Long-press a thumbnail → Save to Photos; save button in the full-size view too (his:
+//        "i want anyone to be able to long press on a photo or something similar to save to
+//        their camera roll"). Poster deletes own; leader hides others' via PhotoRemoval.
+//        New iCloud types CrewPhoto + PhotoRemoval (queryable crewID) for the Production deploy.
+//      Photo board per challenge (his, 2026-10-22 ~21:3x): "photo board or photo thumbnails
 //        for a challenge, maybe the crew is at a gym doing challenges together perhaps a
 //        crewmember takes a picture of the team on the treadmills or someone doing swiming
 //        laps". Crew adds from camera or library; thumbnails on the challenge; tap = full size.

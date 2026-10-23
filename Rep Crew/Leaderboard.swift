@@ -377,6 +377,7 @@ struct CrewChallengeView: View {
                     Text("Leaderboard").font(AppFont.bodyBold).textCase(nil)
                 }
             }
+            PhotoBoardSection(crewID: listing.id, leaderID: listing.leaderID, canAdd: false)
         }
         .navigationTitle(listing.info.title)
         .navigationBarTitleDisplayMode(.inline)
