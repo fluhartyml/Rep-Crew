@@ -35,6 +35,21 @@ struct AboutView: View {
                     Text("Build").font(AppFont.bodyBold).textCase(nil)
                 }
 
+                // Published contact information (App Review guideline 1.2) — his pick, 2026-10-22:
+                // "make a support page on fluharty.me".
+                Section {
+                    Link(destination: URL(string: "https://fluharty.me/support/repcrew")!) {
+                        Label("Rep Crew Support", systemImage: "questionmark.circle").font(AppFont.bodyBold)
+                    }
+                    Link(destination: URL(string: "mailto:michael@fluharty.com")!) {
+                        Label("Email Support", systemImage: "envelope").font(AppFont.bodyBold)
+                    }
+                } header: {
+                    Text("Need help?").font(AppFont.bodyBold).textCase(nil)
+                } footer: {
+                    Text("Include the build number above.").font(AppFont.body)
+                }
+
                 Section {
                     Text("Rep Crew is a way to keep track of your own exercise. It is not medical advice. Check with a doctor before starting a new exercise routine, and stop if something hurts.")
                         .font(AppFont.body)

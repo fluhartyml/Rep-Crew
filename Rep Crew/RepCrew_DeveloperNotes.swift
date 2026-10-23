@@ -301,7 +301,8 @@
 //        senderName, reporterID, reportedAt) → CloudKit Console until god mode; photo hidden
 //        for the reporter. Guideline 1.2 as read 2026-10-22 asks for: (1) a filter for
 //        objectionable material ⬜, (2) report + timely response ✅ report / ⬜ his response,
-//        (3) block abusive users ✅, (4) published contact info ⬜ (his pick: email or page).
+//        (3) block abusive users ✅, (4) published contact info ✅ fluharty.me/support/repcrew (his pick)
+//        + email, in About → Need help?
 //        New iCloud types CrewBan + Report for the Production deploy.
 //  13. ⬜ God mode (his, 2026-10-22): "i plan on having 'god mode'" — the developer's
 //        moderation over every challenge. Scope not settled yet; ask him before building.
