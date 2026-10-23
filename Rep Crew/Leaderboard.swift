@@ -126,8 +126,15 @@ extension CrewCloud {
         } catch {
             status = "Couldn't load the crew board: \(error.localizedDescription)"
         }
-        let hide = await hidden(crewID: crewID, leaderID: leaderID)
-        return board.values.filter { !hide.contains($0.id) }
+        // His word: "if a crew member is banned their name is replaced on leaderboards as
+        // 'Disqualified'". People you blocked still don't show at all.
+        let banned = await banned(crewID: crewID, leaderID: leaderID)
+        let blocked = Blocklist.ids
+        return board.values.filter { !blocked.contains($0.id) }.map { row in
+            var row = row
+            if banned.contains(row.id) { row.name = "Disqualified" }
+            return row
+        }
     }
 }
 
@@ -215,7 +222,7 @@ struct BoardBlock<Link: Hashable>: View {
                 }
             }
         } message: { _ in
-            Text("They leave the board, their photos and messages are hidden, and they can't rejoin.")
+            Text("Their name shows as Disqualified on the board, their photos and messages are hidden, and they can't rejoin.")
         }
         .confirmationDialog("Block \(blocking?.name ?? "them")?",
                             isPresented: Binding(get: { blocking != nil }, set: { if !$0 { blocking = nil } }),

@@ -8,8 +8,8 @@
 //  This file covers three of those:
 //
 //    Ban     The leader removes someone from a challenge for good. CrewBan record, name =
-//            ban.<crewID>.<memberID>; every phone honors it only when the leader wrote it, and
-//            hides that person's rows, photos and messages in that challenge.
+//            ban.<crewID>.<memberID>; every phone honors it only when the leader wrote it, shows
+//            them as "Disqualified" on the board, and hides their photos and messages.
 //    Report  Anyone reports a photo. A Report record reaches the developer (CloudKit Console
 //            today; god mode later), and the photo disappears for the person who reported it.
 //    Block   Anyone blocks a person. Kept on this phone only; their rows, photos and messages
