@@ -82,6 +82,8 @@ final class CrewCloud {
                 guard let id = record["memberID"] as? String, let name = record["name"] as? String else { return nil }
                 return (id, name, record["crewNumber"] as? Int ?? 0)
             }
+        } catch let error as CKError where error.code == .unknownItem {
+            return []   // No one has joined yet, so the record type doesn't exist yet.
         } catch {
             status = "Couldn't load your crew: \(error.localizedDescription)"
             return []
@@ -99,6 +101,8 @@ final class CrewCloud {
             let (results, _) = try await db.records(matching: query)
             pending = results.compactMap { try? $0.1.get() }.compactMap(Self.invite(from:))
                 .filter { !crewIDs.contains($0.challenge?.crewID ?? "") }
+        } catch let error as CKError where error.code == .unknownItem {
+            pending = []   // No challenge has been shared yet, so the record type doesn't exist yet.
         } catch {
             status = "Couldn't check for challenges: \(error.localizedDescription)"
         }
