@@ -50,6 +50,10 @@ struct ContentView: View {
                 }
             }
             .task { await syncCrew() }
+            // Matched Health workouts check off days on Home too; asks for nothing until something is paired.
+            .task(id: scenePhase) {
+                if scenePhase == .active, challenges.contains(where: \.countsHealth) { await HealthLibrary.shared.refresh() }
+            }
             .task(id: watchSignature) { WatchBridge.shared.sendGoals(challenges) }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { Task { await syncCrew() } }

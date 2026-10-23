@@ -86,6 +86,10 @@ final class ExerciseGoal {
     @Relationship(deleteRule: .cascade, inverse: \RepEntry.goal)
     var entries: [RepEntry] = []
 
+    /// Health workouts paired with this exercise on Match Health Workouts (HealthMatch.swift).
+    @Relationship(deleteRule: .cascade, inverse: \HealthMatch.goal)
+    var healthMatches: [HealthMatch] = []
+
     init(name: String, dailyTarget: Int, order: Int) {
         self.name = name
         self.dailyTarget = dailyTarget
@@ -98,7 +102,8 @@ final class ExerciseGoal {
     }
 
     func remaining(on date: Date) -> Int { max(dailyTarget - total(on: date), 0) }
-    func isMet(on date: Date) -> Bool { total(on: date) >= dailyTarget }
+    /// Reps reached the target, or a Health workout paired as "Checks off the day" was recorded that day.
+    func isMet(on date: Date) -> Bool { total(on: date) >= dailyTarget || checkedByHealth(on: date) }
 
     /// The most recent entry logged on `date`, for undo.
     func lastEntry(on date: Date) -> RepEntry? {

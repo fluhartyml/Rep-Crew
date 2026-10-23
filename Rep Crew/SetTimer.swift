@@ -7,7 +7,8 @@
 //  the app never says so: "we would never say 'close your rings' or any trade marks".
 //
 //  iPhone measures only the set's real start and end, so the workout carries time and no
-//  calories. Never invent time or calories. Health access is write-only: workouts, nothing read.
+//  calories. Never invent time or calories. Health access: write workouts, and (since 2026-10-23,
+//  his "lock in 022g") read workouts + active energy for the matching screen (HealthMatch.swift).
 //
 
 import HealthKit
@@ -15,7 +16,10 @@ import SwiftData
 import SwiftUI
 
 enum HealthSets {
-    private static let store = HKHealthStore()
+    static let store = HKHealthStore()
+    static let shareTypes: Set<HKSampleType> = [HKObjectType.workoutType()]
+    /// Read for Match Health Workouts only. Asked in the same prompt as saving, so it's one question.
+    static let readTypes: Set<HKObjectType> = [HKObjectType.workoutType(), HKQuantityType(.activeEnergyBurned)]
 
     /// Saves one set as a strength workout with its real start and end. False when Health is
     /// unavailable or you said no; your reps are logged either way.
@@ -23,7 +27,7 @@ enum HealthSets {
         guard HKHealthStore.isHealthDataAvailable() else { return false }
         let workout = HKObjectType.workoutType()
         do {
-            try await store.requestAuthorization(toShare: [workout], read: [])
+            try await store.requestAuthorization(toShare: shareTypes, read: readTypes)
             guard store.authorizationStatus(for: workout) == .sharingAuthorized else { return false }
             let configuration = HKWorkoutConfiguration()
             configuration.activityType = .traditionalStrengthTraining

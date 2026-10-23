@@ -38,6 +38,17 @@ struct SettingsView: View {
                 MyProfileSection()
 
                 Section {
+                    NavigationLink { HealthMatchView() } label: {
+                        Text("Match Health Workouts").font(AppFont.bodyBold)
+                    }
+                } header: {
+                    header("Health")
+                } footer: {
+                    Text("Pair workouts other apps saved to Health with your Rep Crew exercises, and pick how they count.")
+                        .font(AppFont.body)
+                }
+
+                Section {
                     TextField("https://testflight.apple.com/join/…", text: $testFlight, axis: .vertical)
                         .font(AppFont.body)
                         .keyboardType(.URL)

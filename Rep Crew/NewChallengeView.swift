@@ -29,6 +29,17 @@ struct NewChallengeView: View {
     @State private var drafts: [Draft] = [Draft(name: "Push-ups", target: 100)]
     @State private var checked: Set<String> = []
     @State private var isPublic = true
+    /// Match Health Workouts' "New Challenge": hands back the new exercise so it can be paired.
+    private let onCreate: ((ExerciseGoal) -> Void)?
+
+    /// `workout`: a Health workout's name, from Match Health Workouts, filled in as the challenge and its exercise.
+    init(fromHealth workout: String? = nil, onCreate: ((ExerciseGoal) -> Void)? = nil) {
+        self.onCreate = onCreate
+        if let workout {
+            _title = State(initialValue: "\(workout) Challenge")
+            _drafts = State(initialValue: [Draft(name: workout, target: 1)])
+        }
+    }
 
     /// Crew members reachable through iCloud — the ones a check box can actually reach.
     private var reachable: [CrewMember] { crew.filter { !$0.cloudID.isEmpty } }
@@ -146,11 +157,14 @@ struct NewChallengeView: View {
         let challenge = Challenge(title: trimmedTitle, startDate: startDate, days: days)
         challenge.isPublic = isPublic
         context.insert(challenge)
+        var first: ExerciseGoal?
         for (index, draft) in validDrafts.enumerated() {
             let goal = ExerciseGoal(name: draft.name.trimmingCharacters(in: .whitespaces), dailyTarget: draft.target, order: index)
             goal.challenge = challenge
             context.insert(goal)
+            if first == nil { first = goal }
         }
+        if let first { onCreate?(first) }
         // Every challenge goes to the shared space, checked crew or not, so the whole crew sees it.
         do {
             challenge.crewID = UUID().uuidString

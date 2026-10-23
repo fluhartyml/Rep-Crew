@@ -25,7 +25,7 @@ struct RepCrewApp: App {
     /// shared space (CrewCloud), and without `.none` SwiftData would try to sync this store
     /// through iCloud too, fail, and open empty — build 12 did exactly that.
     private let container: ModelContainer = {
-        let schema = Schema([Challenge.self, ExerciseGoal.self, RepEntry.self, CrewMember.self])
+        let schema = Schema([Challenge.self, ExerciseGoal.self, RepEntry.self, CrewMember.self, HealthMatch.self])
         let config = ModelConfiguration(schema: schema, cloudKitDatabase: .none)
         do {
             return try ModelContainer(for: schema, configurations: config)

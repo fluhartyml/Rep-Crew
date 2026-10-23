@@ -448,6 +448,24 @@
 //    ("lock in 022g"): build the matching screen; Health READ of workouts is approved.
 //    LOCKED, his word: "colum a is the data source of truth" — the member matches A's
 //    data to B's; Rep Crew counts what Health recorded and never edits or invents it.
+//    LOCKED, his word 2026-10-23 ~14:15: how a matched workout counts is the MEMBER's
+//    choice — "maybe a toggle left for the crew member to decide" / "if in doubt let the
+//    user decide" (a standing design rule: unsure → make it the user's setting). Health
+//    workouts carry time + calories, no reps; options: off, checks off the day, minutes,
+//    calories.
+//    🟡 BUILT 2026-10-23, not tested (HealthMatch.swift; compiles). Settings → Health → Match
+//    Health Workouts, and the same link on every unfinished challenge. Column A = last year of
+//    workouts by type + source app, minus Rep Crew's own (source bundle ID starts with ours, or
+//    brand "Rep Crew"); Column B = exercises of unfinished challenges. Each A row → one exercise,
+//    or "New Challenge from <workout>" (prefilled, 1 a day, paired on save). New pairings start
+//    Off. Pairings are SwiftData (new @Model HealthMatch, cascade with its ExerciseGoal).
+//    Checks off the day → ExerciseGoal.isMet is true that day. Minutes / Calories → summed per day,
+//    shown on the goal and under your name on the board (board still ranks by reps). Health read
+//    asked in the same prompt as saving sets; Home/detail only ask once something is paired.
+//    ⚠️ Schema: Progress gains minutes + calories (INT64) — import to Development, deploy to
+//    Production. Until then a Production save retries without them, so reps still post.
+//    ⚠️ Untested: what Health returns when read is denied (expected: empty list), calories from
+//    apps that store energy only as samples, a workout spanning midnight (counts on its start day).
 
 // ============================================================================
 // MARK: - PLAN: LEADERBOARD + WATCH + HEALTH (his, 2026-10-22 ~20:00)
@@ -472,6 +490,7 @@
 //  • iPhone without a Watch: the same "Start set" timer, saved as a workout with real
 //    start/end only → Exercise credit, no calories. NEVER invent time or calories.
 //  • Health permission: write workouts only. Read nothing unless he asks later.
+//    SUPERSEDED 2026-10-23: read workouts + active energy approved for the matching screen.
 //  • Sources (2026-10-22, not yet tested on a device): Apple Support "How to manually add
 //    a workout in the Health app" — calories earn Move, start/end time earns Exercise;
 //    Apple's archived ActivityRings sample — a workout saved on Watch counts toward the

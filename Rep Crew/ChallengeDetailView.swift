@@ -39,6 +39,15 @@ struct ChallengeDetailView: View {
                 }
             }
 
+            if !challenge.isFinished {
+                Section {
+                    // Pair workouts other apps saved to Health with these exercises (HealthMatch.swift).
+                    NavigationLink { HealthMatchView() } label: {
+                        Label("Match Health Workouts", systemImage: "heart.text.square").font(AppFont.bodyBold)
+                    }
+                }
+            }
+
             if removed {
                 Section {
                     Text("The leader removed you from this challenge. Your own reps are still here.").font(AppFont.body)
@@ -93,6 +102,8 @@ struct ChallengeDetailView: View {
         .sheet(item: $customGoal) { goal in CustomRepsView(goal: goal) }
         .sheet(item: $setGoal) { goal in SetTimerView(goal: goal) }
         .onAppear { assignCrewID() }
+        // Only once something is paired, so opening a challenge never asks for Health access by itself.
+        .task { if challenge.countsHealth { await HealthLibrary.shared.refresh() } }
         .task(id: challenge.crewID) { joinRequests = await JoinRequestsSection.load(challenge) }
         .task(id: challenge.crewID) {
             guard !challenge.leaderID.isEmpty, let me = CrewCloud.shared.myID else { return }
@@ -174,6 +185,9 @@ private struct GoalRow: View {
     var body: some View {
         let done = goal.total(on: .now)
         let left = goal.remaining(on: .now)
+        let byHealth = left > 0 && goal.checkedByHealth(on: .now)
+        let minutes = goal.healthMinutes(on: .now)
+        let calories = goal.healthCalories(on: .now)
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
                 Text(goal.name).font(AppFont.heading)
@@ -184,9 +198,9 @@ private struct GoalRow: View {
                 .tint(left == 0 ? .green : .accentColor)
             // Undo sits on the "to go" line so the add buttons get the full width.
             HStack {
-                Text(left == 0 ? "Goal met" : "\(left) to go")
+                Text(left == 0 ? "Goal met" : (byHealth ? "Checked off by a Health workout" : "\(left) to go"))
                     .font(AppFont.bodyBold)
-                    .foregroundStyle(left == 0 ? .green : .primary)
+                    .foregroundStyle(left == 0 || byHealth ? .green : .primary)
                 Spacer()
                 Button { undo() } label: {
                     Image(systemName: "arrow.uturn.backward").font(AppFont.bodyBold)
@@ -194,6 +208,12 @@ private struct GoalRow: View {
                 .buttonStyle(.bordered)
                 .disabled(goal.lastEntry(on: .now) == nil)
                 .accessibilityLabel("Undo last entry")
+            }
+            if minutes > 0 || calories > 0 {
+                Text("From Health today: " + [minutes > 0 ? "\(minutes) min" : nil, calories > 0 ? "\(calories) cal" : nil]
+                    .compactMap { $0 }.joined(separator: " · "))
+                    .font(AppFont.body)
+                    .foregroundStyle(.secondary)
             }
             // +5, +10, Other, then the whole daily goal in one tap (Michael's layout).
             HStack(spacing: 10) {

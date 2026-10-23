@@ -9,7 +9,8 @@
 //
 //  Each phone writes one Progress record per challenge day to the crew's iCloud space:
 //    Progress  name = crewID.memberID.dayNumber; crewID, memberID, name, dayNumber,
-//              reps (today's total across every goal), complete (0/1), streak.
+//              reps (today's total across every goal), complete (0/1), streak,
+//              minutes, calories (today's matched Health workouts, 2026-10-23; 0 when missing).
 //  Day numbers come from the shared start day, so every phone agrees on "today".
 //
 
@@ -23,6 +24,9 @@ struct CrewStanding: Identifiable {
     var reps = 0
     var complete = false
     var streak = 0
+    /// Today's matched Health minutes and calories (HealthMatch.swift). Shown under the name; the board still ranks by reps.
+    var minutes = 0
+    var calories = 0
     /// Banned from this challenge. Their row stays, as "Disqualified", but their profile doesn't open.
     var disqualified = false
 }
@@ -60,7 +64,8 @@ struct CrewListing: Identifiable, Hashable {
 
 extension CrewCloud {
     /// Saves your total for `dayNumber`. Saving the same name again replaces it.
-    func postProgress(crewID: String, dayNumber: Int, name: String, reps: Int, complete: Bool, streak: Int) async {
+    func postProgress(crewID: String, dayNumber: Int, name: String, reps: Int, complete: Bool, streak: Int,
+                      minutes: Int = 0, calories: Int = 0) async {
         await connect()
         guard let myID else { return }
         let record = CKRecord(recordType: "Progress", recordID: CKRecord.ID(recordName: "\(crewID).\(myID).\(dayNumber)"))
@@ -71,10 +76,20 @@ extension CrewCloud {
         record["reps"] = reps
         record["complete"] = complete ? 1 : 0
         record["streak"] = streak
+        record["minutes"] = minutes
+        record["calories"] = calories
         do {
             _ = try await db.modifyRecords(saving: [record], deleting: [], savePolicy: .allKeys)
         } catch {
-            status = "Couldn't share your reps: \(error.localizedDescription)"
+            // REM: until minutes/calories are deployed to Production, a TestFlight save with new fields is
+            // refused. Reps matter most, so send them again without the Health fields.
+            record["minutes"] = nil
+            record["calories"] = nil
+            do {
+                _ = try await db.modifyRecords(saving: [record], deleting: [], savePolicy: .allKeys)
+            } catch {
+                status = "Couldn't share your reps: \(error.localizedDescription)"
+            }
         }
     }
 
@@ -118,6 +133,9 @@ extension CrewCloud {
                     row.reps = record["reps"] as? Int ?? 0
                     row.complete = complete
                     row.streak = record["streak"] as? Int ?? 0
+                    // Missing on records from older builds → 0.
+                    row.minutes = record["minutes"] as? Int ?? 0
+                    row.calories = record["calories"] as? Int ?? 0
                 } else if complete {
                     row.streak = record["streak"] as? Int ?? 0
                 }
@@ -161,7 +179,8 @@ extension Challenge {
     /// Your row comes from this phone, so a tap shows up on the board at once.
     @MainActor var myStanding: CrewStanding {
         CrewStanding(id: CrewCloud.shared.myID ?? "me", name: "You", reps: repsToday,
-                     complete: isComplete(on: .now), streak: streak)
+                     complete: isComplete(on: .now), streak: streak,
+                     minutes: healthMinutesToday, calories: healthCaloriesToday)
     }
 }
 
@@ -299,14 +318,15 @@ struct LeaderboardSection: View {
                 Text("Leaderboard").font(AppFont.bodyBold).textCase(nil)
             }
             // Re-runs whenever your reps change; the short wait lets a run of taps land as one save.
-            .task(id: "\(day).\(challenge.repsToday)") {
+            .task(id: "\(day).\(challenge.repsToday).\(challenge.isComplete(on: .now)).\(challenge.healthMinutesToday).\(challenge.healthCaloriesToday)") {
                 try? await Task.sleep(for: .seconds(1))
                 guard !Task.isCancelled else { return }
                 let me = name.trimmingCharacters(in: .whitespaces)
                 await CrewCloud.shared.postProgress(crewID: challenge.crewID, dayNumber: day,
                                                     name: me.isEmpty ? "A crew member" : me,
                                                     reps: challenge.repsToday, complete: challenge.isComplete(on: .now),
-                                                    streak: challenge.streak)
+                                                    streak: challenge.streak,
+                                                    minutes: challenge.healthMinutesToday, calories: challenge.healthCaloriesToday)
                 await announceFinished(day: day, me: me)
             }
         }
@@ -335,7 +355,13 @@ private struct StandingRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Text(row.name).font(isMe ? AppFont.bodyBold : AppFont.body).lineLimit(1)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(row.name).font(isMe ? AppFont.bodyBold : AppFont.body).lineLimit(1)
+                // Only when nonzero. Plain numbers from Health — no ring words.
+                if !healthLine.isEmpty {
+                    Text(healthLine).font(AppFont.body).foregroundStyle(.secondary).monospacedDigit()
+                }
+            }
             Spacer()
             Text("\(row.reps) reps").font(AppFont.bodyBold).monospacedDigit()
             if row.streak > 0 {
@@ -344,7 +370,13 @@ private struct StandingRow: View {
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(row.name), \(row.reps) reps today" + (row.streak > 0 ? ", \(row.streak) day streak" : ""))
+        .accessibilityLabel("\(row.name), \(row.reps) reps today" + (healthLine.isEmpty ? "" : ", \(healthLine) from Health")
+                            + (row.streak > 0 ? ", \(row.streak) day streak" : ""))
+    }
+
+    private var healthLine: String {
+        [row.minutes > 0 ? "\(row.minutes) min" : nil, row.calories > 0 ? "\(row.calories) cal" : nil]
+            .compactMap { $0 }.joined(separator: " · ")
     }
 }
 
