@@ -82,10 +82,12 @@ extension CrewCloud {
         await connect()
         guard myID != nil else { return [] }
         var board: [String: CrewStanding] = [:]
+        var leaderID = ""
 
         // Whoever started it, if they shared it through iCloud.
         if let leader = try? await db.record(for: CKRecord.ID(recordName: crewID)),
            let id = leader["leaderID"] as? String {
+            leaderID = id
             board[id] = CrewStanding(id: id, name: leader["leaderName"] as? String ?? "Crew leader")
         }
 
@@ -124,7 +126,8 @@ extension CrewCloud {
         } catch {
             status = "Couldn't load the crew board: \(error.localizedDescription)"
         }
-        return Array(board.values)
+        let hide = await hidden(crewID: crewID, leaderID: leaderID)
+        return board.values.filter { !hide.contains($0.id) }
     }
 }
 
@@ -165,8 +168,13 @@ struct BoardBlock<Link: Hashable>: View {
     let days: Int
     /// You, when you're in this challenge.
     var me: CrewStanding?
+    /// You lead this challenge, so you can remove people from it.
+    var canBan = false
 
     @State private var others: [CrewStanding] = []
+    @State private var banning: CrewStanding?
+    @State private var blocking: CrewStanding?
+    @State private var reload = 0
 
     /// Highest reps first. Ties go alphabetical so the order doesn't jump around.
     private var rows: [CrewStanding] {
@@ -184,10 +192,43 @@ struct BoardBlock<Link: Hashable>: View {
             }
             ForEach(rows) { row in
                 StandingRow(row: row, isMe: row.id == me?.id)
+                    .contextMenu {
+                        if row.id != me?.id {
+                            Button { blocking = row } label: {
+                                Label("Block \(row.name)", systemImage: "hand.raised.fill")
+                            }
+                            if canBan {
+                                Button(role: .destructive) { banning = row } label: {
+                                    Label("Remove from Challenge", systemImage: "person.fill.xmark")
+                                }
+                            }
+                        }
+                    }
             }
         }
+        .confirmationDialog("Remove \(banning?.name ?? "them") from this challenge?",
+                            isPresented: Binding(get: { banning != nil }, set: { if !$0 { banning = nil } }),
+                            titleVisibility: .visible, presenting: banning) { row in
+            Button("Remove and Ban", role: .destructive) {
+                Task {
+                    if await CrewCloud.shared.ban(crewID: crewID, memberID: row.id, name: row.name) { reload += 1 }
+                }
+            }
+        } message: { _ in
+            Text("They leave the board, their photos and messages are hidden, and they can't rejoin.")
+        }
+        .confirmationDialog("Block \(blocking?.name ?? "them")?",
+                            isPresented: Binding(get: { blocking != nil }, set: { if !$0 { blocking = nil } }),
+                            titleVisibility: .visible, presenting: blocking) { row in
+            Button("Block", role: .destructive) {
+                Blocklist.block(row.id, name: row.name)
+                reload += 1
+            }
+        } message: { _ in
+            Text("You won't see their reps, photos or messages anywhere. They aren't told. Unblock in Settings.")
+        }
         // Keeps the board current while the screen is open.
-        .task(id: "\(crewID).\(day)") {
+        .task(id: "\(crewID).\(day).\(reload)") {
             guard !crewID.isEmpty else { return }
             while !Task.isCancelled {
                 others = await CrewCloud.shared.standings(crewID: crewID, dayNumber: day)
@@ -216,7 +257,8 @@ struct LeaderboardSection: View {
     var body: some View {
         if let day = challenge.dayNumber(), !challenge.crewID.isEmpty {
             Section {
-                BoardBlock<Challenge>(crewID: challenge.crewID, day: day, days: challenge.days, me: challenge.myStanding)
+                BoardBlock<Challenge>(crewID: challenge.crewID, day: day, days: challenge.days, me: challenge.myStanding,
+                                      canBan: challenge.leaderID.isEmpty)
             } header: {
                 Text("Leaderboard").font(AppFont.bodyBold).textCase(nil)
             }
@@ -276,7 +318,8 @@ struct LeaderboardsView: View {
                 ForEach(mine) { challenge in
                     if let day = challenge.dayNumber() {
                         BoardBlock(title: challenge.title, link: challenge, crewID: challenge.crewID,
-                                   day: day, days: challenge.days, me: challenge.myStanding)
+                                   day: day, days: challenge.days, me: challenge.myStanding,
+                                   canBan: challenge.leaderID.isEmpty)
                     }
                 }
             } header: {

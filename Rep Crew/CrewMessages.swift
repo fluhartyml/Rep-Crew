@@ -67,8 +67,10 @@ extension CrewCloud {
         let query = CKQuery(recordType: "CrewMessage", predicate: NSPredicate(format: "crewID == %@", crewID))
         do {
             let (results, _) = try await db.records(matching: query, resultsLimit: 100)
+            let hide = await hidden(crewID: crewID)
             return results.compactMap { try? $0.1.get() }.compactMap(Self.message(from:))
                 .filter { $0.toID == CrewMessage.everyone || $0.toID == myID || $0.senderID == myID }
+                .filter { !hide.contains($0.senderID) }
                 .sorted { $0.sentAt > $1.sentAt }
         } catch let error as CKError where error.code == .unknownItem {
             return []   // No one has sent a message yet, so the record type doesn't exist yet.

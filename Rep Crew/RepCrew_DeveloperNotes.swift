@@ -290,10 +290,19 @@
 //        for a challenge, maybe the crew is at a gym doing challenges together perhaps a
 //        crewmember takes a picture of the team on the treadmills or someone doing swiming
 //        laps". Crew adds from camera or library; thumbnails on the challenge; tap = full size.
-//  11. ⬜ Leader kick / ban (his): "the leader can kick ban anyone that posts pervy pictures".
+//  11. ✅ Built ~21:5x (Moderation.swift; compiles, untested). Leader: long-press a board row →
+//        Remove from Challenge; photo menu → Remove Photo and Ban. CrewBan record, honored only
+//        when the leader wrote it; hides their rows, photos, messages; banned phone keeps its own
+//        reps and shows "The leader removed you". Everyone: Block (this phone only, Settings →
+//        Blocked → Unblock) on board rows and photos.
+//      Leader kick / ban (his): "the leader can kick ban anyone that posts pervy pictures".
 //        Leader also removes the photo.
-//  12. ⬜ Report a photo → reaches the developer, plus contact info in the app (Claude-raised:
-//        App Review guideline 1.2, user-generated content — re-read the current text first).
+//  12. ✅ Report a photo (built ~21:5x): Report record (kind, photoID, crewID, senderID,
+//        senderName, reporterID, reportedAt) → CloudKit Console until god mode; photo hidden
+//        for the reporter. Guideline 1.2 as read 2026-10-22 asks for: (1) a filter for
+//        objectionable material ⬜, (2) report + timely response ✅ report / ⬜ his response,
+//        (3) block abusive users ✅, (4) published contact info ⬜ (his pick: email or page).
+//        New iCloud types CrewBan + Report for the Production deploy.
 //  13. ⬜ God mode (his, 2026-10-22): "i plan on having 'god mode'" — the developer's
 //        moderation over every challenge. Scope not settled yet; ask him before building.
 //  Camaraderie ideas (Claude-proposed 2026-10-22, he hasn't picked any): high-five a

@@ -73,6 +73,8 @@ struct SettingsView: View {
                     header("Your crew")
                 }
 
+                BlockedPeopleSection()
+
                 Section {
                     Text(CrewCloud.shared.status).font(AppFont.body)
                 } header: {

@@ -16,6 +16,8 @@ struct ChallengeDetailView: View {
     @State private var customGoal: ExerciseGoal?
     @State private var confirmingDelete = false
     @State private var showingSettings = false
+    /// The leader removed you; your own reps stay, the crew parts go.
+    @State private var removed = false
 
     @AppStorage(CrewSettings.name) private var name = ""
     @AppStorage(CrewSettings.testFlight) private var testFlight = ""
@@ -35,9 +37,15 @@ struct ChallengeDetailView: View {
                 }
             }
 
-            LeaderboardSection(challenge: challenge)
+            if removed {
+                Section {
+                    Text("The leader removed you from this challenge. Your own reps are still here.").font(AppFont.body)
+                }
+            } else {
+                LeaderboardSection(challenge: challenge)
 
-            PhotoBoardSection(crewID: challenge.crewID, leaderID: challenge.leaderID, canAdd: true)
+                PhotoBoardSection(crewID: challenge.crewID, leaderID: challenge.leaderID, canAdd: true)
+            }
 
             Section {
                 ForEach(challenge.allDays, id: \.self) { day in
@@ -47,7 +55,7 @@ struct ChallengeDetailView: View {
                 Text("Every day").font(AppFont.bodyBold).textCase(nil)
             }
 
-            CrewMessagesSection(challenge: challenge)
+            if !removed { CrewMessagesSection(challenge: challenge) }
 
             Section {
                 ShareLink(item: crewReport) {
@@ -83,6 +91,10 @@ struct ChallengeDetailView: View {
         .sheet(item: $customGoal) { goal in CustomRepsView(goal: goal) }
         .sheet(isPresented: $showingSettings) { SettingsView() }
         .onAppear { assignCrewID() }
+        .task(id: challenge.crewID) {
+            guard !challenge.leaderID.isEmpty, let me = CrewCloud.shared.myID else { return }
+            removed = await CrewCloud.shared.banned(crewID: challenge.crewID, leaderID: challenge.leaderID).contains(me)
+        }
         .confirmationDialog("Delete \(challenge.title)?", isPresented: $confirmingDelete, titleVisibility: .visible) {
             Button("Delete Challenge and All Its Reps", role: .destructive) {
                 context.delete(challenge)

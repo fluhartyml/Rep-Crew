@@ -81,7 +81,10 @@ extension CrewCloud {
                 if let id = record["photoID"] as? String { removed.insert(id) }
             }
         }
-        return photos.filter { !removed.contains($0.id) }.sorted { $0.takenAt > $1.takenAt }
+        let hide = await hidden(crewID: crewID, leaderID: leader)
+        let reported = Blocklist.hiddenPhotos
+        return photos.filter { !removed.contains($0.id) && !reported.contains($0.id) && !hide.contains($0.senderID) }
+            .sorted { $0.takenAt > $1.takenAt }
     }
 
     func fullPhoto(_ id: String) async -> UIImage? {
@@ -234,12 +237,8 @@ struct PhotoBoardSection: View {
                 CameraPicker { image in Task { await upload(image) } }.ignoresSafeArea()
             }
             .sheet(item: $viewing) { photo in
-                PhotoViewer(photo: photo, canRemove: canRemove(photo)) {
-                    if await CrewCloud.shared.removePhoto(photo) {
-                        photos.removeAll { $0.id == photo.id }
-                        return true
-                    }
-                    return false
+                PhotoViewer(photo: photo, isMine: photo.senderID == CrewCloud.shared.myID, isLeader: isLeader) { action in
+                    await act(action, on: photo)
                 }
             }
         }
@@ -258,10 +257,28 @@ struct PhotoBoardSection: View {
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
-    /// Whoever posted it, or the challenge's leader.
-    private func canRemove(_ photo: CrewPhoto) -> Bool {
-        guard let me = CrewCloud.shared.myID else { return false }
-        return photo.senderID == me || leaderID.isEmpty || leaderID == me
+    private var isLeader: Bool { leaderID.isEmpty || leaderID == CrewCloud.shared.myID }
+
+    /// Carries out what was picked in the photo's menu; true when it worked.
+    private func act(_ action: PhotoAction, on photo: CrewPhoto) async -> Bool {
+        let done: Bool
+        switch action {
+        case .remove:
+            done = await CrewCloud.shared.removePhoto(photo)
+        case .report:
+            done = await CrewCloud.shared.report(photo)
+            if done { saveNote = "Reported. The developer reviews every report, and the photo is hidden for you." }
+        case .block:
+            Blocklist.block(photo.senderID, name: photo.senderName)
+            done = true
+            saveNote = "\(photo.senderName) is blocked. Unblock in Settings."
+        case .ban:
+            let banned = await CrewCloud.shared.ban(crewID: crewID, memberID: photo.senderID, name: photo.senderName)
+            let hiddenPhoto = await CrewCloud.shared.removePhoto(photo)
+            done = banned && hiddenPhoto
+        }
+        if done { await load() }
+        return done
     }
 
     private func save(_ photo: CrewPhoto) async {
@@ -288,14 +305,20 @@ struct PhotoBoardSection: View {
     }
 }
 
+enum PhotoAction: String, Identifiable {
+    case remove, report, block, ban
+    var id: String { rawValue }
+}
+
 private struct PhotoViewer: View {
     @Environment(\.dismiss) private var dismiss
     let photo: CrewPhoto
-    let canRemove: Bool
-    let remove: () async -> Bool
+    let isMine: Bool
+    let isLeader: Bool
+    let perform: (PhotoAction) async -> Bool
 
     @State private var full: UIImage?
-    @State private var confirming = false
+    @State private var confirming: PhotoAction?
     @State private var failed = false
     @State private var saveNote: String?
 
@@ -311,7 +334,7 @@ private struct PhotoViewer: View {
                     .font(AppFont.body)
                 if let saveNote { Text(saveNote).font(AppFont.body) }
                 if failed {
-                    Text("It wasn't removed. Check iCloud in Settings and try again.").font(AppFont.body)
+                    Text("That didn't go through. Check iCloud in Settings and try again.").font(AppFont.body)
                 }
                 Spacer(minLength: 0)
             }
@@ -336,21 +359,58 @@ private struct PhotoViewer: View {
                     .disabled(full == nil)
                     .accessibilityLabel("Save to Photos")
                 }
-                if canRemove {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button(role: .destructive) { confirming = true } label: {
-                            Image(systemName: "trash").font(AppFont.bodyBold)
+                ToolbarItem(placement: .topBarLeading) {
+                    Menu {
+                        if isMine || isLeader {
+                            Button(role: .destructive) { confirming = .remove } label: {
+                                Label("Remove Photo", systemImage: "trash")
+                            }
                         }
-                        .accessibilityLabel("Remove Photo")
+                        if !isMine {
+                            Button { confirming = .report } label: {
+                                Label("Report Photo", systemImage: "exclamationmark.bubble")
+                            }
+                            Button { confirming = .block } label: {
+                                Label("Block \(photo.senderName)", systemImage: "hand.raised.fill")
+                            }
+                            if isLeader {
+                                Button(role: .destructive) { confirming = .ban } label: {
+                                    Label("Remove Photo and Ban \(photo.senderName)", systemImage: "person.fill.xmark")
+                                }
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle").font(AppFont.bodyBold)
                     }
+                    .accessibilityLabel("More")
                 }
             }
-            .confirmationDialog("Remove this photo for the whole crew?", isPresented: $confirming, titleVisibility: .visible) {
-                Button("Remove Photo", role: .destructive) {
-                    Task { if await remove() { dismiss() } else { failed = true } }
+            .confirmationDialog(question, isPresented: Binding(get: { confirming != nil }, set: { if !$0 { confirming = nil } }),
+                                titleVisibility: .visible, presenting: confirming) { action in
+                Button(buttonTitle(action), role: .destructive) {
+                    Task { if await perform(action) { dismiss() } else { failed = true } }
                 }
             }
             .task { full = await CrewCloud.shared.fullPhoto(photo.id) }
+        }
+    }
+
+    private var question: String {
+        switch confirming {
+        case .remove: return "Remove this photo for the whole crew?"
+        case .report: return "Report this photo to the developer?"
+        case .block: return "Block \(photo.senderName)?"
+        case .ban: return "Remove this photo and ban \(photo.senderName) from the challenge?"
+        case nil: return ""
+        }
+    }
+
+    private func buttonTitle(_ action: PhotoAction) -> String {
+        switch action {
+        case .remove: return "Remove Photo"
+        case .report: return "Report"
+        case .block: return "Block"
+        case .ban: return "Remove and Ban"
         }
     }
 }
