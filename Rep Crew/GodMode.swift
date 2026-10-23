@@ -76,7 +76,8 @@ struct GodModeSection: View {
                     Label("Reports", systemImage: "bolt.shield.fill").font(AppFont.bodyBold)
                 }
             } header: {
-                Text("God Mode").font(AppFont.bodyBold).textCase(nil)
+                // REM: His word 2026-10-22: call it "Coach Mode" on screen. The code keeps GodMode.
+                Text("Coach Mode").font(AppFont.bodyBold).textCase(nil)
             }
         }
     }
