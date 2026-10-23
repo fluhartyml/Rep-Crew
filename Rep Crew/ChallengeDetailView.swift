@@ -119,8 +119,8 @@ struct ChallengeDetailView: View {
 
     /// Today's results, then the join link when there is one.
     private var shareText: String {
-        guard let invite = challengeInvite, !invite.message.isEmpty else { return crewReport }
-        return crewReport + "\n\n" + invite.message
+        guard let invite = challengeInvite else { return crewReport }
+        return crewReport + "\n\n" + invite.message(isPublic: challenge.isPublic)
     }
 
     /// Today's results as plain text, ready for a group message.

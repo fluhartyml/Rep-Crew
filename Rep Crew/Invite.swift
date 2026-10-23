@@ -66,8 +66,10 @@ struct Invite: Codable, Equatable, Identifiable {
     // MARK: Message
 
     /// The text the share sheet sends: what the challenge is, then install, then join.
-    var message: String {
-        guard let link = url?.absoluteString else { return "" }
+    /// REM: shakedown bug 2 (2026-10-23), "the words aren't blue". Messages never makes a repcrew://
+    /// link tappable, so step 2 is done inside the app instead (his "yes do B"). Public challenges
+    /// show under Other challenges with Ask to Join; a private one has no way in from the text.
+    func message(isPublic: Bool) -> String {
         var lines: [String] = []
         if let challenge {
             let goals = challenge.goals.map { "\($0.target) \($0.name.lowercased())" }.joined(separator: " and ")
@@ -77,7 +79,11 @@ struct Invite: Codable, Equatable, Identifiable {
         }
         lines.append("")
         lines.append("1. Install Rep Crew with TestFlight: \(testFlight)")
-        lines.append("2. Then tap this to join: \(link)")
+        if let challenge, isPublic {
+            lines.append("2. Open Rep Crew, find \(challenge.title) under Other challenges, and tap Ask to Join.")
+        } else {
+            lines.append("2. Open Rep Crew and sign in.")
+        }
         return lines.joined(separator: "\n")
     }
 

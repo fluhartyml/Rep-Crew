@@ -385,7 +385,10 @@
 //        CONFIRMED 11:56 on his screen: Production Record Types = CrewMessage,
 //        CrewPhoto, Progress, Users only. CrewChallenge and Membership missing.
 //        Fix: Deploy Schema Changes (Development → Production), his sign-in.
-//  2. ⬜ In-app Share Challenge link won't open for a new tester. On the second tester's phone
+//  2. 🟡 BUILT 2026-10-23, not tested (his "yes do B"): Messages never makes repcrew:// tappable
+//        (Claude inference). The share text now says: install TestFlight, then find the challenge
+//        under Other challenges and tap Ask to Join. ⚠️ Private challenges have no way in from the text.
+//        Was: In-app Share Challenge link won't open for a new tester. On the second tester's phone
 //        it wasn't tappable ("the words aren't blue"); it showed as a picture card
 //        "Join the Daily Rep…". She got in only when he texted his TestFlight link.
 //  3. 🟡 BUILT 2026-10-23, not tested: "anonymous" is not in the code; the name was most likely empty
