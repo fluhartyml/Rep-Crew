@@ -37,8 +37,7 @@ struct ContentView: View {
                 } else {
                     List {
                         invitations
-                        section("Today", active)
-                        section("Starting soon", upcoming)
+                        section("Your challenges", active + upcoming.reversed())
                         crewChallenges
                         section("Finished", finished)
                     }
@@ -136,7 +135,7 @@ struct ContentView: View {
                     }
                 }
             } header: {
-                Text("Crew challenges").font(AppFont.bodyBold).textCase(nil)
+                Text("Other challenges").font(AppFont.bodyBold).textCase(nil)
             }
         }
     }
@@ -148,7 +147,8 @@ struct ContentView: View {
         for challenge in challenges where challenge.leaderID.isEmpty && !challenge.isFinished {
             if challenge.crewID.isEmpty { challenge.crewID = UUID().uuidString }
             await cloud.ensurePublished(Invite.ChallengeInfo(challenge), leaderName: leader.isEmpty ? "Your crew leader" : leader,
-                                        leaderNumber: crewNumber, testFlight: testFlight.trimmingCharacters(in: .whitespaces))
+                                        leaderNumber: crewNumber, testFlight: testFlight.trimmingCharacters(in: .whitespaces),
+                                        isPublic: challenge.isPublic)
         }
         for member in await cloud.members() where !crew.contains(where: { $0.cloudID == member.id }) {
             context.insert(CrewMember(name: member.name, crewNumber: member.number, cloudID: member.id))

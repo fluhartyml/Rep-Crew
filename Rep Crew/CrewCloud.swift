@@ -50,7 +50,7 @@ final class CrewCloud {
     // MARK: Leader
 
     /// Puts the challenge in the shared space with the checked members' IDs.
-    func publish(_ info: Invite.ChallengeInfo, leaderName: String, leaderNumber: Int, testFlight: String, memberIDs: [String]) async {
+    func publish(_ info: Invite.ChallengeInfo, leaderName: String, leaderNumber: Int, testFlight: String, memberIDs: [String], isPublic: Bool) async {
         await connect()
         guard let myID else { return }
         let record = CKRecord(recordType: "CrewChallenge", recordID: CKRecord.ID(recordName: info.crewID))
@@ -64,6 +64,7 @@ final class CrewCloud {
         record["testFlight"] = testFlight
         record["memberIDs"] = memberIDs
         record["endsAt"] = Self.endsAt(info)
+        record["isPublic"] = isPublic ? 1 : 0
         do {
             _ = try await db.modifyRecords(saving: [record], deleting: [], savePolicy: .allKeys)
             status = "Connected to iCloud"
@@ -74,16 +75,18 @@ final class CrewCloud {
 
     /// Makes sure a challenge you started is in the shared space, so the whole crew can see it.
     /// One that's already there keeps its checked members; it only gains an end date if it lacks one.
-    func ensurePublished(_ info: Invite.ChallengeInfo, leaderName: String, leaderNumber: Int, testFlight: String) async {
+    func ensurePublished(_ info: Invite.ChallengeInfo, leaderName: String, leaderNumber: Int, testFlight: String, isPublic: Bool) async {
         await connect()
         guard myID != nil else { return }
         do {
             let record = try await db.record(for: CKRecord.ID(recordName: info.crewID))
-            guard record["endsAt"] == nil else { return }
+            let flag = isPublic ? 1 : 0
+            guard record["endsAt"] == nil || record["isPublic"] as? Int != flag else { return }
             record["endsAt"] = Self.endsAt(info)
+            record["isPublic"] = flag
             _ = try await db.modifyRecords(saving: [record], deleting: [], savePolicy: .changedKeys)
         } catch let error as CKError where error.code == .unknownItem {
-            await publish(info, leaderName: leaderName, leaderNumber: leaderNumber, testFlight: testFlight, memberIDs: [])
+            await publish(info, leaderName: leaderName, leaderNumber: leaderNumber, testFlight: testFlight, memberIDs: [], isPublic: isPublic)
         } catch {
             status = "Couldn't share \(info.title): \(error.localizedDescription)"
         }
@@ -104,7 +107,8 @@ final class CrewCloud {
         do {
             let (results, _) = try await db.records(matching: query, resultsLimit: 200)
             return results.compactMap { try? $0.1.get() }.compactMap { record in
-                guard let invite = Self.invite(from: record), let info = invite.challenge else { return nil }
+                // Private challenges stay off the list. Records from before the toggle count as public.
+                guard record["isPublic"] as? Int != 0, let invite = Self.invite(from: record), let info = invite.challenge else { return nil }
                 return CrewListing(info: info, leaderID: invite.fromID ?? "", leaderName: invite.from)
             }
         } catch let error as CKError where error.code == .unknownItem {

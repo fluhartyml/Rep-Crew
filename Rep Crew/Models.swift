@@ -19,6 +19,8 @@ final class Challenge {
     var crewID: String = ""
     /// The crew leader's iCloud ID. Empty on the phone of whoever started the challenge.
     var leaderID: String = ""
+    /// Public challenges are listed for everyone with the app; private ones only reach the crew you check.
+    var isPublic: Bool = true
 
     @Relationship(deleteRule: .cascade, inverse: \ExerciseGoal.challenge)
     var goals: [ExerciseGoal] = []

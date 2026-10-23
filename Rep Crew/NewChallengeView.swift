@@ -28,6 +28,7 @@ struct NewChallengeView: View {
     @State private var startDate = Date.now
     @State private var drafts: [Draft] = [Draft(name: "Push-ups", target: 100)]
     @State private var checked: Set<String> = []
+    @State private var isPublic = true
 
     /// Crew members reachable through iCloud — the ones a check box can actually reach.
     private var reachable: [CrewMember] { crew.filter { !$0.cloudID.isEmpty } }
@@ -54,6 +55,19 @@ struct NewChallengeView: View {
                         Text("Starts").font(AppFont.body)
                     }
                 } header: { header("How long") }
+
+                Section {
+                    Toggle(isOn: $isPublic) {
+                        Text("Public").font(AppFont.body)
+                    }
+                } header: {
+                    header("Who can see it")
+                } footer: {
+                    Text(isPublic
+                         ? "Everyone with Rep Crew sees this challenge and its leaderboard."
+                         : "Only the crew you check or invite sees this challenge.")
+                        .font(AppFont.body)
+                }
 
                 Section {
                     ForEach($drafts) { $draft in
@@ -130,6 +144,7 @@ struct NewChallengeView: View {
 
     private func save() {
         let challenge = Challenge(title: trimmedTitle, startDate: startDate, days: days)
+        challenge.isPublic = isPublic
         context.insert(challenge)
         for (index, draft) in validDrafts.enumerated() {
             let goal = ExerciseGoal(name: draft.name.trimmingCharacters(in: .whitespaces), dailyTarget: draft.target, order: index)
@@ -144,9 +159,10 @@ struct NewChallengeView: View {
             let link = testFlight.trimmingCharacters(in: .whitespaces)
             let members = Array(checked)
             let number = crewNumber
+            let open = isPublic
             Task {
                 await CrewCloud.shared.publish(info, leaderName: leader.isEmpty ? "Your crew leader" : leader,
-                                               leaderNumber: number, testFlight: link, memberIDs: members)
+                                               leaderNumber: number, testFlight: link, memberIDs: members, isPublic: open)
             }
         }
         try? context.save()

@@ -262,6 +262,12 @@
 //     app downloader". Every challenge is published to CrewChallenge (with endsAt); Home lists
 //     everyone else's under "Crew challenges", each opening to its board. Needs queryable
 //     CrewChallenge.endsAt in the Production deploy.
+//     His word, same evening: "i want the leaserboards to be grouped by if the user is a
+//     member of the challenge and the grouping of all other challenges" → Home sections
+//     "Your challenges" · "Other challenges" · "Finished". "we need to have a public/prifate
+//     toggle when creating each challenge" → Challenge.isPublic (default on), CrewChallenge
+//     isPublic 1/0; private ones are left off "Other challenges". ⚠️ The record still sits in
+//     the CloudKit PUBLIC database, so "private" hides it in the app, not from the database.
 //     ⬜ Step 2, his ask: a button on someone else's challenge to ask its leader to "tap in
 //     and join".
 //        Built 2026-10-22 ~21:00, compiles; untested on 2 phones. New iCloud record type
