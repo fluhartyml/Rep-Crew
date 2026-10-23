@@ -17,7 +17,9 @@ import SwiftUI
 enum GodMode {
     /// His iCloud user IDs for this container — Development (Xcode installs) and Production
     /// (TestFlight / App Store) — read off his 16e, not typed from memory.
-    static let ids: Set<String> = []
+    /// Development ID read off his 16e 2026-10-22 22:3x (build 43). Production not yet confirmed
+    /// to match; if god mode is missing on a TestFlight build, read it there and add it here.
+    static let ids: Set<String> = ["_9c345d5e0487de171f04792dc4b88366"]
 
     /// True when this phone is signed in as him.
     @MainActor static var isOn: Bool { CrewCloud.shared.myID.map(ids.contains) ?? false }
