@@ -14,6 +14,7 @@ struct ChallengeDetailView: View {
     let challenge: Challenge
 
     @State private var customGoal: ExerciseGoal?
+    @State private var setGoal: ExerciseGoal?
     @State private var confirmingDelete = false
     @State private var showingSettings = false
     /// The leader removed you; your own reps stay, the crew parts go.
@@ -32,7 +33,7 @@ struct ChallengeDetailView: View {
             if challenge.isActive {
                 Section {
                     ForEach(challenge.sortedGoals) { goal in
-                        GoalRow(goal: goal, onCustom: { customGoal = goal })
+                        GoalRow(goal: goal, onCustom: { customGoal = goal }, onStartSet: { setGoal = goal })
                     }
                 } header: {
                     Text("Today").font(AppFont.bodyBold).textCase(nil)
@@ -91,6 +92,7 @@ struct ChallengeDetailView: View {
         }
         .crewNavGlyphs()
         .sheet(item: $customGoal) { goal in CustomRepsView(goal: goal) }
+        .sheet(item: $setGoal) { goal in SetTimerView(goal: goal) }
         .sheet(isPresented: $showingSettings) { SettingsView() }
         .onAppear { assignCrewID() }
         .task(id: challenge.crewID) { joinRequests = await JoinRequestsSection.load(challenge) }
@@ -168,6 +170,7 @@ private struct GoalRow: View {
     @Environment(\.modelContext) private var context
     let goal: ExerciseGoal
     let onCustom: () -> Void
+    let onStartSet: () -> Void
 
     var body: some View {
         let done = goal.total(on: .now)
@@ -206,6 +209,11 @@ private struct GoalRow: View {
                 addButton(goal.dailyTarget)
                 Spacer(minLength: 0)
             }
+            // Times a set and saves it to Health as a workout (SetTimer.swift).
+            Button { onStartSet() } label: {
+                Label("Start Set", systemImage: "timer").font(AppFont.bodyBold)
+            }
+            .buttonStyle(.bordered)
         }
         .padding(.vertical, 8)
     }

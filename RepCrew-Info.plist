@@ -15,6 +15,10 @@
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Take a photo of your crew to share on the challenge.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Rep Crew saves your timed sets to Health and doesn’t read your Health data.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Save each timed set to Health as a strength workout.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Save crew photos to your photo library.</string>
 </dict>

@@ -16,7 +16,7 @@ import SwiftUI
 import UserNotifications
 
 struct CrewMessage: Identifiable {
-    enum Kind: String { case announcement, message, reply, welcome }
+    enum Kind: String { case announcement, message, reply, welcome, finished }
 
     let id: String
     let crewID: String
@@ -51,6 +51,7 @@ extension CrewCloud {
         case .message: record["title"] = senderName
         case .reply: record["title"] = "\(senderName) replied"
         case .welcome: record["title"] = "✅ \(senderName)"
+        case .finished: record["title"] = "🏁 \(senderName)"
         }
         do {
             _ = try await db.modifyRecords(saving: [record], deleting: [], savePolicy: .allKeys)
@@ -224,6 +225,7 @@ struct CrewMessagesSection: View {
         case .reply: return message.toID == CrewMessage.everyone ? "\(from), to everyone" : "\(from), reply"
 
         case .welcome: return "✅ \(from)"
+        case .finished: return "🏁 \(from)"
         }
     }
 

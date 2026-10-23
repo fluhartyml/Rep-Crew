@@ -278,7 +278,24 @@ struct LeaderboardSection: View {
                                                     name: me.isEmpty ? "A crew member" : me,
                                                     reps: challenge.repsToday, complete: challenge.isComplete(on: .now),
                                                     streak: challenge.streak)
+                await announceFinished(day: day, me: me)
             }
+        }
+    }
+}
+
+extension LeaderboardSection {
+    /// Roadmap 7, from the original call: "James completed his daily challenge" goes to the crew.
+    /// Once per challenge day, the first time every goal is met; an undo and redo doesn't resend.
+    func announceFinished(day: Int, me: String) async {
+        guard challenge.isComplete(on: .now) else { return }
+        let key = "finished.\(challenge.crewID).\(day)"
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+        let goals = challenge.sortedGoals.map { "\($0.dailyTarget) \($0.name.lowercased())" }.joined(separator: " and ")
+        if await CrewCloud.shared.send("Finished today: \(goals). Day \(day) of \(challenge.days).",
+                                       crewID: challenge.crewID, kind: .finished,
+                                       senderName: me.isEmpty ? "A crew member" : me) {
+            UserDefaults.standard.set(true, forKey: key)
         }
     }
 }
