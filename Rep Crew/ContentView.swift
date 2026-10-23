@@ -175,6 +175,7 @@ struct ContentView: View {
         await cloud.refreshPending(skipping: skip)
         await CrewNotifications.requestPermission()
         await cloud.subscribe(crewIDs: challenges.map(\.crewID).filter { !$0.isEmpty })
+        await cloud.subscribeToJoinRequests()
         listings = await cloud.crewChallenges()
     }
 

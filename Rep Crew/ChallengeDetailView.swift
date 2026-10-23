@@ -18,6 +18,8 @@ struct ChallengeDetailView: View {
     @State private var showingSettings = false
     /// The leader removed you; your own reps stay, the crew parts go.
     @State private var removed = false
+    /// People asking to join, when you lead this challenge.
+    @State private var joinRequests: [JoinRequest] = []
 
     @AppStorage(CrewSettings.name) private var name = ""
     @AppStorage(CrewSettings.testFlight) private var testFlight = ""
@@ -42,6 +44,8 @@ struct ChallengeDetailView: View {
                     Text("The leader removed you from this challenge. Your own reps are still here.").font(AppFont.body)
                 }
             } else {
+                JoinRequestsSection(challenge: challenge, requests: $joinRequests)
+
                 LeaderboardSection(challenge: challenge)
 
                 PhotoBoardSection(crewID: challenge.crewID, leaderID: challenge.leaderID, canAdd: true)
@@ -89,6 +93,7 @@ struct ChallengeDetailView: View {
         .sheet(item: $customGoal) { goal in CustomRepsView(goal: goal) }
         .sheet(isPresented: $showingSettings) { SettingsView() }
         .onAppear { assignCrewID() }
+        .task(id: challenge.crewID) { joinRequests = await JoinRequestsSection.load(challenge) }
         .task(id: challenge.crewID) {
             guard !challenge.leaderID.isEmpty, let me = CrewCloud.shared.myID else { return }
             removed = await CrewCloud.shared.banned(crewID: challenge.crewID, leaderID: challenge.leaderID).contains(me)

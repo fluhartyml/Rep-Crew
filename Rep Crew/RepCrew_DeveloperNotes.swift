@@ -273,8 +273,13 @@
 //     show with one person. "yes build it with the glyph maybe a home glyph for non home
 //     sheets so you can always find your way home" → chart.bar glyph opens Leaderboards
 //     (Your challenges · Other challenges); house glyph on every pushed screen pops to Home.
-//     ⬜ Step 2, his ask: a button on someone else's challenge to ask its leader to "tap in
-//     and join".
+//     ✅ Step 2, his ask: a button on someone else's challenge to ask its leader to "tap in
+//     and join". Built 2026-10-22 ~22:3x (JoinRequests.swift; compiles, untested on 2 phones).
+//     Ask to Join → JoinRequest record → leader notified ("<name> asked to join"); leader's
+//     challenge shows "Asking to join" with Approve / Decline. Approve adds them to
+//     CrewChallenge.memberIDs (their Home Invitations offers Accept) and sends a ✅ "You're in"
+//     message; Decline adds them to CrewChallenge.declinedIDs. New type JoinRequest +
+//     CrewChallenge.declinedIDs → need a second Production deploy after first use.
 //        Built 2026-10-22 ~21:00, compiles; untested on 2 phones. New iCloud record type
 //        Progress (crewID, memberID, name, dayNumber, reps, complete, streak) — needs
 //        queryable crewID + dayNumber, and Membership.crewID, in the Production deploy.
@@ -318,9 +323,11 @@
 //  finishes · "just finished" alerts (= item 7) · welcome on the board when someone joins.
 //  ⬜ Open question: can members edit a challenge, or only the leader?
 //
-//  TestFlight: his word 2026-10-22 ~20:1x (replaces his 14:52 end-of-day plan) — upload
-//  every tested build to TestFlight right away, without asking; Claude says so before each
-//  upload. "we push to test flight and pull to our local devices and public beta testers
+//  TestFlight: ⚠️ SUPERSEDED 2026-10-22 ~22:2x, his word: "dont send to testflight unless
+//  you built everything". Upload only when every item he asked for is built; list them first.
+//  (Was, ~20:1x: upload every tested build to TestFlight right away, without asking.)
+//  Build 39 bb2e19f uploaded 22:15. Production schema deployed by him 22:20 (CrewMessage,
+//  CrewPhoto, Progress); CrewBan, PhotoRemoval, Report, JoinRequest still to deploy. "we push to test flight and pull to our local devices and public beta testers
 //  get them when apple approves" · "we could forget to upload the latest build if we held
 //  off". Internal testers install right after processing; external waits on Apple review.
 

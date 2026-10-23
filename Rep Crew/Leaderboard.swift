@@ -420,6 +420,7 @@ struct CrewChallengeView: View {
                 }
                 .padding(.vertical, 6)
             }
+            AskToJoinSection(listing: listing)
             if let day = listing.dayNumber {
                 Section {
                     BoardBlock<CrewListing>(crewID: listing.id, day: day, days: listing.info.days)
