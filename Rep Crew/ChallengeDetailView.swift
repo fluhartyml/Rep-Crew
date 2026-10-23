@@ -58,17 +58,15 @@ struct ChallengeDetailView: View {
             if !removed { CrewMessagesSection(challenge: challenge) }
 
             Section {
-                ShareLink(item: crewReport) {
-                    Label("Send to Crew Member", systemImage: "paperplane.fill").font(AppFont.bodyBold)
+                // REM: One share, not two (his word 10-22: "its a duplicate share sheet"). Progress first,
+                // the join link under it, so whoever gets it can tap in.
+                ShareLink(item: shareText) {
+                    Label("Share Challenge", systemImage: "square.and.arrow.up").font(AppFont.bodyBold)
                 }
-                if let invite = challengeInvite {
-                    ShareLink(item: invite.message) {
-                        Label("Invite to Crew", systemImage: "person.badge.plus").font(AppFont.bodyBold)
-                    }
-                } else {
+                if challengeInvite == nil {
                     // Invites need your name and the TestFlight link; Settings is where they go.
                     Button { showingSettings = true } label: {
-                        Label("Invite to Crew", systemImage: "person.badge.plus").font(AppFont.bodyBold)
+                        Label("Add Your Name to Include the Join Link", systemImage: "person.badge.plus").font(AppFont.bodyBold)
                     }
                 }
             }
@@ -117,6 +115,12 @@ struct ChallengeDetailView: View {
     /// Every copy of a shared challenge carries the same crew ID, so joining twice doesn't duplicate it.
     private func assignCrewID() {
         if challenge.crewID.isEmpty { challenge.crewID = UUID().uuidString }
+    }
+
+    /// Today's results, then the join link when there is one.
+    private var shareText: String {
+        guard let invite = challengeInvite, !invite.message.isEmpty else { return crewReport }
+        return crewReport + "\n\n" + invite.message
     }
 
     /// Today's results as plain text, ready for a group message.
