@@ -361,7 +361,9 @@
 //  left out, his word: "names are superfluous"). Which TestFlight
 //  build they were on: not stated. None of these is looked at in code yet.
 //
-//  1. ⬜ Messages and challenges don't reach the other phone. Friend never saw his
+//  1. ✅ FIXED 2026-10-23 (build 51 + schema deployed to Production 13:12): every CrewChallenge
+//        save had been BAD_REQUEST, so the type never existed. Proven: Hannah's TestFlight
+//        challenge reached James and his 16e lists all three. Was: Messages and challenges don't reach the other phone. Friend never saw his
 //        messages or his swim challenge, even after relaunching; friend's new public
 //        push-ups challenge didn't reach him.
 //        His word: "the leader boards were supposed to show to all crew users not just
@@ -386,8 +388,11 @@
 //  2. ⬜ In-app Share Challenge link won't open for a new tester. On the second tester's phone
 //        it wasn't tappable ("the words aren't blue"); it showed as a picture card
 //        "Join the Daily Rep…". She got in only when he texted his TestFlight link.
-//  3. ⬜ Sender shows as "anonymous" on a shared challenge / message.
-//  4. ⬜ Save Set never prompted for Health: "set wasn't saved to Health · allow Rep
+//  3. 🟡 BUILT 2026-10-23, not tested: "anonymous" is not in the code; the name was most likely empty
+//        (Apple gives it only on the first sign-in) → "A crew member". Claude inference. Now the app
+//        asks for a name whenever it's missing (NameView). Was: Sender shows as "anonymous" on a shared challenge / message.
+//  4. 🟡 BUILT 2026-10-23, not tested: the transcript shows the prompt DID appear and he said no; iOS
+//        never asks twice. The note now names Settings → Health → Data Access & Devices. Was: Save Set never prompted for Health: "set wasn't saved to Health · allow Rep
 //        Crew to save workouts". Friend turned it on by hand in Settings → Health.
 //        Whether the workout then landed in Health: unchecked.
 //  5. ❓ He didn't get the 🏁 finished notification; the second tester did. They said it was their

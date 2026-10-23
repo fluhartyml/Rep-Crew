@@ -109,7 +109,9 @@ struct SetTimerView: View {
         if await HealthSets.save(start: start, end: end, exercise: goal.name, reps: count) {
             dismiss()
         } else {
-            healthNote = "Your reps are logged. The set wasn't saved to Health; allow Rep Crew to save workouts in the Health app."
+            // REM: shakedown bug 4 (2026-10-23). The Health prompt did show; the tester said no, and iOS
+            // never asks twice. So name the exact place to turn it back on.
+            healthNote = "Your reps are logged. To save sets to Health too, open Settings, tap Health, then Data Access & Devices, then Daily Rep Crew Accountability, and turn on Workouts."
             logged = true
             saving = false
         }

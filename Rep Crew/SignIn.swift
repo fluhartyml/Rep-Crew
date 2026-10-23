@@ -24,12 +24,17 @@ extension CrewSettings {
 /// and handed on once you're in.
 struct RootView: View {
     @AppStorage(CrewSettings.appleUser) private var appleUser = ""
+    @AppStorage(CrewSettings.name) private var name = ""
     @State private var openedURL: URL?
 
     var body: some View {
         Group {
             if appleUser.isEmpty {
                 SignInView()
+            } else if name.trimmingCharacters(in: .whitespaces).isEmpty {
+                // REM: shakedown bug 3 (2026-10-23), "it says anonymous". Apple gives the name only on the
+                // very first sign-in, so a reinstall left it empty and the crew saw "A crew member".
+                NameView()
             } else {
                 ContentView(openedURL: $openedURL)
             }
@@ -84,5 +89,44 @@ struct SignInView: View {
             Spacer()
         }
         .padding(32)
+    }
+}
+
+/// Asked once, when signing in left no name: your crew sees it on challenges and messages.
+struct NameView: View {
+    @AppStorage(CrewSettings.name) private var name = ""
+    @State private var typed = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Spacer()
+            Text("What should your crew call you?").font(AppFont.title).multilineTextAlignment(.center)
+            Text("Your crew sees this name on your challenges and messages. You can change it later in Settings.")
+                .font(AppFont.body)
+                .multilineTextAlignment(.center)
+            TextField("Your name", text: $typed)
+                .font(AppFont.heading)
+                .multilineTextAlignment(.center)
+                .textFieldStyle(.roundedBorder)
+                .textContentType(.givenName)
+                .submitLabel(.done)
+                .focused($focused)
+                .onSubmit(save)
+            Button(action: save) {
+                Text("Continue").font(AppFont.bodyBold).frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(typed.trimmingCharacters(in: .whitespaces).isEmpty)
+            Spacer()
+        }
+        .padding(32)
+        .onAppear { focused = true }
+    }
+
+    private func save() {
+        let trimmed = typed.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        name = trimmed
     }
 }
