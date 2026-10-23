@@ -59,7 +59,7 @@ struct ChallengeDetailView: View {
 
             Section {
                 ShareLink(item: crewReport) {
-                    Label("Send to Crew", systemImage: "paperplane.fill").font(AppFont.bodyBold)
+                    Label("Send to Crew Member", systemImage: "paperplane.fill").font(AppFont.bodyBold)
                 }
                 if let invite = challengeInvite {
                     ShareLink(item: invite.message) {
