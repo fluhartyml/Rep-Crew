@@ -190,6 +190,31 @@
 //  messages to everyone and one for replies to you. Category CREW_MESSAGE with text
 //  actions Reply and Reply All. The leader's button says Send an Announcement; a
 //  member's says Message the Crew. Each challenge shows its last 10 messages.
+//  Settings → Notifications (NotificationSettings.swift). His word, 2026-10-23: "the team
+//  leader toggles on and off only ones they are a member of, same for crew members"; coaches
+//  ("god mode") can also get notices for every challenge.
+//  🟡 BUILT 2026-10-23, not tested. One switch per subscription; off deletes it, on saves it,
+//  and launch only re-creates the ones still on. Your challenges: crew-<crewID> (+ oneway-) per unfinished
+//  challenge on this phone (messages + "finished today"), on by default. General: to-me,
+//  invites, join-requests (leaders only), on by default. Coach only (GodMode.isOn): coach-<crewID>
+//  per public challenge you're not in, crewID == X AND kind == "finished" AND toID == "all", off
+//  by default. Saved in AppStorage: notificationsOff (IDs switched off), coachNotificationCrewIDs
+//  (crews a coach switched on). Launch also deletes crew-/coach- subscriptions for crews no longer
+//  on the phone or listed. No schema change (crewID, kind, toID already QUERYABLE).
+//  ⚠️ Untested: a coach's notice keeps Reply / Reply All (same category), so a coach can reply
+//  into a crew they aren't in.
+//  Reply in the app + one-way announcements. His word, 2026-10-23: "yes add reply and reply all
+//  in the app and the announcer can toggle one way announcement or replies enabled".
+//  🟡 BUILT 2026-10-23, not tested. Long-press someone else's message → Reply (kind reply, toID =
+//  sender) or Reply All (kind reply, toID "all"), same CrewCloud.send the lock screen uses. The
+//  leader's announcement sheet has Allow replies (on by default, remembered in AppStorage
+//  announcementAllowsReplies). Off sends kind "announcementOneWay" (existing STRING field, no schema
+//  change), shown as 📣 like any announcement, with no Reply / Reply All in the app. Its notification
+//  comes from a second subscription per crew, oneway-<crewID> (kind == "announcementOneWay", category
+//  CREW_ANNOUNCEMENT, no actions); crew-<crewID> now adds kind != "announcementOneWay". Both follow the
+//  challenge's one switch. ⚠️ Build 48 and older: an unknown kind reads as .message, so a one-way
+//  announcement shows as a plain message (sender name, no 📣) and its notification still offers
+//  Reply / Reply All, until that phone runs this build and re-saves crew-<crewID>.
 //
 //  ⚠️ The local store (challenges, reps) must stay OFF iCloud:
 //  ModelConfiguration(cloudKitDatabase: .none). Without it, the iCloud entitlement

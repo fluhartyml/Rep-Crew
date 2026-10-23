@@ -125,6 +125,10 @@ extension CrewCloud {
     func subscribeToJoinRequests() async {
         await connect()
         guard let myID else { return }
+        guard NotificationSettings.isOn(NotificationSettings.joinRequests) else {
+            _ = try? await db.modifySubscriptions(saving: [], deleting: [NotificationSettings.joinRequests])
+            return
+        }
         let subscription = CKQuerySubscription(recordType: "JoinRequest", predicate: NSPredicate(format: "leaderID == %@", myID),
                                                subscriptionID: "join-requests", options: [.firesOnRecordCreation])
         let info = CKSubscription.NotificationInfo()

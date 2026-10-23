@@ -49,6 +49,16 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    NavigationLink { NotificationSettingsView() } label: {
+                        Text("Notifications").font(AppFont.bodyBold)
+                    }
+                } header: {
+                    header("Notifications")
+                } footer: {
+                    Text("Pick which challenges and notices reach this phone.").font(AppFont.body)
+                }
+
+                Section {
                     TextField("https://testflight.apple.com/join/…", text: $testFlight, axis: .vertical)
                         .font(AppFont.body)
                         .keyboardType(.URL)

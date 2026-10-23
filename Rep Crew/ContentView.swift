@@ -181,10 +181,11 @@ struct ContentView: View {
             .union(declined.split(separator: "\n").map(String.init))
         await cloud.refreshPending(skipping: skip)
         await CrewNotifications.requestPermission()
-        await cloud.subscribe(crewIDs: challenges.map(\.crewID).filter { !$0.isEmpty })
+        listings = await cloud.crewChallenges()
+        // Each respects its Settings → Notifications switch, so one turned off isn't re-created here.
+        await cloud.subscribe(crewIDs: challenges.map(\.crewID).filter { !$0.isEmpty }, listedCrewIDs: listings.map(\.id))
         await cloud.subscribeToJoinRequests()
         await cloud.subscribeToInvites()
-        listings = await cloud.crewChallenges()
     }
 
     private var emptyState: some View {

@@ -16,7 +16,9 @@ import SwiftUI
 import UserNotifications
 
 struct CrewMessage: Identifiable {
-    enum Kind: String { case announcement, message, reply, welcome, finished }
+    /// announcementOneWay: an announcement sent with Allow replies off. Shown exactly like one, minus
+    /// Reply / Reply All. Builds before it read the unknown kind as .message.
+    enum Kind: String { case announcement, announcementOneWay, message, reply, welcome, finished }
 
     let id: String
     let crewID: String
@@ -47,7 +49,7 @@ extension CrewCloud {
         record["sentAt"] = Date.now
         // The notification's title line, worked out once here so every phone shows the same thing.
         switch kind {
-        case .announcement: record["title"] = "📣 \(senderName)"
+        case .announcement, .announcementOneWay: record["title"] = "📣 \(senderName)"
         case .message: record["title"] = senderName
         case .reply: record["title"] = "\(senderName) replied"
         case .welcome: record["title"] = "✅ \(senderName)"
@@ -117,13 +119,35 @@ extension CrewCloud {
 
     /// One subscription per crew for messages to everyone, and one for replies addressed to you.
     /// Saving with the same ID replaces the old one, so this is safe to run on every launch.
-    func subscribe(crewIDs: [String]) async {
+    /// Settings → Notifications decides which are kept (NotificationSettings.swift): switched-off ones,
+    /// crews no longer on this phone, and coach ones no longer wanted are deleted here.
+    /// `listedCrewIDs`: the public challenges listed right now, so a coach's switch for one that ended goes too
+    /// (an empty list is read as "iCloud didn't answer" and keeps them).
+    func subscribe(crewIDs: [String], listedCrewIDs: [String]) async {
         await connect()
         guard let myID else { return }
-        var subscriptions = crewIDs.map { crewID in
-            subscription(id: "crew-\(crewID)", NSPredicate(format: "crewID == %@ AND toID == %@", crewID, CrewMessage.everyone))
+        var subscriptions = crewIDs.filter { NotificationSettings.isOn("crew-\($0)") }.flatMap(crewSubscriptions)
+        if NotificationSettings.isOn(NotificationSettings.replies) {
+            subscriptions.append(subscription(id: NotificationSettings.replies, NSPredicate(format: "toID == %@", myID)))
         }
-        subscriptions.append(subscription(id: "to-me", NSPredicate(format: "toID == %@", myID)))
+        // Coaches: "finished today" on public challenges they're not in, only where they switched it on.
+        if GodMode.isOn {
+            let listed = Set(listedCrewIDs)
+            for crewID in NotificationSettings.coachCrewIDs where (listed.isEmpty || listed.contains(crewID)) && !crewIDs.contains(crewID) {
+                subscriptions.append(subscription(id: "coach-\(crewID)", NSPredicate(format: "crewID == %@ AND kind == %@ AND toID == %@",
+                                                                                     crewID, CrewMessage.Kind.finished.rawValue, CrewMessage.everyone)))
+            }
+        }
+        // Deleted in their own call first, so a missing CrewMessage type on the save can't keep a stale one.
+        let keep = Set(subscriptions.map(\.subscriptionID))
+        if let existing = try? await db.allSubscriptions() {
+            let stale = existing.map(\.subscriptionID).filter { id in
+                !keep.contains(id) && (id == NotificationSettings.replies || id.hasPrefix("crew-") || id.hasPrefix("oneway-")
+                                       || id.hasPrefix("coach-"))
+            }
+            if !stale.isEmpty { _ = try? await db.modifySubscriptions(saving: [], deleting: stale) }
+        }
+        guard !subscriptions.isEmpty else { return }
         do {
             _ = try await db.modifySubscriptions(saving: subscriptions, deleting: [])
         } catch let error as CKError where error.code == .unknownItem || error.code == .partialFailure {
@@ -134,7 +158,25 @@ extension CrewCloud {
         }
     }
 
-    private func subscription(id: String, _ predicate: NSPredicate) -> CKQuerySubscription {
+    /// Just this crew's, after you send in it: saves without touching any other subscription.
+    func subscribe(crewID: String) async {
+        await connect()
+        guard myID != nil, NotificationSettings.isOn("crew-\(crewID)") else { return }
+        _ = try? await db.modifySubscriptions(saving: crewSubscriptions(crewID), deleting: [])
+    }
+
+    /// A subscription has one fixed category, so one-way announcements get their own (no reply actions)
+    /// and the regular one leaves them out. Both sit under the challenge's one switch.
+    private func crewSubscriptions(_ crewID: String) -> [CKQuerySubscription] {
+        let oneWay = CrewMessage.Kind.announcementOneWay.rawValue
+        return [subscription(id: "crew-\(crewID)", NSPredicate(format: "crewID == %@ AND toID == %@ AND kind != %@",
+                                                               crewID, CrewMessage.everyone, oneWay)),
+                subscription(id: "oneway-\(crewID)", NSPredicate(format: "crewID == %@ AND toID == %@ AND kind == %@",
+                                                                 crewID, CrewMessage.everyone, oneWay),
+                             category: CrewNotifications.oneWayCategory)]
+    }
+
+    private func subscription(id: String, _ predicate: NSPredicate, category: String = CrewNotifications.category) -> CKQuerySubscription {
         let subscription = CKQuerySubscription(recordType: "CrewMessage", predicate: predicate,
                                                subscriptionID: id, options: [.firesOnRecordCreation])
         let info = CKSubscription.NotificationInfo()
@@ -144,7 +186,7 @@ extension CrewCloud {
         info.alertLocalizationKey = "%1$@"
         info.alertLocalizationArgs = ["text"]
         info.soundName = "default"
-        info.category = CrewNotifications.category
+        info.category = category
         info.desiredKeys = ["crewID", "senderID", "senderName"]
         subscription.notificationInfo = info
         return subscription
@@ -166,6 +208,8 @@ extension CrewCloud {
 /// Reply and Reply All, typed right on the notification.
 final class CrewNotifications: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     static let category = "CREW_MESSAGE"
+    /// One-way announcements: no Reply or Reply All on the lock screen.
+    static let oneWayCategory = "CREW_ANNOUNCEMENT"
     private static let reply = "REPLY"
     private static let replyAll = "REPLY_ALL"
 
@@ -178,7 +222,8 @@ final class CrewNotifications: NSObject, UIApplicationDelegate, UNUserNotificati
         let replyAll = UNTextInputNotificationAction(identifier: Self.replyAll, title: "Reply All", options: [],
                                                      textInputButtonTitle: "Send", textInputPlaceholder: "Reply to the whole crew")
         center.setNotificationCategories([UNNotificationCategory(identifier: Self.category, actions: [reply, replyAll],
-                                                                 intentIdentifiers: [])])
+                                                                 intentIdentifiers: []),
+                                          UNNotificationCategory(identifier: Self.oneWayCategory, actions: [], intentIdentifiers: [])])
         application.registerForRemoteNotifications()
         return true
     }
@@ -215,6 +260,7 @@ struct CrewMessagesSection: View {
     @State private var composing = false
     @State private var removing: CrewMessage?
     @State private var banning: CrewMessage?
+    @State private var replying: ReplyTarget?
     @State private var profileOf: ProfileTarget?
     @State private var failed = false
 
@@ -223,48 +269,7 @@ struct CrewMessagesSection: View {
     private var canModerate: Bool { isLeader || GodMode.isOn }
 
     var body: some View {
-        Section {
-            Button { composing = true } label: {
-                Label(isLeader ? "Send an Announcement" : "Message the Crew",
-                      systemImage: isLeader ? "megaphone.fill" : "text.bubble.fill")
-                    .font(AppFont.bodyBold)
-            }
-            ForEach(messages.prefix(10)) { message in
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(heading(message)).font(AppFont.bodyBold)
-                    Text(message.text).font(AppFont.body)
-                    Text(message.sentAt.formatted(date: .abbreviated, time: .shortened))
-                        .font(AppFont.body).foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 2)
-                .contextMenu {
-                    let mine = message.senderID == CrewCloud.shared.myID
-                    // REM: the second way to a profile, after the leaderboard: whoever sent this.
-                    if !mine {
-                        Button { profileOf = ProfileTarget(id: message.senderID, name: message.senderName) } label: {
-                            Label("View Profile", systemImage: "person.crop.circle")
-                        }
-                    }
-                    if mine || canModerate {
-                        Button(role: .destructive) { removing = message } label: {
-                            Label("Remove Message", systemImage: "trash")
-                        }
-                    }
-                    if !mine && canModerate {
-                        Button(role: .destructive) { banning = message } label: {
-                            Label("Remove and Ban \(message.senderName)", systemImage: "person.fill.xmark")
-                        }
-                    }
-                }
-            }
-            if failed {
-                Text("That didn't go through. Check iCloud in Settings and try again.").font(AppFont.body)
-            }
-        } header: {
-            Text("Crew messages").font(AppFont.bodyBold).textCase(nil)
-        }
-        .task(id: challenge.crewID) { await load() }
-        .sheet(item: $profileOf, onDismiss: { Task { await load() } }) { ProfileView(target: $0) }
+        list
         .confirmationDialog("Remove this message for the whole crew?",
                             isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),
                             titleVisibility: .visible, presenting: removing) { message in
@@ -290,15 +295,84 @@ struct CrewMessagesSection: View {
             Text("Their name shows as Disqualified on the board, their photos and messages are hidden, and they can't rejoin.")
         }
         .sheet(isPresented: $composing) {
-            ComposeView(title: isLeader ? "Announcement" : "Message the Crew") { text in
-                let me = name.trimmingCharacters(in: .whitespaces)
-                let sent = await CrewCloud.shared.send(text, crewID: challenge.crewID, kind: isLeader ? .announcement : .message,
-                                                       senderName: me.isEmpty ? "A crew member" : me)
-                if sent {
-                    await CrewCloud.shared.subscribe(crewIDs: [challenge.crewID])
-                    await load()
+            ComposeView(title: isLeader ? "Announcement" : "Message the Crew", offersOneWay: isLeader) { text, allowReplies in
+                await send(text, kind: !isLeader ? .message : allowReplies ? .announcement : .announcementOneWay)
+            }
+        }
+        // His word, 2026-10-23: "yes add reply and reply all in the app". Same send as the lock-screen actions.
+        .sheet(item: $replying) { target in
+            ComposeView(title: target.toAll ? "Reply All" : "Reply to \(target.message.senderName)",
+                        footer: target.toAll ? "It pops up on every crew member's phone." : "Only \(target.message.senderName) gets it.") { text, _ in
+                await send(text, kind: .reply, to: target.toAll ? CrewMessage.everyone : target.message.senderID)
+            }
+        }
+    }
+
+    /// Split from body so the type checker can manage it.
+    private var list: some View {
+        Section {
+            Button { composing = true } label: {
+                Label(isLeader ? "Send an Announcement" : "Message the Crew",
+                      systemImage: isLeader ? "megaphone.fill" : "text.bubble.fill")
+                    .font(AppFont.bodyBold)
+            }
+            ForEach(messages.prefix(10)) { message in
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(heading(message)).font(AppFont.bodyBold)
+                    Text(message.text).font(AppFont.body)
+                    Text(message.sentAt.formatted(date: .abbreviated, time: .shortened))
+                        .font(AppFont.body).foregroundStyle(.secondary)
                 }
-                return sent
+                .padding(.vertical, 2)
+                .contextMenu { menu(for: message) }
+            }
+            if failed {
+                Text("That didn't go through. Check iCloud in Settings and try again.").font(AppFont.body)
+            }
+        } header: {
+            Text("Crew messages").font(AppFont.bodyBold).textCase(nil)
+        }
+        .task(id: challenge.crewID) { await load() }
+        .sheet(item: $profileOf, onDismiss: { Task { await load() } }) { ProfileView(target: $0) }
+    }
+
+    private func send(_ text: String, kind: CrewMessage.Kind, to toID: String = CrewMessage.everyone) async -> Bool {
+        let me = name.trimmingCharacters(in: .whitespaces)
+        let sent = await CrewCloud.shared.send(text, crewID: challenge.crewID, kind: kind, to: toID,
+                                               senderName: me.isEmpty ? "A crew member" : me)
+        if sent {
+            await CrewCloud.shared.subscribe(crewID: challenge.crewID)
+            await load()
+        }
+        return sent
+    }
+
+    @ViewBuilder
+    private func menu(for message: CrewMessage) -> some View {
+        let mine = message.senderID == CrewCloud.shared.myID
+        // One-way announcements take no replies, here or on the lock screen.
+        if !mine && message.kind != .announcementOneWay {
+            Button { replying = ReplyTarget(message: message, toAll: false) } label: {
+                Label("Reply", systemImage: "arrowshape.turn.up.left")
+            }
+            Button { replying = ReplyTarget(message: message, toAll: true) } label: {
+                Label("Reply All", systemImage: "arrowshape.turn.up.left.2")
+            }
+        }
+        // REM: the second way to a profile, after the leaderboard: whoever sent this.
+        if !mine {
+            Button { profileOf = ProfileTarget(id: message.senderID, name: message.senderName) } label: {
+                Label("View Profile", systemImage: "person.crop.circle")
+            }
+        }
+        if mine || canModerate {
+            Button(role: .destructive) { removing = message } label: {
+                Label("Remove Message", systemImage: "trash")
+            }
+        }
+        if !mine && canModerate {
+            Button(role: .destructive) { banning = message } label: {
+                Label("Remove and Ban \(message.senderName)", systemImage: "person.fill.xmark")
             }
         }
     }
@@ -306,7 +380,7 @@ struct CrewMessagesSection: View {
     private func heading(_ message: CrewMessage) -> String {
         let from = message.senderID == CrewCloud.shared.myID ? "You" : message.senderName
         switch message.kind {
-        case .announcement: return "📣 \(from)"
+        case .announcement, .announcementOneWay: return "📣 \(from)"
         case .message: return from
         case .reply: return message.toID == CrewMessage.everyone ? "\(from), to everyone" : "\(from), reply"
         case .welcome: return "✅ \(from)"
@@ -320,10 +394,24 @@ struct CrewMessagesSection: View {
     }
 }
 
+/// Who a Reply or Reply All from the message list goes to.
+private struct ReplyTarget: Identifiable {
+    let message: CrewMessage
+    let toAll: Bool
+    var id: String { "\(message.id).\(toAll)" }
+}
+
 private struct ComposeView: View {
     @Environment(\.dismiss) private var dismiss
     let title: String
-    let send: (String) async -> Bool
+    var footer = "It pops up on every crew member's phone."
+    /// The leader's announcement: shows the Allow replies switch.
+    var offersOneWay = false
+    /// The text, and whether replies are allowed.
+    let send: (String, Bool) async -> Bool
+
+    // His word, 2026-10-23: "the announcer can toggle one way announcement or replies enabled". Remembered.
+    @AppStorage("announcementAllowsReplies") private var allowReplies = true
 
     @State private var text = ""
     @State private var sending = false
@@ -341,8 +429,15 @@ private struct ComposeView: View {
                         .lineLimit(2...4)
                         .focused($focused)
                 } footer: {
-                    Text(failed ? "It didn't send. Check iCloud in Settings and try again." : "It pops up on every crew member's phone.")
+                    Text(failed ? "It didn't send. Check iCloud in Settings and try again." : footer)
                         .font(AppFont.body)
+                }
+                if offersOneWay {
+                    Section {
+                        Toggle(isOn: $allowReplies) { Text("Allow replies").font(AppFont.body) }
+                    } footer: {
+                        Text(allowReplies ? "Your crew can Reply or Reply All." : "One way: no Reply or Reply All.").font(AppFont.body)
+                    }
                 }
             }
             .navigationTitle(title)
@@ -355,7 +450,7 @@ private struct ComposeView: View {
                     Button("Send") {
                         sending = true
                         Task {
-                            if await send(trimmed) { dismiss() } else { failed = true }
+                            if await send(trimmed, !offersOneWay || allowReplies) { dismiss() } else { failed = true }
                             sending = false
                         }
                     }

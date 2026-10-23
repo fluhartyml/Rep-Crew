@@ -113,6 +113,10 @@ final class CrewCloud {
     func subscribeToInvites() async {
         await connect()
         guard let myID else { return }
+        guard NotificationSettings.isOn(NotificationSettings.invites) else {
+            _ = try? await db.modifySubscriptions(saving: [], deleting: [NotificationSettings.invites])
+            return
+        }
         let subscription = CKQuerySubscription(recordType: "CrewChallenge", predicate: NSPredicate(format: "memberIDs CONTAINS %@", myID),
                                                subscriptionID: "invites", options: [.firesOnRecordCreation])
         let info = CKSubscription.NotificationInfo()
