@@ -67,6 +67,12 @@ struct ChallengeDetailView: View {
                 ShareLink(item: shareText) {
                     Label("Share Challenge", systemImage: "square.and.arrow.up").font(AppFont.bodyBold)
                 }
+                // REM: his word: "import from apple contacts so they can invite someone to the crew" ·
+                // "i want it to be one contact and not all contacts". Same text as Share Challenge,
+                // sent to the one phone number or email picked.
+                Button { ContactsPresenter.shared.invite(text: shareText) } label: {
+                    Label("Invite a Contact", systemImage: "person.crop.circle.badge.plus").font(AppFont.bodyBold)
+                }
             }
         }
         .navigationTitle(challenge.title)

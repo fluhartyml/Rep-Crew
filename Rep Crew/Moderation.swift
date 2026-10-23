@@ -107,11 +107,12 @@ extension CrewCloud {
     }
 
     /// Sends a photo to the developer for review and hides it on this phone.
-    func report(_ photo: CrewPhoto) async -> Bool {
+    /// `kind` is "profile" for a profile photo (Profile.swift), so Reports can tell them apart.
+    func report(_ photo: CrewPhoto, kind: String = "photo") async -> Bool {
         await connect()
         guard let myID else { return false }
         let record = CKRecord(recordType: "Report")
-        record["kind"] = "photo"
+        record["kind"] = kind
         record["photoID"] = photo.id
         record["crewID"] = photo.crewID
         record["senderID"] = photo.senderID

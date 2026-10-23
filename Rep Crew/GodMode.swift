@@ -88,6 +88,8 @@ extension CrewCloud {
 
     struct ReportItem: Identifiable {
         let id: String
+        /// "photo" (a challenge's photo board) or "profile" (a profile photo).
+        let kind: String
         let photoID: String
         let crewID: String
         let senderID: String
@@ -108,7 +110,7 @@ extension CrewCloud {
         return results.compactMap { try? $0.1.get() }.compactMap { record -> ReportItem? in
             guard let photoID = record["photoID"] as? String, !removed.contains(photoID),
                   let crewID = record["crewID"] as? String, let senderID = record["senderID"] as? String else { return nil }
-            return ReportItem(id: record.recordID.recordName, photoID: photoID, crewID: crewID, senderID: senderID,
+            return ReportItem(id: record.recordID.recordName, kind: record["kind"] as? String ?? "photo", photoID: photoID, crewID: crewID, senderID: senderID,
                               senderName: record["senderName"] as? String ?? "Crew member",
                               reportedAt: record["reportedAt"] as? Date ?? record.creationDate ?? .now)
         }
@@ -159,7 +161,8 @@ private struct GodModeView: View {
             ForEach(reports) { report in
                 Button { viewing = report } label: {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Photo from \(report.senderName)").font(AppFont.bodyBold).foregroundStyle(.primary)
+                        Text("\(report.kind == "profile" ? "Profile photo" : "Photo") from \(report.senderName)")
+                            .font(AppFont.bodyBold).foregroundStyle(.primary)
                         Text(report.reportedAt.formatted(date: .abbreviated, time: .shortened)).font(AppFont.body)
                             .foregroundStyle(.secondary)
                     }
@@ -186,10 +189,13 @@ private struct GodModeView: View {
                         Text("Remove Photo").font(AppFont.bodyBold).frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
-                    Button(role: .destructive) { Task { await act(report, ban: true) } } label: {
-                        Text("Remove Photo and Ban \(report.senderName)").font(AppFont.bodyBold).frame(maxWidth: .infinity)
+                    // A ban is per challenge, and a profile photo has none. Block covers the person.
+                    if report.kind != "profile" {
+                        Button(role: .destructive) { Task { await act(report, ban: true) } } label: {
+                            Text("Remove Photo and Ban \(report.senderName)").font(AppFont.bodyBold).frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
                     }
-                    .buttonStyle(.borderedProminent)
                     Spacer(minLength: 0)
                 }
                 .padding()

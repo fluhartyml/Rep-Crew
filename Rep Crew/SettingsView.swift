@@ -2,7 +2,7 @@
 //  SettingsView.swift
 //  Rep Crew
 //
-//  Your name, the TestFlight invite link, and your crew. Crew member 0 types the link in
+//  Your name and profile, the TestFlight invite link, and your crew. Crew member 0 types the link in
 //  once; everyone after gets it filled in when they join an invite.
 //
 
@@ -34,6 +34,8 @@ struct SettingsView: View {
                     Text("Your crew sees this name on your invites. You are crew member \(crewNumber).")
                         .font(AppFont.body)
                 }
+
+                MyProfileSection()
 
                 Section {
                     TextField("https://testflight.apple.com/join/…", text: $testFlight, axis: .vertical)
@@ -80,6 +82,7 @@ struct SettingsView: View {
             .task {
                 await CrewCloud.shared.connect()
                 isGod = GodMode.isOn
+                await MyProfile.restoreIfNeeded()
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -87,6 +90,8 @@ struct SettingsView: View {
                     Button("Done") { dismiss() }.font(AppFont.bodyBold)
                 }
             }
+            // REM: saved once when Settings closes, not on every keystroke.
+            .onDisappear { Task { await MyProfile.saveIfChanged() } }
         }
     }
 

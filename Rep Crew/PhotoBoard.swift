@@ -109,6 +109,8 @@ extension CrewCloud {
     }
 
     func fullPhoto(_ id: String) async -> UIImage? {
+        // A reported profile photo lives on its Profile record, not a CrewPhoto of its own.
+        if id.hasPrefix("profile.") { return await profilePhoto(id) }
         guard let record = try? await db.record(for: CKRecord.ID(recordName: id)),
               let url = (record["image"] as? CKAsset)?.fileURL,
               let data = try? Data(contentsOf: url) else { return nil }
@@ -161,7 +163,8 @@ extension CrewCloud {
     }
 
     /// A JPEG no bigger than `longestSide` pixels, written to a temporary file for upload.
-    private static func jpegFile(_ image: UIImage, longestSide: CGFloat) -> URL? {
+    /// Profile photos use it too (Profile.swift).
+    static func jpegFile(_ image: UIImage, longestSide: CGFloat) -> URL? {
         let scale = min(1, longestSide / max(image.size.width, image.size.height))
         let size = CGSize(width: (image.size.width * scale).rounded(), height: (image.size.height * scale).rounded())
         let format = UIGraphicsImageRendererFormat()
@@ -465,7 +468,8 @@ final class CameraPresenter: NSObject, UIImagePickerControllerDelegate, UINaviga
         onImage = nil
     }
 
-    @MainActor private static func topScreen() -> UIViewController? {
+    /// Also where Contacts and Messages are presented from (Profile.swift).
+    @MainActor static func topScreen() -> UIViewController? {
         let window = UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
             .flatMap(\.windows)

@@ -215,6 +215,7 @@ struct CrewMessagesSection: View {
     @State private var composing = false
     @State private var removing: CrewMessage?
     @State private var banning: CrewMessage?
+    @State private var profileOf: ProfileTarget?
     @State private var failed = false
 
     private var isLeader: Bool { challenge.leaderID.isEmpty || challenge.leaderID == CrewCloud.shared.myID }
@@ -238,6 +239,12 @@ struct CrewMessagesSection: View {
                 .padding(.vertical, 2)
                 .contextMenu {
                     let mine = message.senderID == CrewCloud.shared.myID
+                    // REM: the second way to a profile, after the leaderboard: whoever sent this.
+                    if !mine {
+                        Button { profileOf = ProfileTarget(id: message.senderID, name: message.senderName) } label: {
+                            Label("View Profile", systemImage: "person.crop.circle")
+                        }
+                    }
                     if mine || canModerate {
                         Button(role: .destructive) { removing = message } label: {
                             Label("Remove Message", systemImage: "trash")
@@ -257,6 +264,7 @@ struct CrewMessagesSection: View {
             Text("Crew messages").font(AppFont.bodyBold).textCase(nil)
         }
         .task(id: challenge.crewID) { await load() }
+        .sheet(item: $profileOf, onDismiss: { Task { await load() } }) { ProfileView(target: $0) }
         .confirmationDialog("Remove this message for the whole crew?",
                             isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),
                             titleVisibility: .visible, presenting: removing) { message in

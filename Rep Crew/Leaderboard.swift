@@ -23,6 +23,8 @@ struct CrewStanding: Identifiable {
     var reps = 0
     var complete = false
     var streak = 0
+    /// Banned from this challenge. Their row stays, as "Disqualified", but their profile doesn't open.
+    var disqualified = false
 }
 
 /// Someone else's challenge, as the whole crew sees it.
@@ -132,7 +134,7 @@ extension CrewCloud {
         let blocked = Blocklist.ids
         return board.values.filter { !blocked.contains($0.id) }.map { row in
             var row = row
-            if banned.contains(row.id) { row.name = "Disqualified" }
+            if banned.contains(row.id) { row.name = "Disqualified"; row.disqualified = true }
             return row
         }
     }
@@ -181,6 +183,7 @@ struct BoardBlock<Link: Hashable>: View {
     @State private var others: [CrewStanding] = []
     @State private var banning: CrewStanding?
     @State private var blocking: CrewStanding?
+    @State private var profileOf: ProfileTarget?
     @State private var reload = 0
 
     /// Highest reps first. Ties go alphabetical so the order doesn't jump around.
@@ -198,7 +201,7 @@ struct BoardBlock<Link: Hashable>: View {
                 heading
             }
             ForEach(rows) { row in
-                StandingRow(row: row, isMe: row.id == me?.id)
+                standing(row)
                     .contextMenu {
                         if row.id != me?.id {
                             Button { blocking = row } label: {
@@ -245,6 +248,7 @@ struct BoardBlock<Link: Hashable>: View {
         } message: { _ in
             Text("You won't see their reps, photos or messages anywhere. They aren't told. Unblock in Settings.")
         }
+        .sheet(item: $profileOf, onDismiss: { reload += 1 }) { ProfileView(target: $0) }
         // Keeps the board current while the screen is open.
         .task(id: "\(crewID).\(day).\(reload)") {
             guard !crewID.isEmpty else { return }
@@ -252,6 +256,20 @@ struct BoardBlock<Link: Hashable>: View {
                 others = await CrewCloud.shared.standings(crewID: crewID, dayNumber: day)
                 try? await Task.sleep(for: .seconds(60))
             }
+        }
+    }
+
+    /// REM: his word, 2026-10-23: "the crew each need a profile page". A tap on a name opens it —
+    /// the board is where the whole crew is listed. Not before iCloud answers, and not for someone banned.
+    @ViewBuilder private func standing(_ row: CrewStanding) -> some View {
+        if row.disqualified || row.id == "me" {
+            StandingRow(row: row, isMe: row.id == me?.id)
+        } else {
+            Button { profileOf = ProfileTarget(id: row.id, name: row.name) } label: {
+                StandingRow(row: row, isMe: row.id == me?.id).contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Opens their profile")
         }
     }
 

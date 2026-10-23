@@ -158,6 +158,25 @@ DEFINE SCHEMA
         GRANT READ TO "_world"
     );
 
+    RECORD TYPE Profile (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        email           STRING,
+        facetime        STRING,
+        name            STRING QUERYABLE SEARCHABLE SORTABLE,
+        phone           STRING,
+        photo           ASSET,
+        photoID         STRING QUERYABLE SEARCHABLE SORTABLE,
+        updatedAt       TIMESTAMP QUERYABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
     RECORD TYPE Progress (
         "___createTime" TIMESTAMP,
         "___createdBy"  REFERENCE,

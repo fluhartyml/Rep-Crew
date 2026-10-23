@@ -405,15 +405,19 @@
 //  Feature asks from the same call (not bugs):
 //  • Profile page per crew member (his, 2026-10-23 ~11:2x): "the crew each need a
 //    profile page and on the profile page would be the links to contact phone email
-//    facetime voice or facetime video". Not built. Sign in with Apple gives name only
+//    facetime voice or facetime video". 🟡 BUILT 2026-10-23, not tested (Profile.swift):
+//    Settings → Your profile (photo, phone, email, FaceTime); tap a name on a leaderboard,
+//    or long-press a crew message → View Profile. Profile record = profile.<iCloud ID>
+//    (the bare ID collides with the Users record). ⚠️ Schema: Profile is new — import to
+//    Development and deploy to Production before TestFlight. Sign in with Apple gives name only
 //    (no email, by his earlier choice), so phone/email must be entered by the member;
 //    LOCKED, his word: "they have to manually add their contact info that way they can
 //    omit or use alternate contact info". Every field optional; a button shows only
 //    when that member filled it in.
 //    His word, same minute: "i want their profile to have a contact photo of their
-//    choice". Claude-proposed, not yet his call: camera or library; a profile photo is
-//    user content under guideline 1.2, so give it the photo board's filter, Report,
-//    and leader/god removal.
+//    choice". Camera or library. His word 2026-10-23: "yes give them the photo board
+//    protections coach level remove" → 🟡 BUILT: ContentFilter, Report (kind "profile" in
+//    Coach Mode → Reports), Block, coach removal via PhotoRemoval removed.<photoID>.
 //    His word: "they should be able to export (maybe import) from/to apple contacts so
 //    they can invite someone to the crew". Export = save a member's profile card to
 //    Contacts (his). Import = pick a contact → send the invite. LOCKED 2026-10-23: his
@@ -423,6 +427,10 @@
 //    to the user's final selection." Use single selection only.
 //    LOCKED, his word: "i want it to be one contact and not all contacts". One contact
 //    per pick or save; the app never requests access to the whole address book.
+//    🟡 BUILT 2026-10-23, not tested: profile → Save to Contacts (CNContactViewController
+//    forUnknownContact); challenge → Invite a Contact (picker, one phone or email → Messages
+//    compose, or a mailto: link for an email). ⚠️ NSContactsUsageDescription added only as a
+//    crash guard in case iOS asks when saving the card; the app never requests access itself.
 //  • Two-way Health sync so other push-up apps and Rep Crew share counts. His word:
 //    "two way sync would be prefered but not a deal breaker". Checked Apple's
 //    HKQuantityTypeIdentifier list 2026-10-23: no push-up/rep count type exists
