@@ -262,8 +262,11 @@
 //  9. ⬜ Later ideas from the call: strength log, 2-mile run.
 //  ⬜ Open question: can members edit a challenge, or only the leader?
 //
-//  TestFlight: his word 2026-10-22 14:52 — "right after they approve or at the end of the
-//  day we will send all updated apps to testflight". Local builds as we go.
+//  TestFlight: his word 2026-10-22 ~20:1x (replaces his 14:52 end-of-day plan) — upload
+//  every tested build to TestFlight right away, without asking; Claude says so before each
+//  upload. "we push to test flight and pull to our local devices and public beta testers
+//  get them when apple approves" · "we could forget to upload the latest build if we held
+//  off". Internal testers install right after processing; external waits on Apple review.
 
 // ============================================================================
 // MARK: - PLAN: LEADERBOARD + WATCH + HEALTH (his, 2026-10-22 ~20:00)
