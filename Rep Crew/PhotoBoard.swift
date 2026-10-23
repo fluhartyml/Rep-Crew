@@ -165,7 +165,6 @@ struct PhotoBoardSection: View {
     @AppStorage(CrewSettings.name) private var name = ""
     @State private var photos: [CrewPhoto] = []
     @State private var picked: PhotosPickerItem?
-    @State private var showingCamera = false
     @State private var uploading = false
     @State private var failed = false
     @State private var viewing: CrewPhoto?
@@ -180,7 +179,7 @@ struct PhotoBoardSection: View {
                 // opened the camera when Choose Photo was tapped, and neither screen worked).
                 if canAdd {
                     if cameraAvailable {
-                        Button { showingCamera = true } label: {
+                        Button { CameraPresenter.shared.present { image in Task { await upload(image) } } } label: {
                             Label("Take Photo", systemImage: "camera.fill").font(AppFont.bodyBold)
                         }
                         .disabled(uploading)
@@ -231,9 +230,6 @@ struct PhotoBoardSection: View {
                     }
                     picked = nil
                 }
-            }
-            .fullScreenCover(isPresented: $showingCamera) {
-                CameraPicker { image in Task { await upload(image) } }.ignoresSafeArea()
             }
             .sheet(item: $viewing) { photo in
                 PhotoViewer(photo: photo, isMine: photo.senderID == CrewCloud.shared.myID, isLeader: isLeader) { action in
@@ -414,31 +410,41 @@ private struct PhotoViewer: View {
     }
 }
 
-/// The camera, for a photo taken on the spot.
-private struct CameraPicker: UIViewControllerRepresentable {
-    @Environment(\.dismiss) private var dismiss
-    let onImage: (UIImage) -> Void
+/// The camera, for a photo taken on the spot. Presented from the window's top screen, not from
+/// inside the List: build 36 showed the camera and then lost it a moment later, because a
+/// presentation hung on a List row goes away when the list redraws.
+final class CameraPresenter: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+    static let shared = CameraPresenter()
+    private var onImage: ((UIImage) -> Void)?
 
-    func makeUIViewController(context: Context) -> UIImagePickerController {
+    @MainActor func present(onImage: @escaping (UIImage) -> Void) {
+        guard let top = Self.topScreen() else { return }
+        self.onImage = onImage
         let picker = UIImagePickerController()
         picker.sourceType = .camera
-        picker.delegate = context.coordinator
-        return picker
+        picker.delegate = self
+        top.present(picker, animated: true)
     }
 
-    func updateUIViewController(_ picker: UIImagePickerController, context: Context) {}
+    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+        let image = info[.originalImage] as? UIImage
+        picker.dismiss(animated: true)
+        if let image { onImage?(image) }
+        onImage = nil
+    }
 
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
+    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        picker.dismiss(animated: true)
+        onImage = nil
+    }
 
-    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let parent: CameraPicker
-        init(_ parent: CameraPicker) { self.parent = parent }
-
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            if let image = info[.originalImage] as? UIImage { parent.onImage(image) }
-            parent.dismiss()
-        }
-
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) { parent.dismiss() }
+    @MainActor private static func topScreen() -> UIViewController? {
+        let window = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)
+        var top = window?.rootViewController
+        while let presented = top?.presentedViewController { top = presented }
+        return top
     }
 }
