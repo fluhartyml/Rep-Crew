@@ -466,6 +466,15 @@
 //    Production. Until then a Production save retries without them, so reps still post.
 //    ⚠️ Untested: what Health returns when read is denied (expected: empty list), calories from
 //    apps that store energy only as samples, a workout spanning midnight (counts on its start day).
+//  • Teams / groups for large crews (his idea, 2026-10-23 ~14:20, OPEN — after this TestFlight
+//    round). His words: "since the crews could potentially become large should we somhow have
+//    group flags of some sort? groups or teams?" and "if the app were to go viral and smittys
+//    'team' is his emediate family and if i were to send an invite link for test flight to my
+//    neighbor and smitty sent out invites to his friends, it seems like factions naturally start
+//    forming". Real scaling issue behind it: today everyone sees every challenge under Other
+//    challenges. Option floated (not decided): record who invited whom so each invite chain lands
+//    in its own group by default; and/or leader-assigned teams with a team total on the board.
+//    Open question to him: teams competing, or just grouping a big list?
 
 // ============================================================================
 // MARK: - PLAN: LEADERBOARD + WATCH + HEALTH (his, 2026-10-22 ~20:00)
