@@ -65,8 +65,10 @@ extension CrewCloud {
 // MARK: - Settings → God Mode
 
 struct GodModeSection: View {
+    let isOn: Bool
+
     var body: some View {
-        if GodMode.isOn {
+        if isOn {
             Section {
                 NavigationLink {
                     GodModeView()

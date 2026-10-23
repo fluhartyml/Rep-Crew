@@ -100,6 +100,16 @@ struct Invite: Codable, Equatable, Identifiable {
     }
 
     /// A TestFlight public link looks like https://testflight.apple.com/join/XXXXXXXX
+    /// Rep Crew's own public TestFlight link, used whenever Settings has none — so sharing
+    /// always carries a working join link. Matches fluharty.me/support/repcrew.
+    static let builtInTestFlight = "https://testflight.apple.com/join/twgbfqUS"
+
+    /// The link from Settings if it's a real TestFlight link, else the built-in one.
+    static func testFlightLink(_ setting: String) -> String {
+        let trimmed = setting.trimmingCharacters(in: .whitespaces)
+        return isTestFlightLink(trimmed) ? trimmed : builtInTestFlight
+    }
+
     static func isTestFlightLink(_ text: String) -> Bool {
         guard let url = URL(string: text.trimmingCharacters(in: .whitespaces)) else { return false }
         return url.scheme == "https" && url.host == "testflight.apple.com" && url.path.hasPrefix("/join/")

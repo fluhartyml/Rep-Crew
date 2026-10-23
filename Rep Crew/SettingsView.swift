@@ -16,6 +16,8 @@ struct SettingsView: View {
     @AppStorage(CrewSettings.name) private var name = ""
     @AppStorage(CrewSettings.testFlight) private var testFlight = ""
     @AppStorage(CrewSettings.crewNumber) private var crewNumber = 0
+    /// Checked against iCloud when Settings opens, not left to whenever iCloud answers.
+    @State private var isGod = false
 
     private var linkIsValid: Bool { Invite.isTestFlightLink(testFlight) }
     private var trimmedName: String { name.trimmingCharacters(in: .whitespaces) }
@@ -52,7 +54,7 @@ struct SettingsView: View {
                             Label("Invite to Crew", systemImage: "person.badge.plus").font(AppFont.bodyBold)
                         }
                     } else {
-                        Text("Add your name and the TestFlight link to send invites.").font(AppFont.body)
+                        Text("Add your name to send invites.").font(AppFont.body)
                     }
                 }
 
@@ -74,7 +76,7 @@ struct SettingsView: View {
                 }
 
                 BlockedPeopleSection()
-                GodModeSection()
+                GodModeSection(isOn: isGod)
 
                 Section {
                     Text(CrewCloud.shared.status).font(AppFont.body)
@@ -83,6 +85,10 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .task {
+                await CrewCloud.shared.connect()
+                isGod = GodMode.isOn
+            }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -93,14 +99,14 @@ struct SettingsView: View {
     }
 
     private var linkFooter: String {
-        if testFlight.isEmpty { return "Paste Rep Crew's TestFlight public link. It goes into every invite you send." }
+        if testFlight.isEmpty { return "Invites use Rep Crew's public TestFlight link. Paste a different one here to override it." }
         return linkIsValid ? "Every invite you send includes this link." : "This doesn't look like a TestFlight link. It should start with https://testflight.apple.com/join/"
     }
 
     /// An invite to the crew with no challenge attached.
     private var crewInvite: Invite? {
-        guard linkIsValid, !trimmedName.isEmpty else { return nil }
-        return Invite(from: trimmedName, crewNumber: crewNumber, testFlight: testFlight.trimmingCharacters(in: .whitespaces),
+        guard !trimmedName.isEmpty else { return nil }
+        return Invite(from: trimmedName, crewNumber: crewNumber, testFlight: Invite.testFlightLink(testFlight),
                       challenge: nil, fromID: CrewCloud.shared.myID)
     }
 

@@ -16,7 +16,6 @@ struct ChallengeDetailView: View {
     @State private var customGoal: ExerciseGoal?
     @State private var setGoal: ExerciseGoal?
     @State private var confirmingDelete = false
-    @State private var showingSettings = false
     /// The leader removed you; your own reps stay, the crew parts go.
     @State private var removed = false
     /// People asking to join, when you lead this challenge.
@@ -68,12 +67,6 @@ struct ChallengeDetailView: View {
                 ShareLink(item: shareText) {
                     Label("Share Challenge", systemImage: "square.and.arrow.up").font(AppFont.bodyBold)
                 }
-                if challengeInvite == nil {
-                    // Invites need your name and the TestFlight link; Settings is where they go.
-                    Button { showingSettings = true } label: {
-                        Label("Add Your Name to Include the Join Link", systemImage: "person.badge.plus").font(AppFont.bodyBold)
-                    }
-                }
             }
         }
         .navigationTitle(challenge.title)
@@ -93,7 +86,6 @@ struct ChallengeDetailView: View {
         .crewNavGlyphs()
         .sheet(item: $customGoal) { goal in CustomRepsView(goal: goal) }
         .sheet(item: $setGoal) { goal in SetTimerView(goal: goal) }
-        .sheet(isPresented: $showingSettings) { SettingsView() }
         .onAppear { assignCrewID() }
         .task(id: challenge.crewID) { joinRequests = await JoinRequestsSection.load(challenge) }
         .task(id: challenge.crewID) {
@@ -111,11 +103,12 @@ struct ChallengeDetailView: View {
         }
     }
 
-    /// This challenge as an invite, once your name and the TestFlight link are in Settings.
+    /// This challenge as an invite. His word: Share Challenge is one button that always works,
+    /// so the join link uses the built-in TestFlight link and "A crew member" when Settings is blank.
     private var challengeInvite: Invite? {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty, Invite.isTestFlightLink(testFlight), !challenge.crewID.isEmpty else { return nil }
-        return Invite(from: trimmed, crewNumber: crewNumber, testFlight: testFlight.trimmingCharacters(in: .whitespaces),
+        guard !challenge.crewID.isEmpty else { return nil }
+        return Invite(from: trimmed.isEmpty ? "A crew member" : trimmed, crewNumber: crewNumber, testFlight: Invite.testFlightLink(testFlight),
                       challenge: Invite.ChallengeInfo(challenge), fromID: CrewCloud.shared.myID)
     }
 
