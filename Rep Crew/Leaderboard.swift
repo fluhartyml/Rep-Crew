@@ -209,6 +209,17 @@ struct BoardBlock<Link: Hashable>: View {
                                     Label("Remove from Challenge", systemImage: "person.fill.xmark")
                                 }
                             }
+                            // His word: "i should be able to grant and ungrant coach permissions
+                            // to worthy individuals". Only he sees this.
+                            if GodMode.isOwner && !GodMode.ids.contains(row.id) {
+                                let isCoach = CrewCloud.shared.coaches[row.id] != nil
+                                Button {
+                                    Task { _ = await CrewCloud.shared.setCoach(row.id, name: row.name, on: !isCoach) }
+                                } label: {
+                                    Label(isCoach ? "Remove Coach" : "Make Coach",
+                                          systemImage: isCoach ? "person.badge.minus" : "person.badge.shield.checkmark")
+                                }
+                            }
                         }
                     }
             }
@@ -265,7 +276,7 @@ struct LeaderboardSection: View {
         if let day = challenge.dayNumber(), !challenge.crewID.isEmpty {
             Section {
                 BoardBlock<Challenge>(crewID: challenge.crewID, day: day, days: challenge.days, me: challenge.myStanding,
-                                      canBan: challenge.leaderID.isEmpty)
+                                      canBan: challenge.leaderID.isEmpty || GodMode.isOn)
             } header: {
                 Text("Leaderboard").font(AppFont.bodyBold).textCase(nil)
             }
@@ -343,7 +354,7 @@ struct LeaderboardsView: View {
                     if let day = challenge.dayNumber() {
                         BoardBlock(title: challenge.title, link: challenge, crewID: challenge.crewID,
                                    day: day, days: challenge.days, me: challenge.myStanding,
-                                   canBan: challenge.leaderID.isEmpty)
+                                   canBan: challenge.leaderID.isEmpty || GodMode.isOn)
                     }
                 }
             } header: {

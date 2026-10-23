@@ -32,6 +32,8 @@ final class CrewCloud {
     var status = "Checking iCloud…"
     /// Challenges a leader checked you off for that you haven't accepted or declined.
     private(set) var pending: [Invite] = []
+    /// People he made coaches, by iCloud ID → name (GodMode.swift). Loaded on connect.
+    var coaches: [String: String] = [:]
 
     func connect() async {
         if myID != nil { return }
@@ -43,6 +45,7 @@ final class CrewCloud {
             myID = try await container.userRecordID().recordName
             // Kept so the developer can read his own ID off his phone for god mode (GodMode.swift).
             UserDefaults.standard.set(myID, forKey: "myCloudID")
+            await loadCoaches()
             status = "Connected to iCloud"
         } catch {
             status = "iCloud problem: \(error.localizedDescription)"

@@ -94,7 +94,7 @@ extension CrewCloud {
         var removed: Set<String> = []
         let removals = CKQuery(recordType: "PhotoRemoval", predicate: NSPredicate(format: "crewID == %@", crewID))
         if let (results, _) = try? await db.records(matching: removals) {
-            for record in results.compactMap({ try? $0.1.get() }) where isModerator(record["removedBy"] as? String, leaderID: leader) {
+            for record in results.compactMap({ try? $0.1.get() }) where isModerator(writer(of: record), leaderID: leader) {
                 if let id = record["photoID"] as? String { removed.insert(id) }
             }
         }

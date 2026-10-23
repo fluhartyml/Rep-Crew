@@ -327,6 +327,13 @@
 //        remove + ban); god's removals/bans honored like the leader's everywhere; god can remove
 //        messages and ban on any challenge. ⚠️ GodMode.ids is EMPTY until his iCloud IDs are read
 //        off his 16e (stored as "myCloudID"); Development and Production may differ — unverified.
+//  17. ✅ Coaches (his, 23:1x): "a crew leader … gets moderator permissions for their only
+//        challenges. my coach mode is for any challenge and i should be able to grant and ungrant
+//        coach permissions to worthy individuals". CoachGrant (coach.<ID>; coachID, name), counted
+//        only when HE wrote it. He: long-press a board row → Make / Remove Coach; Coach Mode →
+//        Coaches list. Coaches: Reports + moderation on every challenge. Every removal/ban/grant
+//        check now uses CloudKit's creatorUserRecordID, never a self-reported field.
+//        CoachGrant needs a Production deploy after first use.
 //  15. ✅ Leader moderation of messages (his: "the crew leader needs kick ban and moderator
 //        permissions to remove announcements or photos"): Remove Message / Remove and Ban on a
 //        message's long-press. MessageRemoval record (crewID, messageID, removedBy).

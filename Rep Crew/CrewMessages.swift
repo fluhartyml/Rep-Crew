@@ -111,7 +111,7 @@ extension CrewCloud {
         let query = CKQuery(recordType: "MessageRemoval", predicate: NSPredicate(format: "crewID == %@", crewID))
         guard let (results, _) = try? await db.records(matching: query) else { return [] }
         return Set(results.compactMap { try? $0.1.get() }
-            .filter { isModerator($0["removedBy"] as? String, leaderID: leaderID) }
+            .filter { isModerator(writer(of: $0), leaderID: leaderID) }
             .compactMap { $0["messageID"] as? String })
     }
 
