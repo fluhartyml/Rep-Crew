@@ -281,6 +281,19 @@
 //  7. ⬜ "Completed today" notification ("James completed his daily challenge").
 //  8. ⬜ Watch sets + Health (rings). See PLAN below.
 //  9. ⬜ Later ideas from the call: strength log, 2-mile run.
+//  10. ⬜ Photo board per challenge (his, 2026-10-22 ~21:3x): "photo board or photo thumbnails
+//        for a challenge, maybe the crew is at a gym doing challenges together perhaps a
+//        crewmember takes a picture of the team on the treadmills or someone doing swiming
+//        laps". Crew adds from camera or library; thumbnails on the challenge; tap = full size.
+//  11. ⬜ Leader kick / ban (his): "the leader can kick ban anyone that posts pervy pictures".
+//        Leader also removes the photo.
+//  12. ⬜ Report a photo → reaches the developer, plus contact info in the app (Claude-raised:
+//        App Review guideline 1.2, user-generated content — re-read the current text first).
+//  13. ⬜ God mode (his, 2026-10-22): "i plan on having 'god mode'" — the developer's
+//        moderation over every challenge. Scope not settled yet; ask him before building.
+//  Camaraderie ideas (Claude-proposed 2026-10-22, he hasn't picked any): high-five a
+//  teammate's row (one-tap notification) · "crew's all in" celebration when the last person
+//  finishes · "just finished" alerts (= item 7) · welcome on the board when someone joins.
 //  ⬜ Open question: can members edit a challenge, or only the leader?
 //
 //  TestFlight: his word 2026-10-22 ~20:1x (replaces his 14:52 end-of-day plan) — upload
