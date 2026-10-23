@@ -256,7 +256,10 @@
 //  4. ✅ Crew messages + Reply / Reply All. (built, untested on 2 phones)
 //  5. ✅ First TestFlight. Build 21 in external review (Smitty's Crew); internal works (his
 //        word 2026-10-22 16:2x).
-//  6. ⬜ Leaderboard — everyone sees each other's reps for the day. See PLAN below.
+//  6. ✅ Leaderboard — everyone sees each other's reps for the day (Leaderboard.swift).
+//        Built 2026-10-22 ~21:00, compiles; untested on 2 phones. New iCloud record type
+//        Progress (crewID, memberID, name, dayNumber, reps, complete, streak) — needs
+//        queryable crewID + dayNumber, and Membership.crewID, in the Production deploy.
 //  7. ⬜ "Completed today" notification ("James completed his daily challenge").
 //  8. ⬜ Watch sets + Health (rings). See PLAN below.
 //  9. ⬜ Later ideas from the call: strength log, 2-mile run.

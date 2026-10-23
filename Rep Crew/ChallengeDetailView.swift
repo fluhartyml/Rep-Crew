@@ -35,6 +35,8 @@ struct ChallengeDetailView: View {
                 }
             }
 
+            LeaderboardSection(challenge: challenge)
+
             Section {
                 ForEach(challenge.allDays, id: \.self) { day in
                     DayRow(challenge: challenge, day: day)
