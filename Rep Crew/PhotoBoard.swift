@@ -20,6 +20,7 @@
 import CloudKit
 import Photos
 import PhotosUI
+import SensitiveContentAnalysis
 import SwiftUI
 
 struct CrewPhoto: Identifiable {
@@ -29,6 +30,22 @@ struct CrewPhoto: Identifiable {
     let senderName: String
     let takenAt: Date
     let thumb: UIImage?
+}
+
+// MARK: - Filter
+
+/// Apple guideline 1.2 asks apps with user photos for "a method for filtering objectionable
+/// material". This is Apple's own on-device check (SensitiveContentAnalysis). It only runs on a
+/// phone where Sensitive Content Warning (or Communication Safety) is turned on — Apple's design,
+/// not something an app can switch on. Where it runs: a flagged photo can't be posted, and a
+/// flagged photo from someone else stays off your board. Report, Block and the leader's ban
+/// cover the rest.
+enum ContentFilter {
+    static func isSensitive(_ image: UIImage) async -> Bool {
+        let analyzer = SCSensitivityAnalyzer()
+        guard analyzer.analysisPolicy != .disabled, let cgImage = image.cgImage else { return false }
+        return (try? await analyzer.analyzeImage(cgImage))?.isSensitive ?? false
+    }
 }
 
 // MARK: - iCloud
@@ -83,8 +100,12 @@ extension CrewCloud {
         }
         let hide = await hidden(crewID: crewID, leaderID: leader)
         let reported = Blocklist.hiddenPhotos
-        return photos.filter { !removed.contains($0.id) && !reported.contains($0.id) && !hide.contains($0.senderID) }
-            .sorted { $0.takenAt > $1.takenAt }
+        var shown: [CrewPhoto] = []
+        for photo in photos where !removed.contains(photo.id) && !reported.contains(photo.id) && !hide.contains(photo.senderID) {
+            if let thumb = photo.thumb, await ContentFilter.isSensitive(thumb) { continue }
+            shown.append(photo)
+        }
+        return shown.sorted { $0.takenAt > $1.takenAt }
     }
 
     func fullPhoto(_ id: String) async -> UIImage? {
@@ -290,6 +311,12 @@ struct PhotoBoardSection: View {
     private func upload(_ image: UIImage) async {
         uploading = true
         failed = false
+        saveNote = nil
+        if await ContentFilter.isSensitive(image) {
+            saveNote = "This photo can't be shared with the crew."
+            uploading = false
+            return
+        }
         let me = name.trimmingCharacters(in: .whitespaces)
         if await CrewCloud.shared.postPhoto(image, crewID: crewID, senderName: me.isEmpty ? "A crew member" : me) {
             await load()

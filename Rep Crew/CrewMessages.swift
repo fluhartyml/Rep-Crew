@@ -69,10 +69,12 @@ extension CrewCloud {
         let query = CKQuery(recordType: "CrewMessage", predicate: NSPredicate(format: "crewID == %@", crewID))
         do {
             let (results, _) = try await db.records(matching: query, resultsLimit: 100)
-            let hide = await hidden(crewID: crewID)
+            let leader = (try? await db.record(for: CKRecord.ID(recordName: crewID)))?["leaderID"] as? String ?? myID
+            let hide = await hidden(crewID: crewID, leaderID: leader)
+            let removed = await removedMessages(crewID: crewID, leaderID: leader)
             return results.compactMap { try? $0.1.get() }.compactMap(Self.message(from:))
                 .filter { $0.toID == CrewMessage.everyone || $0.toID == myID || $0.senderID == myID }
-                .filter { !hide.contains($0.senderID) }
+                .filter { !hide.contains($0.senderID) && !removed.contains($0.id) }
                 .sorted { $0.sentAt > $1.sentAt }
         } catch let error as CKError where error.code == .unknownItem {
             return []   // No one has sent a message yet, so the record type doesn't exist yet.
@@ -80,6 +82,37 @@ extension CrewCloud {
             status = "Couldn't load messages: \(error.localizedDescription)"
             return []
         }
+    }
+
+    /// His word, 2026-10-22: "the crew leader needs kick ban and moderator permissions to remove
+    /// announcements or photos". Yours: deleted. Someone else's, as leader: a MessageRemoval
+    /// (name = removed.<message ID>) hides it on every phone — honored only when the leader left it.
+    func removeMessage(_ message: CrewMessage) async -> Bool {
+        await connect()
+        guard let myID else { return false }
+        do {
+            if message.senderID == myID {
+                _ = try await db.modifyRecords(saving: [], deleting: [CKRecord.ID(recordName: message.id)])
+            } else {
+                let record = CKRecord(recordType: "MessageRemoval", recordID: CKRecord.ID(recordName: "removed.\(message.id)"))
+                record["crewID"] = message.crewID
+                record["messageID"] = message.id
+                record["removedBy"] = myID
+                _ = try await db.modifyRecords(saving: [record], deleting: [], savePolicy: .allKeys)
+            }
+            return true
+        } catch {
+            status = "Couldn't remove the message: \(error.localizedDescription)"
+            return false
+        }
+    }
+
+    private func removedMessages(crewID: String, leaderID: String) async -> Set<String> {
+        let query = CKQuery(recordType: "MessageRemoval", predicate: NSPredicate(format: "crewID == %@", crewID))
+        guard let (results, _) = try? await db.records(matching: query) else { return [] }
+        return Set(results.compactMap { try? $0.1.get() }
+            .filter { $0["removedBy"] as? String == leaderID }
+            .compactMap { $0["messageID"] as? String })
     }
 
     /// One subscription per crew for messages to everyone, and one for replies addressed to you.
@@ -180,6 +213,9 @@ struct CrewMessagesSection: View {
     @AppStorage(CrewSettings.name) private var name = ""
     @State private var messages: [CrewMessage] = []
     @State private var composing = false
+    @State private var removing: CrewMessage?
+    @State private var banning: CrewMessage?
+    @State private var failed = false
 
     private var isLeader: Bool { challenge.leaderID.isEmpty || challenge.leaderID == CrewCloud.shared.myID }
 
@@ -198,11 +234,51 @@ struct CrewMessagesSection: View {
                         .font(AppFont.body).foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 2)
+                .contextMenu {
+                    let mine = message.senderID == CrewCloud.shared.myID
+                    if mine || isLeader {
+                        Button(role: .destructive) { removing = message } label: {
+                            Label("Remove Message", systemImage: "trash")
+                        }
+                    }
+                    if !mine && isLeader {
+                        Button(role: .destructive) { banning = message } label: {
+                            Label("Remove and Ban \(message.senderName)", systemImage: "person.fill.xmark")
+                        }
+                    }
+                }
+            }
+            if failed {
+                Text("That didn't go through. Check iCloud in Settings and try again.").font(AppFont.body)
             }
         } header: {
             Text("Crew messages").font(AppFont.bodyBold).textCase(nil)
         }
         .task(id: challenge.crewID) { await load() }
+        .confirmationDialog("Remove this message for the whole crew?",
+                            isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),
+                            titleVisibility: .visible, presenting: removing) { message in
+            Button("Remove Message", role: .destructive) {
+                Task {
+                    failed = !(await CrewCloud.shared.removeMessage(message))
+                    await load()
+                }
+            }
+        }
+        .confirmationDialog("Remove this message and ban \(banning?.senderName ?? "them") from the challenge?",
+                            isPresented: Binding(get: { banning != nil }, set: { if !$0 { banning = nil } }),
+                            titleVisibility: .visible, presenting: banning) { message in
+            Button("Remove and Ban", role: .destructive) {
+                Task {
+                    let banned = await CrewCloud.shared.ban(crewID: challenge.crewID, memberID: message.senderID, name: message.senderName)
+                    let removed = await CrewCloud.shared.removeMessage(message)
+                    failed = !(banned && removed)
+                    await load()
+                }
+            }
+        } message: { _ in
+            Text("Their name shows as Disqualified on the board, their photos and messages are hidden, and they can't rejoin.")
+        }
         .sheet(isPresented: $composing) {
             ComposeView(title: isLeader ? "Announcement" : "Message the Crew") { text in
                 let me = name.trimmingCharacters(in: .whitespaces)
@@ -223,7 +299,6 @@ struct CrewMessagesSection: View {
         case .announcement: return "📣 \(from)"
         case .message: return from
         case .reply: return message.toID == CrewMessage.everyone ? "\(from), to everyone" : "\(from), reply"
-
         case .welcome: return "✅ \(from)"
         case .finished: return "🏁 \(from)"
         }
