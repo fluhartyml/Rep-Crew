@@ -58,7 +58,8 @@ struct SettingsView: View {
 
                 Section {
                     if crew.isEmpty {
-                        Text("No one yet. People whose invites you join show up here.").font(AppFont.body)
+                        // REM: his wording 2026-10-22 — the old "People whose invites you join" read two ways.
+                        Text("No one yet. Your accepted invites show here.").font(AppFont.body)
                     } else {
                         ForEach(crew) { member in
                             HStack {
