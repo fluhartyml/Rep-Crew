@@ -10,6 +10,10 @@ import SwiftData
 struct RepCrewApp: App {
     @UIApplicationDelegateAdaptor(CrewNotifications.self) private var notifications
 
+    init() {
+        WatchBridge.shared.start(container)
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()

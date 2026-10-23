@@ -111,7 +111,7 @@ extension CrewCloud {
         let query = CKQuery(recordType: "MessageRemoval", predicate: NSPredicate(format: "crewID == %@", crewID))
         guard let (results, _) = try? await db.records(matching: query) else { return [] }
         return Set(results.compactMap { try? $0.1.get() }
-            .filter { $0["removedBy"] as? String == leaderID }
+            .filter { isModerator($0["removedBy"] as? String, leaderID: leaderID) }
             .compactMap { $0["messageID"] as? String })
     }
 
@@ -218,6 +218,8 @@ struct CrewMessagesSection: View {
     @State private var failed = false
 
     private var isLeader: Bool { challenge.leaderID.isEmpty || challenge.leaderID == CrewCloud.shared.myID }
+    /// Leader, or god: can remove anyone's message and ban from it.
+    private var canModerate: Bool { isLeader || GodMode.isOn }
 
     var body: some View {
         Section {
@@ -236,12 +238,12 @@ struct CrewMessagesSection: View {
                 .padding(.vertical, 2)
                 .contextMenu {
                     let mine = message.senderID == CrewCloud.shared.myID
-                    if mine || isLeader {
+                    if mine || canModerate {
                         Button(role: .destructive) { removing = message } label: {
                             Label("Remove Message", systemImage: "trash")
                         }
                     }
-                    if !mine && isLeader {
+                    if !mine && canModerate {
                         Button(role: .destructive) { banning = message } label: {
                             Label("Remove and Ban \(message.senderName)", systemImage: "person.fill.xmark")
                         }

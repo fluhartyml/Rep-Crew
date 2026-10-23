@@ -29,6 +29,8 @@ struct ContentView: View {
     @State private var path = NavigationPath()
 
     private var active: [Challenge] { challenges.filter(\.isActive) }
+    /// Changes whenever today's numbers do, so the Watch gets a fresh copy.
+    private var watchSignature: String { challenges.map { "\($0.title).\($0.repsToday)" }.joined(separator: "|") }
     private var upcoming: [Challenge] { challenges.filter { !$0.hasStarted } }
     private var finished: [Challenge] { challenges.filter(\.isFinished) }
 
@@ -48,6 +50,7 @@ struct ContentView: View {
                 }
             }
             .task { await syncCrew() }
+            .task(id: watchSignature) { WatchBridge.shared.sendGoals(challenges) }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { Task { await syncCrew() } }
             }

@@ -283,8 +283,14 @@
 //        Built 2026-10-22 ~21:00, compiles; untested on 2 phones. New iCloud record type
 //        Progress (crewID, memberID, name, dayNumber, reps, complete, streak) — needs
 //        queryable crewID + dayNumber, and Membership.crewID, in the Production deploy.
-//  7. ⬜ "Completed today" notification ("James completed his daily challenge").
-//  8. ⬜ Watch sets + Health (rings). See PLAN below.
+//  7. ✅ "Completed today" notification ("James completed his daily challenge"). Built 22:4x:
+//        CrewMessage kind .finished ("🏁 Name — Finished today: …"), once per challenge day.
+//  8. ✅ Watch sets + Health (rings), built 22:4x, compiles, untested on device. iPhone: Start Set
+//        timer → RepEntry + HKWorkout (start/end only, no calories) — SetTimer.swift. Watch:
+//        target "Rep Crew Watch" (com.accountability.dailyrepcrew.watchkitapp, embedded),
+//        live HKWorkoutSession (time + calories) → Health; reps → iPhone via WatchConnectivity
+//        (WatchBridge.swift). ⚠️ The Watch app has NO ICON — his to supply (Image Playground);
+//        App Store upload will likely refuse it without one.
 //  9. ⬜ Later ideas from the call: strength log, 2-mile run.
 //  10. ✅ Photo board per challenge (PhotoBoard.swift, built ~21:4x, compiles; untested).
 //        Long-press a thumbnail → Save to Photos; save button in the full-size view too (his:
@@ -316,8 +322,16 @@
 //        email. RootView gates the app; credential state checked each launch (revoked →
 //        sign in again); an invite link opened before sign-in is held. Entitlement
 //        com.apple.developer.applesignin added (automatic signing registered it).
-//  13. ⬜ God mode (his, 2026-10-22): "i plan on having 'god mode'" — the developer's
-//        moderation over every challenge. Scope not settled yet; ask him before building.
+//  13. ✅ God mode (his, 2026-10-22): "i plan on having 'god mode'" · "my apple id gets god
+//        permissions". Built 22:5x (GodMode.swift): Settings → God Mode → Reports (remove photo,
+//        remove + ban); god's removals/bans honored like the leader's everywhere; god can remove
+//        messages and ban on any challenge. ⚠️ GodMode.ids is EMPTY until his iCloud IDs are read
+//        off his 16e (stored as "myCloudID"); Development and Production may differ — unverified.
+//  15. ✅ Leader moderation of messages (his: "the crew leader needs kick ban and moderator
+//        permissions to remove announcements or photos"): Remove Message / Remove and Ban on a
+//        message's long-press. MessageRemoval record (crewID, messageID, removedBy).
+//  16. ✅ Photo filter (guideline 1.2): Apple's SensitiveContentAnalysis — blocks posting and hides
+//        flagged photos, but ONLY on phones with Sensitive Content Warning on (Apple's design).
 //  Camaraderie ideas (Claude-proposed 2026-10-22, he hasn't picked any): high-five a
 //  teammate's row (one-tap notification) · "crew's all in" celebration when the last person
 //  finishes · "just finished" alerts (= item 7) · welcome on the board when someone joins.
@@ -327,7 +341,8 @@
 //  you built everything". Upload only when every item he asked for is built; list them first.
 //  (Was, ~20:1x: upload every tested build to TestFlight right away, without asking.)
 //  Build 39 bb2e19f uploaded 22:15. Production schema deployed by him 22:20 (CrewMessage,
-//  CrewPhoto, Progress); CrewBan, PhotoRemoval, Report, JoinRequest still to deploy. "we push to test flight and pull to our local devices and public beta testers
+//  CrewPhoto, Progress); CrewBan, PhotoRemoval, Report, JoinRequest still to deploy.
+//  "we push to test flight and pull to our local devices and public beta testers
 //  get them when apple approves" · "we could forget to upload the latest build if we held
 //  off". Internal testers install right after processing; external waits on Apple review.
 

@@ -74,6 +74,7 @@ struct SettingsView: View {
                 }
 
                 BlockedPeopleSection()
+                GodModeSection()
 
                 Section {
                     Text(CrewCloud.shared.status).font(AppFont.body)

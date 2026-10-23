@@ -72,7 +72,7 @@ extension CrewCloud {
         let query = CKQuery(recordType: "CrewBan", predicate: NSPredicate(format: "crewID == %@", crewID))
         guard let (results, _) = try? await db.records(matching: query) else { return [] }
         return Set(results.compactMap { try? $0.1.get() }
-            .filter { $0["bannedBy"] as? String == leader }
+            .filter { isModerator($0["bannedBy"] as? String, leaderID: leader) }
             .compactMap { $0["memberID"] as? String })
     }
 

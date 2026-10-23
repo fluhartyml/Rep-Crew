@@ -440,7 +440,7 @@ struct CrewChallengeView: View {
             AskToJoinSection(listing: listing)
             if let day = listing.dayNumber {
                 Section {
-                    BoardBlock<CrewListing>(crewID: listing.id, day: day, days: listing.info.days)
+                    BoardBlock<CrewListing>(crewID: listing.id, day: day, days: listing.info.days, canBan: GodMode.isOn)
                 } header: {
                     Text("Leaderboard").font(AppFont.bodyBold).textCase(nil)
                 }

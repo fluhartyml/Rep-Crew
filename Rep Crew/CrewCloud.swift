@@ -41,6 +41,8 @@ final class CrewCloud {
                 return
             }
             myID = try await container.userRecordID().recordName
+            // Kept so the developer can read his own ID off his phone for god mode (GodMode.swift).
+            UserDefaults.standard.set(myID, forKey: "myCloudID")
             status = "Connected to iCloud"
         } catch {
             status = "iCloud problem: \(error.localizedDescription)"

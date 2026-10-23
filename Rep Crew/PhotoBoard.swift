@@ -94,7 +94,7 @@ extension CrewCloud {
         var removed: Set<String> = []
         let removals = CKQuery(recordType: "PhotoRemoval", predicate: NSPredicate(format: "crewID == %@", crewID))
         if let (results, _) = try? await db.records(matching: removals) {
-            for record in results.compactMap({ try? $0.1.get() }) where record["removedBy"] as? String == leader {
+            for record in results.compactMap({ try? $0.1.get() }) where isModerator(record["removedBy"] as? String, leaderID: leader) {
                 if let id = record["photoID"] as? String { removed.insert(id) }
             }
         }
@@ -273,7 +273,7 @@ struct PhotoBoardSection: View {
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
-    private var isLeader: Bool { leaderID.isEmpty || leaderID == CrewCloud.shared.myID }
+    private var isLeader: Bool { leaderID.isEmpty || leaderID == CrewCloud.shared.myID || GodMode.isOn }
 
     /// Carries out what was picked in the photo's menu; true when it worked.
     private func act(_ action: PhotoAction, on photo: CrewPhoto) async -> Bool {
