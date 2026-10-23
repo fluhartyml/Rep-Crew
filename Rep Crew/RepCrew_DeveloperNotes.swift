@@ -254,11 +254,45 @@
 //  2. ✅ Crew invites with the hot-potato TestFlight link. (built, untested on 2 phones)
 //  3. ✅ Crew check boxes through iCloud. (built, untested on 2 phones)
 //  4. ✅ Crew messages + Reply / Reply All. (built, untested on 2 phones)
-//  5. ⬜ First TestFlight (see above).
-//  6. ⬜ Everyone sees each other's reps for the day.
+//  5. ✅ First TestFlight. Build 21 in external review (Smitty's Crew); internal works (his
+//        word 2026-10-22 16:2x).
+//  6. ⬜ Leaderboard — everyone sees each other's reps for the day. See PLAN below.
 //  7. ⬜ "Completed today" notification ("James completed his daily challenge").
-//  8. ⬜ Later ideas from the call: strength log, rings, 2-mile run.
+//  8. ⬜ Watch sets + Health (rings). See PLAN below.
+//  9. ⬜ Later ideas from the call: strength log, 2-mile run.
 //  ⬜ Open question: can members edit a challenge, or only the leader?
+//
+//  TestFlight: his word 2026-10-22 14:52 — "right after they approve or at the end of the
+//  day we will send all updated apps to testflight". Local builds as we go.
+
+// ============================================================================
+// MARK: - PLAN: LEADERBOARD + WATCH + HEALTH (his, 2026-10-22 ~20:00)
+// ============================================================================
+//
+//  LEADERBOARD (his: "i would insist on a leaderboard")
+//  • Crew listed in numerical order by TODAY'S reps. Resets every morning.
+//  • Never label places — no 1st/2nd/3rd, no medals. "i would imply the ranking and not
+//    be explicit."
+//  • Not the whole-challenge total: "that would ... promote discouraging the last one ...
+//    if the underdog was always last even though they had a good day."
+//  • Each row: name, today's reps, streak 🔥 if any. Header: "Day 9 of 30 · Crew 3/4 ✓".
+//
+//  RINGS — imply, never say (his: "we would never say 'close your rings' or any trade
+//  marks ... it closes rings on the watch and health app")
+//  • No Apple trademarks or ring artwork in the app. The rings close because real workouts
+//    land in Health.
+//
+//  WATCH + HEALTH
+//  • Watch app: "Start set" runs a real HKWorkoutSession (strength training). Watch
+//    measures time + calories → saved to Health → rings move. Reps go to Rep Crew.
+//  • iPhone without a Watch: the same "Start set" timer, saved as a workout with real
+//    start/end only → Exercise credit, no calories. NEVER invent time or calories.
+//  • Health permission: write workouts only. Read nothing unless he asks later.
+//  • Sources (2026-10-22, not yet tested on a device): Apple Support "How to manually add
+//    a workout in the Health app" — calories earn Move, start/end time earns Exercise;
+//    Apple's archived ActivityRings sample — a workout saved on Watch counts toward the
+//    rings; Apple DevRel on the developer forums — rings reflect data saved to HealthKit.
+//  • Today RepEntry holds only a count — no duration. The set timer is what supplies it.
 
 // ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE
