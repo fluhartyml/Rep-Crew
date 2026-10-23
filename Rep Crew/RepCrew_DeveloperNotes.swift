@@ -88,7 +88,7 @@
 //  about it and say what do you think it to do but my idea is just you can challenge
 //  friends on it and you don't have to on the Apple Watch you can friends and stuff
 //  and then you can challenge them to like you can share your workouts with people
-//  and then you can people different things Hannah what y'all do for your Navy
+//  and then you can people different things [name] what y'all do for your Navy
 //  workout stuff with all those guys that are going through that program like for
 //  your workout then I'll just text each other what you're doing yeah I'm thinking of
 //  something like that because I think it would be useful for all the people that
@@ -254,7 +254,7 @@
 //  2. ✅ Crew invites with the hot-potato TestFlight link. (built, untested on 2 phones)
 //  3. ✅ Crew check boxes through iCloud. (built, untested on 2 phones)
 //  4. ✅ Crew messages + Reply / Reply All. (built, untested on 2 phones)
-//  5. ✅ First TestFlight. Build 21 in external review (Smitty's Crew); internal works (his
+//  5. ✅ First TestFlight. Build 21 in external review (external tester group); internal works (his
 //        word 2026-10-22 16:2x).
 //  6. ✅ Leaderboard — everyone sees each other's reps for the day (Leaderboard.swift).
 //     Widened 2026-10-22 ~21:1x, his word: "i want the crew that have access to the app see
@@ -352,6 +352,73 @@
 //  "we push to test flight and pull to our local devices and public beta testers
 //  get them when apple approves" · "we could forget to upload the latest build if we held
 //  off". Internal testers install right after processing; external waits on Apple review.
+
+// ============================================================================
+// MARK: - SHAKEDOWN BUGS — FIRST CALL WITH OUTSIDE TESTERS (2026-10-23 ~10:32)
+// ============================================================================
+//
+//  Source: a recorded call between Michael and two testers (kept private; names
+//  left out, his word: "names are superfluous"). Which TestFlight
+//  build they were on: not stated. None of these is looked at in code yet.
+//
+//  1. ⬜ Messages and challenges don't reach the other phone. Friend never saw his
+//        messages or his swim challenge, even after relaunching; friend's new public
+//        push-ups challenge didn't reach him.
+//        His word: "the leader boards were supposed to show to all crew users not just
+//        challenge participants because the crew person could see another crew
+//        challenge and request to join in". Built in 27–29 (0bf1bc5, b1ae23c, 8ecf12f);
+//        the friend saw the public/private toggle, so they had ≥ 28. So the code is in
+//        their build and still didn't show. Lead (Claude inference, unchecked): the
+//        22:20 Production deploy listed CrewMessage, CrewPhoto, Progress — not
+//        CrewChallenge, which "Other challenges" reads.
+//  2. ⬜ In-app Share Challenge link won't open for a new tester. On the second tester's phone
+//        it wasn't tappable ("the words aren't blue"); it showed as a picture card
+//        "Join the Daily Rep…". She got in only when he texted his TestFlight link.
+//  3. ⬜ Sender shows as "anonymous" on a shared challenge / message.
+//  4. ⬜ Save Set never prompted for Health: "set wasn't saved to Health · allow Rep
+//        Crew to save workouts". Friend turned it on by hand in Settings → Health.
+//        Whether the workout then landed in Health: unchecked.
+//  5. ❓ He didn't get the 🏁 finished notification; the second tester did. They said it was their
+//        challenge, not his. He: "I should be able to see everything" (god mode).
+//        Open: should god/coach get finished-today on every challenge?
+//
+//  Feature asks from the same call (not bugs):
+//  • Profile page per crew member (his, 2026-10-23 ~11:2x): "the crew each need a
+//    profile page and on the profile page would be the links to contact phone email
+//    facetime voice or facetime video". Not built. Sign in with Apple gives name only
+//    (no email, by his earlier choice), so phone/email must be entered by the member;
+//    LOCKED, his word: "they have to manually add their contact info that way they can
+//    omit or use alternate contact info". Every field optional; a button shows only
+//    when that member filled it in.
+//    His word, same minute: "i want their profile to have a contact photo of their
+//    choice". Claude-proposed, not yet his call: camera or library; a profile photo is
+//    user content under guideline 1.2, so give it the photo board's filter, Report,
+//    and leader/god removal.
+//    His word: "they should be able to export (maybe import) from/to apple contacts so
+//    they can invite someone to the crew". Export = save a member's profile card to
+//    Contacts (his). Import = pick a contact → send the invite. LOCKED 2026-10-23: his
+//    "maybe" meant "if possible", and it is. Apple's CNContactPickerViewController doc
+//    (read 2026-10-23): the app "does not need access to the user's contacts and the
+//    user will not be prompted for 'grant permission' access. The app has access only
+//    to the user's final selection." Use single selection only.
+//    LOCKED, his word: "i want it to be one contact and not all contacts". One contact
+//    per pick or save; the app never requests access to the whole address book.
+//  • Two-way Health sync so other push-up apps and Rep Crew share counts. His word:
+//    "two way sync would be prefered but not a deal breaker". Checked Apple's
+//    HKQuantityTypeIdentifier list 2026-10-23: no push-up/rep count type exists
+//    (pushCount = wheelchair pushes, per Apple's doc). Workouts (time, calories) can
+//    cross both ways; reps cannot. LOCKED, his word 2026-10-23: keep the built
+//    workout write to Health. ("Don't add Health read" superseded by his two-column
+//    mapping below.)
+//    His idea (OPEN): "can they list in two colums colum one is health app data and
+//    colum two is crew app data and they match colum a with colum b". Column A =
+//    Health workouts by type + source app; Column B = the member's Rep Crew
+//    exercises; member pairs them by hand. His word: "if the crew app doesnt have a
+//    workout that matches health apps column a crew app can create a new crew
+//    challenge as needed" → unmatched A row offers New Challenge from it. Feasible (needs Health READ of workouts —
+//    the plan says "read nothing unless he asks later"; not yet his go).
+//    LOCKED, his word: "colum a is the data source of truth" — the member matches A's
+//    data to B's; Rep Crew counts what Health recorded and never edits or invents it.
 
 // ============================================================================
 // MARK: - PLAN: LEADERBOARD + WATCH + HEALTH (his, 2026-10-22 ~20:00)
