@@ -179,6 +179,7 @@ struct ContentView: View {
         await CrewNotifications.requestPermission()
         await cloud.subscribe(crewIDs: challenges.map(\.crewID).filter { !$0.isEmpty })
         await cloud.subscribeToJoinRequests()
+        await cloud.subscribeToInvites()
         listings = await cloud.crewChallenges()
     }
 

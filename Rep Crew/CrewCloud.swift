@@ -107,6 +107,31 @@ final class CrewCloud {
         return Calendar.current.date(byAdding: .day, value: info.days, to: start) ?? start
     }
 
+    /// Member: a notification when a leader checks you off on a new challenge.
+    /// REM: his "yes add the invite notification" (2026-10-23) — James saw Hannah's invite only on opening the app.
+    /// Kept apart from the other subscriptions so one missing type can't sink the others.
+    func subscribeToInvites() async {
+        await connect()
+        guard let myID else { return }
+        let subscription = CKQuerySubscription(recordType: "CrewChallenge", predicate: NSPredicate(format: "memberIDs CONTAINS %@", myID),
+                                               subscriptionID: "invites", options: [.firesOnRecordCreation])
+        let info = CKSubscription.NotificationInfo()
+        // A key with no translation is used as the format itself, so the record's own fields fill it in.
+        info.titleLocalizationKey = "%1$@ invited you to a challenge"
+        info.titleLocalizationArgs = ["leaderName"]
+        info.alertLocalizationKey = "%1$@ — open Rep Crew to accept it."
+        info.alertLocalizationArgs = ["title"]
+        info.soundName = "default"
+        subscription.notificationInfo = info
+        do {
+            _ = try await db.modifySubscriptions(saving: [subscription], deleting: [])
+        } catch let error as CKError where error.code == .unknownItem || error.code == .partialFailure {
+            // Before any challenge is shared there may be no CrewChallenge type; a later launch picks it up.
+        } catch {
+            status = "Couldn't turn on invite notifications: \(error.localizedDescription)"
+        }
+    }
+
     /// Every challenge anyone on the app is running or about to start. His word, 2026-10-22:
     /// "the crew is the app downloader" — everyone who has the app sees every challenge.
     func crewChallenges() async -> [CrewListing] {
