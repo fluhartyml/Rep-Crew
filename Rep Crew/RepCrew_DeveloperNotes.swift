@@ -304,6 +304,13 @@
 //        (3) block abusive users ✅, (4) published contact info ✅ fluharty.me/support/repcrew (his pick)
 //        + email, in About → Need help?
 //        New iCloud types CrewBan + Report for the Production deploy.
+//  14. ✅ Sign in with Apple (SignIn.swift, built ~22:1x, compiles; untested). His words:
+//        "have a new crewmember register via apple" · "let apple handle the new user
+//        validation so when we kick or ban it has weight" · "were not the apple id police we
+//        are making our honest best effort to protect our crew members." Name scope only, no
+//        email. RootView gates the app; credential state checked each launch (revoked →
+//        sign in again); an invite link opened before sign-in is held. Entitlement
+//        com.apple.developer.applesignin added (automatic signing registered it).
 //  13. ⬜ God mode (his, 2026-10-22): "i plan on having 'god mode'" — the developer's
 //        moderation over every challenge. Scope not settled yet; ask him before building.
 //  Camaraderie ideas (Claude-proposed 2026-10-22, he hasn't picked any): high-five a

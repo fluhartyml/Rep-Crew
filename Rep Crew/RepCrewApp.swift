@@ -12,7 +12,7 @@ struct RepCrewApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
         }
         .modelContainer(container)
     }

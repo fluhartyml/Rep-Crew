@@ -9,6 +9,8 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
+    /// An invite link the app was opened with (held by RootView until you're signed in).
+    @Binding var openedURL: URL?
     @Environment(\.modelContext) private var context
     @Query(sort: \Challenge.startDate, order: .reverse) private var challenges: [Challenge]
     @Query private var crew: [CrewMember]
@@ -83,7 +85,11 @@ struct ContentView: View {
             .sheet(isPresented: $showingAbout) { AboutView() }
             .sheet(isPresented: $showingSettings) { SettingsView() }
             .sheet(item: $joining) { JoinView(invite: $0) }
-            .onOpenURL { url in joining = Invite(url: url) }
+            .onChange(of: openedURL, initial: true) { _, url in
+                guard let url else { return }
+                joining = Invite(url: url)
+                openedURL = nil
+            }
         }
         .environment(\.crewNav, CrewNav(goHome: { path = NavigationPath() },
                                         openBoards: { path.append(CrewScreen.leaderboards) }))
@@ -223,5 +229,5 @@ struct ChallengeRow: View {
 }
 
 #Preview {
-    ContentView().modelContainer(for: [Challenge.self, ExerciseGoal.self, RepEntry.self, CrewMember.self], inMemory: true)
+    ContentView(openedURL: .constant(nil)).modelContainer(for: [Challenge.self, ExerciseGoal.self, RepEntry.self, CrewMember.self], inMemory: true)
 }
