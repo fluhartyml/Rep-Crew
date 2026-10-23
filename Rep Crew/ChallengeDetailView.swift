@@ -77,6 +77,7 @@ struct ChallengeDetailView: View {
                 .accessibilityLabel("More")
             }
         }
+        .crewNavGlyphs()
         .sheet(item: $customGoal) { goal in CustomRepsView(goal: goal) }
         .sheet(isPresented: $showingSettings) { SettingsView() }
         .onAppear { assignCrewID() }

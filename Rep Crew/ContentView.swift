@@ -24,13 +24,14 @@ struct ContentView: View {
     @State private var showingAbout = false
     @State private var showingSettings = false
     @State private var joining: Invite?
+    @State private var path = NavigationPath()
 
     private var active: [Challenge] { challenges.filter(\.isActive) }
     private var upcoming: [Challenge] { challenges.filter { !$0.hasStarted } }
     private var finished: [Challenge] { challenges.filter(\.isFinished) }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             Group {
                 if challenges.isEmpty && cloud.pending.isEmpty && others.isEmpty {
                     emptyState
@@ -51,6 +52,7 @@ struct ContentView: View {
             .navigationTitle("Rep Crew")
             .navigationDestination(for: Challenge.self) { ChallengeDetailView(challenge: $0) }
             .navigationDestination(for: CrewListing.self) { CrewChallengeView(listing: $0) }
+            .navigationDestination(for: CrewScreen.self) { _ in LeaderboardsView() }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { showingAbout = true } label: {
@@ -65,6 +67,12 @@ struct ContentView: View {
                     .accessibilityLabel("Settings")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
+                    Button { path.append(CrewScreen.leaderboards) } label: {
+                        Image(systemName: "chart.bar.fill").font(AppFont.heading)
+                    }
+                    .accessibilityLabel("Leaderboards")
+                }
+                ToolbarItem(placement: .topBarTrailing) {
                     Button { showingNew = true } label: {
                         Image(systemName: "plus.circle.fill").font(AppFont.heading)
                     }
@@ -77,6 +85,8 @@ struct ContentView: View {
             .sheet(item: $joining) { JoinView(invite: $0) }
             .onOpenURL { url in joining = Invite(url: url) }
         }
+        .environment(\.crewNav, CrewNav(goHome: { path = NavigationPath() },
+                                        openBoards: { path.append(CrewScreen.leaderboards) }))
     }
 
     @ViewBuilder

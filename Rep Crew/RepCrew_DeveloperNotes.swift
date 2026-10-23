@@ -268,6 +268,11 @@
 //     toggle when creating each challenge" → Challenge.isPublic (default on), CrewChallenge
 //     isPublic 1/0; private ones are left off "Other challenges". ⚠️ The record still sits in
 //     the CloudKit PUBLIC database, so "private" hides it in the app, not from the database.
+//     His word: a one-person challenge is "a personal goal or some call it a personal
+//     tryumph. others may want to join in ... it would cause viral participation" → boards
+//     show with one person. "yes build it with the glyph maybe a home glyph for non home
+//     sheets so you can always find your way home" → chart.bar glyph opens Leaderboards
+//     (Your challenges · Other challenges); house glyph on every pushed screen pops to Home.
 //     ⬜ Step 2, his ask: a button on someone else's challenge to ask its leader to "tap in
 //     and join".
 //        Built 2026-10-22 ~21:00, compiles; untested on 2 phones. New iCloud record type

@@ -14,6 +14,7 @@
 //
 
 import CloudKit
+import SwiftData
 import SwiftUI
 
 struct CrewStanding: Identifiable {
@@ -127,73 +128,107 @@ extension CrewCloud {
     }
 }
 
+// MARK: - Your standing, from this phone
+
+extension Challenge {
+    var repsToday: Int { goals.reduce(0) { $0 + $1.total(on: .now) } }
+
+    /// Days in a row with every goal met, through today if it's done, else through yesterday.
+    var streak: Int {
+        let cal = Calendar.current
+        var day = cal.startOfDay(for: .now)
+        if !isComplete(on: day) { day = cal.date(byAdding: .day, value: -1, to: day) ?? day }
+        var count = 0
+        while day >= startDate, isComplete(on: day) {
+            count += 1
+            day = cal.date(byAdding: .day, value: -1, to: day) ?? startDate.addingTimeInterval(-86_400)
+        }
+        return count
+    }
+
+    /// Your row comes from this phone, so a tap shows up on the board at once.
+    @MainActor var myStanding: CrewStanding {
+        CrewStanding(id: CrewCloud.shared.myID ?? "me", name: "You", reps: repsToday,
+                     complete: isComplete(on: .now), streak: streak)
+    }
+}
+
+// MARK: - One challenge's board
+
+/// A challenge's line ("Day N of M · Crew x/y ✓"), then everyone by today's reps.
+/// His design: a challenge of one is still on the board — a personal goal others can join.
+struct BoardBlock<Link: Hashable>: View {
+    var title: String?
+    var link: Link?
+    let crewID: String
+    let day: Int
+    let days: Int
+    /// You, when you're in this challenge.
+    var me: CrewStanding?
+
+    @State private var others: [CrewStanding] = []
+
+    /// Highest reps first. Ties go alphabetical so the order doesn't jump around.
+    private var rows: [CrewStanding] {
+        let rest = others.filter { $0.id != me?.id }
+        return ((me.map { [$0] } ?? []) + rest)
+            .sorted { $0.reps != $1.reps ? $0.reps > $1.reps : $0.name < $1.name }
+    }
+
+    var body: some View {
+        Group {
+            if let link {
+                NavigationLink(value: link) { heading }
+            } else {
+                heading
+            }
+            ForEach(rows) { row in
+                StandingRow(row: row, isMe: row.id == me?.id)
+            }
+        }
+        // Keeps the board current while the screen is open.
+        .task(id: "\(crewID).\(day)") {
+            guard !crewID.isEmpty else { return }
+            while !Task.isCancelled {
+                others = await CrewCloud.shared.standings(crewID: crewID, dayNumber: day)
+                try? await Task.sleep(for: .seconds(60))
+            }
+        }
+    }
+
+    private var heading: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if let title { Text(title).font(AppFont.heading) }
+            Text("Day \(day) of \(days) · Crew \(rows.filter(\.complete).count)/\(rows.count) ✓")
+                .font(AppFont.bodyBold)
+                .foregroundStyle(title == nil ? .primary : .secondary)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
 // MARK: - On the challenge screen
 
 struct LeaderboardSection: View {
     let challenge: Challenge
     @AppStorage(CrewSettings.name) private var name = ""
-    @State private var others: [CrewStanding] = []
-
-    private var myID: String? { CrewCloud.shared.myID }
-
-    /// Your row comes from this phone, so a tap shows up on the board at once.
-    private var me: CrewStanding {
-        CrewStanding(id: myID ?? "me", name: "You", reps: repsToday,
-                     complete: challenge.isComplete(on: .now), streak: streak)
-    }
-
-    private var repsToday: Int { challenge.goals.reduce(0) { $0 + $1.total(on: .now) } }
-
-    /// Days in a row with every goal met, through today if it's done, else through yesterday.
-    private var streak: Int {
-        let cal = Calendar.current
-        var day = cal.startOfDay(for: .now)
-        if !challenge.isComplete(on: day) { day = cal.date(byAdding: .day, value: -1, to: day) ?? day }
-        var count = 0
-        while day >= challenge.startDate, challenge.isComplete(on: day) {
-            count += 1
-            day = cal.date(byAdding: .day, value: -1, to: day) ?? challenge.startDate.addingTimeInterval(-86_400)
-        }
-        return count
-    }
-
-    /// Highest reps first. Ties go alphabetical so the order doesn't jump around.
-    private var rows: [CrewStanding] {
-        ([me] + others.filter { $0.id != myID })
-            .sorted { $0.reps != $1.reps ? $0.reps > $1.reps : $0.name < $1.name }
-    }
 
     var body: some View {
         if let day = challenge.dayNumber(), !challenge.crewID.isEmpty {
-            Group {
-                // A board of one is just you; it appears once anyone else is in the crew.
-                if !others.filter({ $0.id != myID }).isEmpty {
-                    Section {
-                        ForEach(rows) { row in
-                            StandingRow(row: row, isMe: row.id == me.id)
-                        }
-                    } header: {
-                        let done = rows.filter(\.complete).count
-                        Text("Day \(day) of \(challenge.days) · Crew \(done)/\(rows.count) ✓")
-                            .font(AppFont.bodyBold).textCase(nil)
-                    }
-                }
+            Section {
+                BoardBlock<Challenge>(crewID: challenge.crewID, day: day, days: challenge.days, me: challenge.myStanding)
+            } header: {
+                Text("Leaderboard").font(AppFont.bodyBold).textCase(nil)
             }
             // Re-runs whenever your reps change; the short wait lets a run of taps land as one save.
-            .task(id: "\(day).\(repsToday)") {
+            .task(id: "\(day).\(challenge.repsToday)") {
                 try? await Task.sleep(for: .seconds(1))
                 guard !Task.isCancelled else { return }
                 let me = name.trimmingCharacters(in: .whitespaces)
                 await CrewCloud.shared.postProgress(crewID: challenge.crewID, dayNumber: day,
                                                     name: me.isEmpty ? "A crew member" : me,
-                                                    reps: repsToday, complete: challenge.isComplete(on: .now), streak: streak)
-            }
-            // Keeps the board current while the screen is open.
-            .task(id: "\(challenge.crewID).\(day)") {
-                while !Task.isCancelled {
-                    others = await CrewCloud.shared.standings(crewID: challenge.crewID, dayNumber: day)
-                    try? await Task.sleep(for: .seconds(60))
-                }
+                                                    reps: challenge.repsToday, complete: challenge.isComplete(on: .now),
+                                                    streak: challenge.streak)
             }
         }
     }
@@ -218,15 +253,112 @@ private struct StandingRow: View {
     }
 }
 
+// MARK: - Every board, grouped
+
+/// His word, 2026-10-22: "grouped by if the user is a member of the challenge and the
+/// grouping of all other challenges."
+struct LeaderboardsView: View {
+    @Query(sort: \Challenge.startDate, order: .reverse) private var challenges: [Challenge]
+    @State private var listings: [CrewListing] = []
+
+    private var mine: [Challenge] { challenges.filter { $0.isActive && !$0.crewID.isEmpty } }
+    private var others: [CrewListing] {
+        let joined = Set(challenges.map(\.crewID))
+        return listings.filter { !joined.contains($0.id) && $0.dayNumber != nil }
+    }
+
+    var body: some View {
+        List {
+            Section {
+                if mine.isEmpty {
+                    Text("You're not in a challenge running today.").font(AppFont.body)
+                }
+                ForEach(mine) { challenge in
+                    if let day = challenge.dayNumber() {
+                        BoardBlock(title: challenge.title, link: challenge, crewID: challenge.crewID,
+                                   day: day, days: challenge.days, me: challenge.myStanding)
+                    }
+                }
+            } header: {
+                Text("Your challenges").font(AppFont.bodyBold).textCase(nil)
+            }
+            Section {
+                if others.isEmpty {
+                    Text("No one else has a public challenge running today.").font(AppFont.body)
+                }
+                ForEach(others) { listing in
+                    if let day = listing.dayNumber {
+                        BoardBlock(title: listing.info.title, link: listing, crewID: listing.id,
+                                   day: day, days: listing.info.days)
+                    }
+                }
+            } header: {
+                Text("Other challenges").font(AppFont.bodyBold).textCase(nil)
+            }
+        }
+        .navigationTitle("Leaderboards")
+        .navigationBarTitleDisplayMode(.inline)
+        .crewNavGlyphs(showBoards: false)
+        .task { listings = await CrewCloud.shared.crewChallenges() }
+        .refreshable { listings = await CrewCloud.shared.crewChallenges() }
+    }
+}
+
+// MARK: - Finding your way
+
+/// Pushed screens that aren't Home.
+enum CrewScreen: Hashable { case leaderboards }
+
+/// Home and Leaderboards, one tap from any screen. His word: "maybe a home glyph for non
+/// home sheets so you can always find your way home".
+struct CrewNav {
+    var goHome: () -> Void = {}
+    var openBoards: () -> Void = {}
+}
+
+private struct CrewNavKey: EnvironmentKey {
+    static let defaultValue = CrewNav()
+}
+
+extension EnvironmentValues {
+    var crewNav: CrewNav {
+        get { self[CrewNavKey.self] }
+        set { self[CrewNavKey.self] = newValue }
+    }
+}
+
+private struct CrewNavGlyphs: ViewModifier {
+    @Environment(\.crewNav) private var nav
+    let showBoards: Bool
+
+    func body(content: Content) -> some View {
+        content.toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                if showBoards {
+                    Button { nav.openBoards() } label: {
+                        Image(systemName: "chart.bar.fill").font(AppFont.bodyBold)
+                    }
+                    .accessibilityLabel("Leaderboards")
+                }
+                Button { nav.goHome() } label: {
+                    Image(systemName: "house.fill").font(AppFont.bodyBold)
+                }
+                .accessibilityLabel("Home")
+            }
+        }
+    }
+}
+
+extension View {
+    func crewNavGlyphs(showBoards: Bool = true) -> some View {
+        modifier(CrewNavGlyphs(showBoards: showBoards))
+    }
+}
+
 // MARK: - Someone else's challenge
 
 struct CrewChallengeView: View {
     let listing: CrewListing
-    @State private var rows: [CrewStanding] = []
-
-    private var sorted: [CrewStanding] {
-        rows.sorted { $0.reps != $1.reps ? $0.reps > $1.reps : $0.name < $1.name }
-    }
 
     var body: some View {
         List {
@@ -240,23 +372,14 @@ struct CrewChallengeView: View {
             }
             if let day = listing.dayNumber {
                 Section {
-                    ForEach(sorted) { row in
-                        StandingRow(row: row, isMe: false)
-                    }
+                    BoardBlock<CrewListing>(crewID: listing.id, day: day, days: listing.info.days)
                 } header: {
-                    Text("Day \(day) of \(listing.info.days) · Crew \(rows.filter(\.complete).count)/\(rows.count) ✓")
-                        .font(AppFont.bodyBold).textCase(nil)
-                }
-                // Keeps the board current while the screen is open.
-                .task(id: day) {
-                    while !Task.isCancelled {
-                        rows = await CrewCloud.shared.standings(crewID: listing.id, dayNumber: day)
-                        try? await Task.sleep(for: .seconds(60))
-                    }
+                    Text("Leaderboard").font(AppFont.bodyBold).textCase(nil)
                 }
             }
         }
         .navigationTitle(listing.info.title)
         .navigationBarTitleDisplayMode(.inline)
+        .crewNavGlyphs()
     }
 }
