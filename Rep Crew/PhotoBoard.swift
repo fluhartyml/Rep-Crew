@@ -176,18 +176,17 @@ struct PhotoBoardSection: View {
     var body: some View {
         if !crewID.isEmpty {
             Section {
+                // One button per row: two buttons sharing a List row both fire on a tap (build 35
+                // opened the camera when Choose Photo was tapped, and neither screen worked).
                 if canAdd {
-                    HStack(spacing: 12) {
-                        if cameraAvailable {
-                            Button { showingCamera = true } label: {
-                                Label("Take Photo", systemImage: "camera.fill").font(AppFont.bodyBold)
-                            }
-                            .buttonStyle(.bordered)
+                    if cameraAvailable {
+                        Button { showingCamera = true } label: {
+                            Label("Take Photo", systemImage: "camera.fill").font(AppFont.bodyBold)
                         }
-                        PhotosPicker(selection: $picked, matching: .images) {
-                            Label("Choose Photo", systemImage: "photo.on.rectangle").font(AppFont.bodyBold)
-                        }
-                        .buttonStyle(.bordered)
+                        .disabled(uploading)
+                    }
+                    PhotosPicker(selection: $picked, matching: .images) {
+                        Label("Choose Photo", systemImage: "photo.on.rectangle").font(AppFont.bodyBold)
                     }
                     .disabled(uploading)
                 }
