@@ -1,0 +1,209 @@
+DEFINE SCHEMA
+
+    RECORD TYPE CoachGrant (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        coachID         STRING QUERYABLE SEARCHABLE SORTABLE,
+        name            STRING QUERYABLE SEARCHABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE CrewBan (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        bannedBy        STRING QUERYABLE SEARCHABLE SORTABLE,
+        crewID          STRING QUERYABLE SEARCHABLE SORTABLE,
+        memberID        STRING QUERYABLE SEARCHABLE SORTABLE,
+        memberName      STRING QUERYABLE SEARCHABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE CrewChallenge (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        days            INT64 QUERYABLE SORTABLE,
+        declinedIDs     LIST<STRING> QUERYABLE,
+        endsAt          TIMESTAMP QUERYABLE SORTABLE,
+        goals           STRING,
+        isPublic        INT64 QUERYABLE SORTABLE,
+        leaderID        STRING QUERYABLE SEARCHABLE SORTABLE,
+        leaderName      STRING QUERYABLE SEARCHABLE SORTABLE,
+        leaderNumber    INT64 QUERYABLE SORTABLE,
+        memberIDs       LIST<STRING> QUERYABLE,
+        startDay        STRING QUERYABLE SEARCHABLE SORTABLE,
+        testFlight      STRING,
+        title           STRING QUERYABLE SEARCHABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE CrewMessage (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        crewID          STRING QUERYABLE SEARCHABLE SORTABLE,
+        kind            STRING QUERYABLE SEARCHABLE SORTABLE,
+        senderID        STRING QUERYABLE SEARCHABLE SORTABLE,
+        senderName      STRING QUERYABLE SEARCHABLE SORTABLE,
+        sentAt          TIMESTAMP QUERYABLE SORTABLE,
+        text            STRING QUERYABLE SEARCHABLE SORTABLE,
+        title           STRING QUERYABLE SEARCHABLE SORTABLE,
+        toID            STRING QUERYABLE SEARCHABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE CrewPhoto (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        crewID          STRING QUERYABLE SEARCHABLE SORTABLE,
+        image           ASSET,
+        senderID        STRING QUERYABLE SEARCHABLE SORTABLE,
+        senderName      STRING QUERYABLE SEARCHABLE SORTABLE,
+        takenAt         TIMESTAMP QUERYABLE SORTABLE,
+        thumb           ASSET,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE JoinRequest (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        crewID          STRING QUERYABLE SEARCHABLE SORTABLE,
+        crewNumber      INT64 QUERYABLE SORTABLE,
+        leaderID        STRING QUERYABLE SEARCHABLE SORTABLE,
+        name            STRING QUERYABLE SEARCHABLE SORTABLE,
+        requestedAt     TIMESTAMP QUERYABLE SORTABLE,
+        requesterID     STRING QUERYABLE SEARCHABLE SORTABLE,
+        title           STRING QUERYABLE SEARCHABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE Membership (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        crewID          STRING QUERYABLE SEARCHABLE SORTABLE,
+        crewNumber      INT64 QUERYABLE SORTABLE,
+        leaderID        STRING QUERYABLE SEARCHABLE SORTABLE,
+        memberID        STRING QUERYABLE SEARCHABLE SORTABLE,
+        name            STRING QUERYABLE SEARCHABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE MessageRemoval (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        crewID          STRING QUERYABLE SEARCHABLE SORTABLE,
+        messageID       STRING QUERYABLE SEARCHABLE SORTABLE,
+        removedBy       STRING QUERYABLE SEARCHABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE PhotoRemoval (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        crewID          STRING QUERYABLE SEARCHABLE SORTABLE,
+        photoID         STRING QUERYABLE SEARCHABLE SORTABLE,
+        removedBy       STRING QUERYABLE SEARCHABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE Progress (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        complete        INT64 QUERYABLE SORTABLE,
+        crewID          STRING QUERYABLE SEARCHABLE SORTABLE,
+        dayNumber       INT64 QUERYABLE SORTABLE,
+        memberID        STRING QUERYABLE SEARCHABLE SORTABLE,
+        name            STRING QUERYABLE SEARCHABLE SORTABLE,
+        reps            INT64 QUERYABLE SORTABLE,
+        streak          INT64 QUERYABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE Report (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        crewID          STRING QUERYABLE SEARCHABLE SORTABLE,
+        kind            STRING QUERYABLE SEARCHABLE SORTABLE,
+        photoID         STRING QUERYABLE SEARCHABLE SORTABLE,
+        reportedAt      TIMESTAMP QUERYABLE SORTABLE,
+        reporterID      STRING QUERYABLE SEARCHABLE SORTABLE,
+        senderID        STRING QUERYABLE SEARCHABLE SORTABLE,
+        senderName      STRING QUERYABLE SEARCHABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE Users (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        roles           LIST<INT64>,
+        GRANT WRITE TO "_creator",
+        GRANT READ TO "_world"
+    );

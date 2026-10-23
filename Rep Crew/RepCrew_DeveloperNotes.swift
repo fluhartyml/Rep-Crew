@@ -370,7 +370,19 @@
 //        the friend saw the public/private toggle, so they had ≥ 28. So the code is in
 //        their build and still didn't show. Lead (Claude inference, unchecked): the
 //        22:20 Production deploy listed CrewMessage, CrewPhoto, Progress — not
-//        CrewChallenge, which "Other challenges" reads.
+//        CrewChallenge, which "Other challenges" reads. ⚠️ Unlikely now: he thinks the
+//        two testers saw each other's activity and only he saw nothing. Better lead
+//        (Claude inference, unchecked): his 16e runs the Xcode-installed build →
+//        CloudKit DEVELOPMENT (Coach Mode showed "Development" 10-22); TestFlight
+//        builds use PRODUCTION. Separate databases. Test: TestFlight build on his 16e.
+//        Tested 11:4x: TestFlight 48 on his 16e (app deleted, reinstalled) shows no
+//        public challenges; Settings → iCloud "Connected to iCloud", no error. Back to
+//        the Production lead: crewChallenges() catches .unknownItem (what a missing
+//        record type returns) and returns [] silently — CrewCloud.swift ~L119. Same in
+//        refreshPending, members(). ⬜ App bug either way: surface that error.
+//        CONFIRMED 11:56 on his screen: Production Record Types = CrewMessage,
+//        CrewPhoto, Progress, Users only. CrewChallenge and Membership missing.
+//        Fix: Deploy Schema Changes (Development → Production), his sign-in.
 //  2. ⬜ In-app Share Challenge link won't open for a new tester. On the second tester's phone
 //        it wasn't tappable ("the words aren't blue"); it showed as a picture card
 //        "Join the Daily Rep…". She got in only when he texted his TestFlight link.
@@ -416,7 +428,8 @@
 //    exercises; member pairs them by hand. His word: "if the crew app doesnt have a
 //    workout that matches health apps column a crew app can create a new crew
 //    challenge as needed" → unmatched A row offers New Challenge from it. Feasible (needs Health READ of workouts —
-//    the plan says "read nothing unless he asks later"; not yet his go).
+//    the plan says "read nothing unless he asks later"). LOCKED, his word 2026-10-23
+//    ("lock in 022g"): build the matching screen; Health READ of workouts is approved.
 //    LOCKED, his word: "colum a is the data source of truth" — the member matches A's
 //    data to B's; Rep Crew counts what Health recorded and never edits or invents it.
 

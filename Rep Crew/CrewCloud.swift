@@ -13,6 +13,8 @@
 //
 //  Development builds use CloudKit's Development environment. TestFlight uses Production,
 //  so the schema has to be deployed to Production in the CloudKit Console before upload.
+//  REM: the schema is written down in CloudKit-Schema.ckdb (repo root) and imported in the
+//  Console, not left to first use: CrewChallenge saves failed BAD_REQUEST, so it never existed.
 //
 
 import CloudKit
@@ -72,7 +74,9 @@ final class CrewCloud {
         record["isPublic"] = isPublic ? 1 : 0
         do {
             _ = try await db.modifyRecords(saving: [record], deleting: [], savePolicy: .allKeys)
-            status = "Connected to iCloud"
+            // REM: clear only this challenge's own old error. Resetting to "Connected" on any success
+            // hid other challenges' failures (2026-10-23: every CrewChallenge save was BAD_REQUEST).
+            if status.hasPrefix("Couldn't share \(info.title):") { status = "Connected to iCloud" }
         } catch {
             status = "Couldn't share \(info.title): \(error.localizedDescription)"
         }
