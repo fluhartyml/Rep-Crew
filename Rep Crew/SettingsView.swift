@@ -24,6 +24,9 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                // REM: his word 2026-10-24, "it should be obviously displayed at the top" · "yes move it to the top".
+                GodModeSection(isOn: isGod)
+
                 Section {
                     TextField("Your first name", text: $name)
                         .font(AppFont.body)
@@ -91,7 +94,6 @@ struct SettingsView: View {
                 }
 
                 BlockedPeopleSection()
-                GodModeSection(isOn: isGod)
 
                 Section {
                     Text(CrewCloud.shared.status).font(AppFont.body)
