@@ -81,6 +81,9 @@ struct ApplicationView: View {
             // REM: "Welcome to the Crew" was cut off as a large title on his 11 (build 72); short title, full line inside.
             .navigationTitle("Welcome")
             .onAppear { if answers.email.isEmpty { answers.email = appleEmail } }
+            // REM: the profile came back from iCloud only when Settings opened, so on his reinstalled 16e
+            // this screen showed "No photo" while his 11 showed it (build 72). Fetch it here first.
+            .task { await MyProfile.restoreIfNeeded() }
         }
     }
 

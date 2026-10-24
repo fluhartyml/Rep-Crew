@@ -207,6 +207,7 @@ struct ContentView: View {
         await cloud.subscribeToNewMembers()
         // A coach's key goes up; everyone re-seals Coaches-only fields if the coaches changed.
         await cloud.publishCoachKey()
+        await MyProfile.restoreIfNeeded()
         await MyProfile.saveIfChanged()
         // After the coach keys load (publishCoachKey above), so the answers can be sealed to them.
         await cloud.sendWaitingApplication()
