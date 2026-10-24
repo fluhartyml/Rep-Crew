@@ -21,14 +21,22 @@ struct RepCrewApp: App {
         .modelContainer(container)
     }
 
-    /// Challenges and reps stay on this phone. The app has iCloud turned on for the crew's
-    /// shared space (CrewCloud), and without `.none` SwiftData would try to sync this store
-    /// through iCloud too, fail, and open empty — build 12 did exactly that.
+    /// Challenges and reps are kept in the person's own iCloud (the private database), so a
+    /// deleted app or a new phone gets them back on sign-in.
+    /// REM: his word 2026-10-24, "the challenges should be in the cloud … so when one phone is
+    /// removed they still live on". Was `.none` (phone only) since build 12, which synced before the
+    /// models were ready for it and opened empty. If iCloud can't open the store, the same file opens
+    /// on the phone alone — nothing is lost, it just isn't backed up until iCloud works.
     private let container: ModelContainer = {
         let schema = Schema([Challenge.self, ExerciseGoal.self, RepEntry.self, CrewMember.self, HealthMatch.self])
-        let config = ModelConfiguration(schema: schema, cloudKitDatabase: .none)
+        let synced = ModelConfiguration(schema: schema, cloudKitDatabase: .private("iCloud.com.accountability.dailyrepcrew"))
+        if let container = try? ModelContainer(for: schema, configurations: synced) {
+            UserDefaults.standard.set(false, forKey: "storeNotInICloud")
+            return container
+        }
+        UserDefaults.standard.set(true, forKey: "storeNotInICloud")
         do {
-            return try ModelContainer(for: schema, configurations: config)
+            return try ModelContainer(for: schema, configurations: ModelConfiguration(schema: schema, cloudKitDatabase: .none))
         } catch {
             fatalError("Rep Crew couldn't open its data: \(error)")
         }

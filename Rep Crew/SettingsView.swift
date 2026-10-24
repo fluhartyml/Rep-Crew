@@ -95,6 +95,11 @@ struct SettingsView: View {
 
                 Section {
                     Text(CrewCloud.shared.status).font(AppFont.body)
+                    // Set when the app opens (RepCrewApp.container).
+                    Text(UserDefaults.standard.bool(forKey: "storeNotInICloud")
+                         ? "Your challenges are on this phone only right now. They'll back up to iCloud once it's available."
+                         : "Your challenges and reps are set to sync with your iCloud.")
+                        .font(AppFont.body).foregroundStyle(.secondary)
                 } header: {
                     header("iCloud")
                 }

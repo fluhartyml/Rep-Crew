@@ -115,6 +115,10 @@ struct ContentView: View {
                     NavigationLink(value: challenge) { ChallengeRow(challenge: challenge) }
                 }
                 .onDelete { offsets in
+                    // REM: a challenge you delete stays deleted: without this, CrewRestore would rebuild
+                    // it from the crew's copy on the next sync. Kept on this phone only (declined list).
+                    let gone = offsets.map { items[$0].crewID }.filter { !$0.isEmpty }
+                    if !gone.isEmpty { declined = (declined.split(separator: "\n").map(String.init) + gone).joined(separator: "\n") }
                     for index in offsets { context.delete(items[index]) }
                     try? context.save()
                 }
@@ -170,6 +174,8 @@ struct ContentView: View {
 
     /// Pulls in who has joined your challenges, and challenges you've been checked off for.
     private func syncCrew() async {
+        // Challenges this phone lost (app deleted before they reached your iCloud) come back from the crew's copy.
+        await CrewRestore.run(context: context, declined: Set(declined.split(separator: "\n").map(String.init)))
         // Challenges you started go to the shared space so the whole crew can see them.
         let leader = name.trimmingCharacters(in: .whitespaces)
         for challenge in challenges where challenge.leaderID.isEmpty && !challenge.isFinished {

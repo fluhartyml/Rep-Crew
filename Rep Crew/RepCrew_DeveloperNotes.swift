@@ -404,6 +404,34 @@
 //  off". Internal testers install right after processing; external waits on Apple review.
 
 // ============================================================================
+// MARK: - CHALLENGES LIVE IN ICLOUD (his, 2026-10-24 ~07:3x)
+// ============================================================================
+//
+//  Found: he deleted the app on one phone and reinstalled from TestFlight; every challenge on
+//  that phone was gone (the store was phone-only, `.none`, since build 12). His words: "the
+//  challenges should be in the cloud … so when one phone is removed they still live on" ·
+//  "icloud is the bridge between piers so if a pier deleted their app it doesnt effect the rest
+//  of the crew". His "yes" 2026-10-24.
+//  🟡 BUILT, not run on any device:
+//  • RepCrewApp: the store syncs to the person's PRIVATE iCloud database (same container).
+//    Models got defaults + optional to-many relationships, which CloudKit needs; stored names kept
+//    so an existing store keeps its data. If iCloud can't open it, the same file opens phone-only
+//    and Settings → iCloud says so.
+//  • CrewRestore.swift: on every sync, challenges you lead or joined that are in the crew's shared
+//    space but not on this phone are rebuilt, with your days from Progress where the per-exercise
+//    split is certain. Your own iCloud copy wins over a rebuilt one. A deleted challenge is added
+//    to the declined list so it isn't rebuilt (this phone only).
+//  ⚠️ Schema: the private database's types (CD_Challenge etc.) are created in Development by the
+//    first Debug-build sync; then Deploy Schema Changes to Production (his sign-in) before
+//    TestFlight can back anything up. Until then TestFlight opens and works phone-only.
+//  ⚠️ NOT changed, Claude's finding after the yes: identity stays the CloudKit user ID, not the Sign
+//    in with Apple ID. The CloudKit ID is the same on every phone and every reinstall of the same
+//    Apple ID; it differs only between Development (Xcode builds) and Production (TestFlight), which
+//    is why his two phones look like two Michaels. God mode and bans check it server-side
+//    (creatorUserRecordID); a self-reported Apple ID could be faked. Raised with him.
+//
+
+// ============================================================================
 // MARK: - SHAKEDOWN BUGS — FIRST CALL WITH OUTSIDE TESTERS (2026-10-23 ~10:32)
 // ============================================================================
 //

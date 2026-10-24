@@ -150,7 +150,7 @@ final class HealthLibrary {
 
 extension ExerciseGoal {
     private func healthWorkouts(on date: Date, counting: HealthCount) -> [HealthWorkout] {
-        let keys = Set(healthMatches.filter { $0.count == counting }.map(\.workoutKey))
+        let keys = Set(allHealthMatches.filter { $0.count == counting }.map(\.workoutKey))
         guard !keys.isEmpty else { return [] }
         return HealthLibrary.shared.workouts(on: date).filter { keys.contains($0.key) }
     }
@@ -170,10 +170,10 @@ extension ExerciseGoal {
 }
 
 extension Challenge {
-    var healthMinutesToday: Int { goals.reduce(0) { $0 + $1.healthMinutes(on: .now) } }
-    var healthCaloriesToday: Int { goals.reduce(0) { $0 + $1.healthCalories(on: .now) } }
+    var healthMinutesToday: Int { allGoals.reduce(0) { $0 + $1.healthMinutes(on: .now) } }
+    var healthCaloriesToday: Int { allGoals.reduce(0) { $0 + $1.healthCalories(on: .now) } }
     /// Any pairing that counts, so screens don't ask for Health access for people who never matched.
-    var countsHealth: Bool { goals.contains { $0.healthMatches.contains { $0.count != .off } } }
+    var countsHealth: Bool { allGoals.contains { $0.allHealthMatches.contains { $0.count != .off } } }
 }
 
 // MARK: - The matching screen
@@ -226,9 +226,9 @@ struct HealthMatchView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(goal.name).font(AppFont.bodyBold)
                         Text(goal.challenge?.title ?? "").font(AppFont.body).foregroundStyle(.secondary)
-                        Text(goal.healthMatches.isEmpty
+                        Text(goal.allHealthMatches.isEmpty
                              ? "No Health workouts matched"
-                             : goal.healthMatches.map { "\($0.workoutName) from \($0.sourceName): \($0.count.label)" }.joined(separator: "\n"))
+                             : goal.allHealthMatches.map { "\($0.workoutName) from \($0.sourceName): \($0.count.label)" }.joined(separator: "\n"))
                             .font(AppFont.body)
                     }
                     .padding(.vertical, 2)

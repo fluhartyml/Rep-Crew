@@ -161,7 +161,7 @@ extension CrewCloud {
 // MARK: - Your standing, from this phone
 
 extension Challenge {
-    var repsToday: Int { goals.reduce(0) { $0 + $1.total(on: .now) } }
+    var repsToday: Int { allGoals.reduce(0) { $0 + $1.total(on: .now) } }
 
     /// Days in a row with every goal met, through today if it's done, else through yesterday.
     var streak: Int {
@@ -321,6 +321,9 @@ struct LeaderboardSection: View {
             .task(id: "\(day).\(challenge.repsToday).\(challenge.isComplete(on: .now)).\(challenge.healthMinutesToday).\(challenge.healthCaloriesToday)") {
                 try? await Task.sleep(for: .seconds(1))
                 guard !Task.isCancelled else { return }
+                // A challenge rebuilt from the crew's copy (CrewRestore.swift) may not know how today's reps
+                // split between exercises; don't post a lower total over what the crew's board already has.
+                guard !(day == challenge.restoredDay && challenge.repsToday < challenge.restoredRepsToday) else { return }
                 let me = name.trimmingCharacters(in: .whitespaces)
                 await CrewCloud.shared.postProgress(crewID: challenge.crewID, dayNumber: day,
                                                     name: me.isEmpty ? "A crew member" : me,

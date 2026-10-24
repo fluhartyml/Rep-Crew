@@ -9,21 +9,34 @@
 import Foundation
 import SwiftData
 
+// REM: Every stored value has a default and every to-many relationship is optional. That is what
+// SwiftData needs to keep this store in the person's own iCloud (private database), so deleting the
+// app or changing phones doesn't lose their challenges (his word 2026-10-24: "if a pier deleted
+// their app it doesnt effect the rest of the crew"). Build 12 synced without these and opened empty.
 @Model
 final class Challenge {
-    var title: String
-    var startDate: Date
-    var days: Int
-    var createdAt: Date
+    var title: String = ""
+    var startDate: Date = Date.now
+    var days: Int = 1
+    var createdAt: Date = Date.now
     /// Shared by everyone's copy of the same challenge; set when it is first sent as an invite.
     var crewID: String = ""
     /// The crew leader's iCloud ID. Empty on the phone of whoever started the challenge.
     var leaderID: String = ""
     /// Public challenges are listed for everyone with the app; private ones only reach the crew you check.
     var isPublic: Bool = true
+    /// Rebuilt from the crew's shared space (CrewRestore.swift) rather than made on a phone of yours.
+    /// When your own iCloud copy arrives too, it wins and this one is removed.
+    var restoredFromCrew: Bool = false
+    /// The challenge day it was rebuilt on, and the reps the crew's board already had for you that
+    /// day. Until you pass them, this phone doesn't post a lower number over them.
+    var restoredDay: Int = 0
+    var restoredRepsToday: Int = 0
 
     @Relationship(deleteRule: .cascade, inverse: \ExerciseGoal.challenge)
-    var goals: [ExerciseGoal] = []
+    var goals: [ExerciseGoal]? = []
+    /// The goals, never nil. The stored names stay the same so an existing store keeps its data.
+    var allGoals: [ExerciseGoal] { goals ?? [] }
 
     init(title: String, startDate: Date, days: Int) {
         self.title = title
@@ -32,7 +45,7 @@ final class Challenge {
         self.createdAt = .now
     }
 
-    var sortedGoals: [ExerciseGoal] { goals.sorted { $0.order < $1.order } }
+    var sortedGoals: [ExerciseGoal] { allGoals.sorted { $0.order < $1.order } }
 
     /// The last day of the challenge, at midnight.
     var lastDay: Date {
@@ -53,7 +66,7 @@ final class Challenge {
 
     /// Every goal met on `date`.
     func isComplete(on date: Date) -> Bool {
-        !goals.isEmpty && goals.allSatisfy { $0.isMet(on: date) }
+        !allGoals.isEmpty && allGoals.allSatisfy { $0.isMet(on: date) }
     }
 
     /// Days from the start through today (or the last day) where every goal was met.
@@ -78,17 +91,19 @@ final class Challenge {
 
 @Model
 final class ExerciseGoal {
-    var name: String
-    var dailyTarget: Int
-    var order: Int
+    var name: String = ""
+    var dailyTarget: Int = 0
+    var order: Int = 0
     var challenge: Challenge?
 
     @Relationship(deleteRule: .cascade, inverse: \RepEntry.goal)
-    var entries: [RepEntry] = []
+    var entries: [RepEntry]? = []
+    var allEntries: [RepEntry] { entries ?? [] }
 
     /// Health workouts paired with this exercise on Match Health Workouts (HealthMatch.swift).
     @Relationship(deleteRule: .cascade, inverse: \HealthMatch.goal)
-    var healthMatches: [HealthMatch] = []
+    var healthMatches: [HealthMatch]? = []
+    var allHealthMatches: [HealthMatch] { healthMatches ?? [] }
 
     init(name: String, dailyTarget: Int, order: Int) {
         self.name = name
@@ -98,7 +113,7 @@ final class ExerciseGoal {
 
     func total(on date: Date) -> Int {
         let cal = Calendar.current
-        return entries.filter { cal.isDate($0.loggedAt, inSameDayAs: date) }.reduce(0) { $0 + $1.count }
+        return allEntries.filter { cal.isDate($0.loggedAt, inSameDayAs: date) }.reduce(0) { $0 + $1.count }
     }
 
     func remaining(on date: Date) -> Int { max(dailyTarget - total(on: date), 0) }
@@ -108,14 +123,14 @@ final class ExerciseGoal {
     /// The most recent entry logged on `date`, for undo.
     func lastEntry(on date: Date) -> RepEntry? {
         let cal = Calendar.current
-        return entries.filter { cal.isDate($0.loggedAt, inSameDayAs: date) }.max { $0.loggedAt < $1.loggedAt }
+        return allEntries.filter { cal.isDate($0.loggedAt, inSameDayAs: date) }.max { $0.loggedAt < $1.loggedAt }
     }
 }
 
 @Model
 final class RepEntry {
-    var count: Int
-    var loggedAt: Date
+    var count: Int = 0
+    var loggedAt: Date = Date.now
     var goal: ExerciseGoal?
 
     init(count: Int, loggedAt: Date = .now) {
@@ -127,9 +142,9 @@ final class RepEntry {
 /// Someone you have done a challenge with: whoever's invite you joined, and whoever joined yours.
 @Model
 final class CrewMember {
-    var name: String
-    var crewNumber: Int
-    var addedAt: Date
+    var name: String = ""
+    var crewNumber: Int = 0
+    var addedAt: Date = Date.now
     /// Their iCloud ID. With it, they get a check box when you start a new challenge.
     var cloudID: String = ""
 

@@ -219,7 +219,8 @@ final class CrewCloud {
         pending.removeAll { $0.challenge?.crewID == crewID }
     }
 
-    private static func invite(from record: CKRecord) -> Invite? {
+    /// Also read by CrewRestore.swift.
+    static func invite(from record: CKRecord) -> Invite? {
         guard let title = record["title"] as? String,
               let startDay = record["startDay"] as? String,
               let days = record["days"] as? Int,
