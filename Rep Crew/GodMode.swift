@@ -139,6 +139,11 @@ struct GodModeSection: View {
                 AllCrewsAnnouncementButton()
                 if GodMode.isOwner {
                     NavigationLink {
+                        AccessTableView()
+                    } label: {
+                        Label("Access Levels", systemImage: "list.number").font(AppFont.bodyBold)
+                    }
+                    NavigationLink {
                         CrewNameView()
                     } label: {
                         Label("Crew Name", systemImage: "character.cursor.ibeam").font(AppFont.bodyBold)

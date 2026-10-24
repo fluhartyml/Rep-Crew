@@ -94,11 +94,12 @@ struct ContentView: View {
                     }
                     .accessibilityLabel("Leaderboards")
                 }
+                // Access level (Access.swift): only ranges allowed to start challenges get the + button.
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { showingNew = true } label: {
+                    if cloud.can(.start) { Button { showingNew = true } label: {
                         Image(systemName: "plus.circle.fill").font(AppFont.heading)
                     }
-                    .accessibilityLabel("New challenge")
+                    .accessibilityLabel("New challenge") }
                 }
             }
             .sheet(isPresented: $showingNew) { NewChallengeView() }

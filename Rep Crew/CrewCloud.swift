@@ -40,6 +40,8 @@ final class CrewCloud {
     var coachKeys: [String: Data] = [:]
     /// Set when a coach taps a "joined the crew" notification; Home opens New Crew Members.
     var openNewMembers = false
+    /// This phone's member's level, flags and title (Access.swift). Loaded on connect.
+    var myAccess = MemberAccess(level: 0, flags: "", title: "")
 
     func connect() async {
         if myID != nil { return }
@@ -54,6 +56,7 @@ final class CrewCloud {
             await loadCoaches()
             await loadCoachKeys()
             await loadCrewName()
+            await loadAccess()
             status = "Connected to iCloud"
         } catch {
             status = "iCloud problem: \(error.localizedDescription)"

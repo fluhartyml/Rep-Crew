@@ -38,6 +38,9 @@ struct SettingsView: View {
                         .font(AppFont.body)
                 }
 
+                // Your level, range, flags and title (Access.swift).
+                if let me = CrewCloud.shared.myID { MemberAccessSection(memberID: me) }
+
                 MyProfileSection()
 
                 Section {

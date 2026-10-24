@@ -165,6 +165,8 @@ struct AskToJoinSection: View {
             switch standing {
             case .loading:
                 ProgressView()
+            case .canAsk where !CrewCloud.shared.can(.join):
+                Text("Your access level doesn't include joining crew challenges yet. The head coach can raise it.").font(AppFont.body)
             case .canAsk:
                 Button {
                     Task { await ask() }

@@ -346,10 +346,15 @@ struct CrewMessagesSection: View {
     /// Split from body so the type checker can manage it.
     private var list: some View {
         Section {
+            // Access level (Access.swift): leaders and coaches always; others when their range allows posting.
+            if !(canAnnounce || CrewCloud.shared.can(.post)) {
+                Text("Your access level doesn't include crew messages yet. The head coach can raise it.").font(AppFont.body)
+            } else {
             Button { composing = true } label: {
                 Label(canAnnounce ? "Send an Announcement" : "Message the Crew",
                       systemImage: canAnnounce ? "megaphone.fill" : "text.bubble.fill")
                     .font(AppFont.bodyBold)
+            }
             }
             ForEach(messages.prefix(10)) { message in
                 VStack(alignment: .leading, spacing: 4) {
