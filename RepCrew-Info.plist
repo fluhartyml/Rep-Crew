@@ -23,5 +23,9 @@
 	<string>Save each timed set to Health as a strength workout.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Save crew photos to your photo library.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

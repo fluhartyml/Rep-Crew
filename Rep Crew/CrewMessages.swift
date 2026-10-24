@@ -144,7 +144,9 @@ extension CrewCloud {
     func subscribe(crewIDs: [String], listedCrewIDs: [String]) async {
         await connect()
         guard let myID else { return }
-        var subscriptions = crewIDs.filter { NotificationSettings.isOn("crew-\($0)") }.flatMap(crewSubscriptions)
+        // REM: once per crew. Two copies of one challenge on a phone listed its crewID twice, and CloudKit
+        // refused the whole save: "You can't save the same subscription twice" (his 11, build 70, 2026-10-24).
+        var subscriptions = Array(Set(crewIDs)).filter { NotificationSettings.isOn("crew-\($0)") }.flatMap(crewSubscriptions)
         if NotificationSettings.isOn(NotificationSettings.replies) {
             subscriptions.append(subscription(id: NotificationSettings.replies, NSPredicate(format: "toID == %@", myID)))
         }
