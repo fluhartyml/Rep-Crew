@@ -31,6 +31,11 @@ struct CrewMessage: Identifiable {
     let sentAt: Date
 
     static let everyone = "all"
+    /// His word, 2026-10-23: "god mode where it goes to all crew" · "both are two separate cases of need".
+    /// A coach's announcement to every Rep Crew phone uses this in place of a crew ID.
+    static let allCrews = "all-crews"
+
+    var isToAllCrews: Bool { crewID == Self.allCrews }
 }
 
 // MARK: - iCloud
@@ -86,6 +91,19 @@ extension CrewCloud {
         }
     }
 
+    /// Coach announcements to all crews. Only ones a coach or he really wrote (CloudKit's creator,
+    /// not the senderID field), minus ones a coach removed.
+    func allCrewsMessages() async -> [CrewMessage] {
+        await connect()
+        let query = CKQuery(recordType: "CrewMessage", predicate: NSPredicate(format: "crewID == %@", CrewMessage.allCrews))
+        guard let (results, _) = try? await db.records(matching: query, resultsLimit: 20) else { return [] }
+        let removed = await removedMessages(crewID: CrewMessage.allCrews, leaderID: nil)
+        return results.compactMap { try? $0.1.get() }
+            .filter { isModerator(writer(of: $0), leaderID: nil) }
+            .compactMap(Self.message(from:))
+            .filter { !removed.contains($0.id) }
+    }
+
     /// His word, 2026-10-22: "the crew leader needs kick ban and moderator permissions to remove
     /// announcements or photos". Yours: deleted. Someone else's, as leader: a MessageRemoval
     /// (name = removed.<message ID>) hides it on every phone — honored only when the leader left it.
@@ -109,7 +127,7 @@ extension CrewCloud {
         }
     }
 
-    private func removedMessages(crewID: String, leaderID: String) async -> Set<String> {
+    private func removedMessages(crewID: String, leaderID: String?) async -> Set<String> {
         let query = CKQuery(recordType: "MessageRemoval", predicate: NSPredicate(format: "crewID == %@", crewID))
         guard let (results, _) = try? await db.records(matching: query) else { return [] }
         return Set(results.compactMap { try? $0.1.get() }
@@ -138,11 +156,19 @@ extension CrewCloud {
                                                                                      crewID, CrewMessage.Kind.finished.rawValue, CrewMessage.everyone)))
             }
         }
+        // Every phone: coach announcements to all crews. Always one way, so no Reply All to everyone.
+        // Only senders who are coaches or him; the list re-checks who really wrote it (allCrewsMessages).
+        if NotificationSettings.isOn(NotificationSettings.allCrews) {
+            let senders = Array(GodMode.ids.union(coaches.keys))
+            subscriptions.append(subscription(id: NotificationSettings.allCrews,
+                                              NSPredicate(format: "crewID == %@ AND senderID IN %@", CrewMessage.allCrews, senders),
+                                              category: CrewNotifications.oneWayCategory))
+        }
         // Deleted in their own call first, so a missing CrewMessage type on the save can't keep a stale one.
         let keep = Set(subscriptions.map(\.subscriptionID))
         if let existing = try? await db.allSubscriptions() {
             let stale = existing.map(\.subscriptionID).filter { id in
-                !keep.contains(id) && (id == NotificationSettings.replies || id.hasPrefix("crew-") || id.hasPrefix("oneway-")
+                !keep.contains(id) && (id == NotificationSettings.replies || id == NotificationSettings.allCrews || id.hasPrefix("crew-") || id.hasPrefix("oneway-")
                                        || id.hasPrefix("coach-"))
             }
             if !stale.isEmpty { _ = try? await db.modifySubscriptions(saving: [], deleting: stale) }
@@ -367,12 +393,12 @@ struct CrewMessagesSection: View {
                 Label("View Profile", systemImage: "person.crop.circle")
             }
         }
-        if mine || canModerate {
+        if mine || (message.isToAllCrews ? GodMode.isOn : canModerate) {
             Button(role: .destructive) { removing = message } label: {
                 Label("Remove Message", systemImage: "trash")
             }
         }
-        if !mine && canModerate {
+        if !mine && canModerate && !message.isToAllCrews {
             Button(role: .destructive) { banning = message } label: {
                 Label("Remove and Ban \(message.senderName)", systemImage: "person.fill.xmark")
             }
@@ -382,7 +408,7 @@ struct CrewMessagesSection: View {
     private func heading(_ message: CrewMessage) -> String {
         let from = message.senderID == CrewCloud.shared.myID ? "You" : message.senderName
         switch message.kind {
-        case .announcement, .announcementOneWay: return "📣 \(from)"
+        case .announcement, .announcementOneWay: return message.isToAllCrews ? "📣 \(from), to all crews" : "📣 \(from)"
         case .message: return from
         case .reply: return message.toID == CrewMessage.everyone ? "\(from), to everyone" : "\(from), reply"
         case .welcome: return "✅ \(from)"
@@ -392,7 +418,29 @@ struct CrewMessagesSection: View {
 
     private func load() async {
         guard !challenge.crewID.isEmpty else { return }
-        messages = await CrewCloud.shared.messages(crewID: challenge.crewID)
+        let crewID = challenge.crewID
+        async let crew = CrewCloud.shared.messages(crewID: crewID)
+        async let allCrews = CrewCloud.shared.allCrewsMessages()
+        messages = (await crew + allCrews).sorted { $0.sentAt > $1.sentAt }
+    }
+}
+
+/// Settings → Coach Mode: an announcement to every crew. One way, so no one can Reply All to everyone.
+struct AllCrewsAnnouncementButton: View {
+    @AppStorage(CrewSettings.name) private var name = ""
+    @State private var composing = false
+
+    var body: some View {
+        Button { composing = true } label: {
+            Label("Announce to All Crews", systemImage: "megaphone.fill").font(AppFont.bodyBold)
+        }
+        .sheet(isPresented: $composing) {
+            ComposeView(title: "All Crews", footer: "It pops up on every Rep Crew phone. One way: no replies.") { text, _ in
+                let me = name.trimmingCharacters(in: .whitespaces)
+                return await CrewCloud.shared.send(text, crewID: CrewMessage.allCrews, kind: .announcementOneWay,
+                                                   senderName: me.isEmpty ? "Coach" : me)
+            }
+        }
     }
 }
 

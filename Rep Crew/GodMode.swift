@@ -131,6 +131,7 @@ struct GodModeSection: View {
                 } label: {
                     Label("Reports", systemImage: "bolt.shield.fill").font(AppFont.bodyBold)
                 }
+                AllCrewsAnnouncementButton()
                 if GodMode.isOwner {
                     NavigationLink {
                         CoachesView()

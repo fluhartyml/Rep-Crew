@@ -11,6 +11,7 @@
 //                     + oneway-<crewID> for one-way announcements (CrewMessages.swift); same switch.
 //    Replies to you   to-me           On by default.
 //    Challenge invites invites        On by default.
+//    All crews        all-crews       a coach's announcement to every phone (CrewMessages.swift). On by default.
 //    Join requests    join-requests   Leaders only. On by default.
 //    Coach only       coach-<crewID>  kind == "finished" on a public challenge you're not in. Off by default.
 //
@@ -27,6 +28,7 @@ enum NotificationSettings {
     static let replies = "to-me"
     static let invites = "invites"
     static let joinRequests = "join-requests"
+    static let allCrews = "all-crews"
 
     static func isOn(_ subscriptionID: String) -> Bool { !ids(offKey).contains(subscriptionID) }
     static var coachCrewIDs: Set<String> { ids(coachKey) }
@@ -75,6 +77,7 @@ struct NotificationSettingsView: View {
             Section {
                 Toggle(isOn: offBinding(NotificationSettings.replies)) { Text("Replies to you").font(AppFont.body) }
                 Toggle(isOn: offBinding(NotificationSettings.invites)) { Text("Challenge invites").font(AppFont.body) }
+                Toggle(isOn: offBinding(NotificationSettings.allCrews)) { Text("Coach announcements").font(AppFont.body) }
                 if leadsOne {
                     Toggle(isOn: offBinding(NotificationSettings.joinRequests)) { Text("Join requests").font(AppFont.body) }
                 }
