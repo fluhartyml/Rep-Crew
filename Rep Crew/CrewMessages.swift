@@ -267,6 +267,8 @@ struct CrewMessagesSection: View {
     private var isLeader: Bool { challenge.leaderID.isEmpty || challenge.leaderID == CrewCloud.shared.myID }
     /// Leader, or god: can remove anyone's message and ban from it.
     private var canModerate: Bool { isLeader || GodMode.isOn }
+    /// His word, 2026-10-23: "yes, god mode can announce". Leader, or god.
+    private var canAnnounce: Bool { isLeader || GodMode.isOn }
 
     var body: some View {
         list
@@ -295,8 +297,8 @@ struct CrewMessagesSection: View {
             Text("Their name shows as Disqualified on the board, their photos and messages are hidden, and they can't rejoin.")
         }
         .sheet(isPresented: $composing) {
-            ComposeView(title: isLeader ? "Announcement" : "Message the Crew", offersOneWay: isLeader) { text, allowReplies in
-                await send(text, kind: !isLeader ? .message : allowReplies ? .announcement : .announcementOneWay)
+            ComposeView(title: canAnnounce ? "Announcement" : "Message the Crew", offersOneWay: canAnnounce) { text, allowReplies in
+                await send(text, kind: !canAnnounce ? .message : allowReplies ? .announcement : .announcementOneWay)
             }
         }
         // His word, 2026-10-23: "yes add reply and reply all in the app". Same send as the lock-screen actions.
@@ -312,8 +314,8 @@ struct CrewMessagesSection: View {
     private var list: some View {
         Section {
             Button { composing = true } label: {
-                Label(isLeader ? "Send an Announcement" : "Message the Crew",
-                      systemImage: isLeader ? "megaphone.fill" : "text.bubble.fill")
+                Label(canAnnounce ? "Send an Announcement" : "Message the Crew",
+                      systemImage: canAnnounce ? "megaphone.fill" : "text.bubble.fill")
                     .font(AppFont.bodyBold)
             }
             ForEach(messages.prefix(10)) { message in
