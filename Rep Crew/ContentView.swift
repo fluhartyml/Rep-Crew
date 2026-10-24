@@ -45,6 +45,10 @@ struct ContentView: View {
                     emptyState
                 } else {
                     List {
+                        // A row, not a toolbar button: a fifth toolbar button pushed others into an overflow menu (build 61).
+                        NavigationLink(value: CrewScreen.inbox) {
+                            Label("Inbox", systemImage: "tray.full.fill").font(AppFont.bodyBold)
+                        }
                         invitations
                         section("Your challenges", active + upcoming.reversed())
                         crewChallenges
@@ -77,6 +81,7 @@ struct ContentView: View {
                 case .leaderboards: LeaderboardsView()
                 case .directory: CrewDirectoryView()
                 case .newMembers: ApplicationsView()
+                case .inbox: InboxView(challenges: challenges) { joining = $0 }
                 }
             }
             .toolbar {
