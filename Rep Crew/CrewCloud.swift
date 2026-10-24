@@ -53,6 +53,7 @@ final class CrewCloud {
             UserDefaults.standard.set(myID, forKey: "myCloudID")
             await loadCoaches()
             await loadCoachKeys()
+            await loadCrewName()
             status = "Connected to iCloud"
         } catch {
             status = "iCloud problem: \(error.localizedDescription)"

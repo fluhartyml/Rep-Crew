@@ -50,12 +50,13 @@ struct ApplicationView: View {
     @AppStorage(CrewSettings.applicationDone) private var done = false
     @AppStorage(CrewSettings.applicationWaiting) private var waiting = ""
     @AppStorage(CrewSettings.name) private var name = ""
+    @AppStorage(CrewSettings.crewName) private var crewName = ""
     @State private var answers = CrewApplication()
 
     var body: some View {
         NavigationStack {
             Form {
-                Text("Welcome to the Crew")
+                Text("Welcome to \(CrewCloud.displayName(crewName))")
                     .font(AppFont.title)
                     .fixedSize(horizontal: false, vertical: true)
                     .listRowBackground(Color.clear)

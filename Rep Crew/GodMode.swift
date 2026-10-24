@@ -139,6 +139,11 @@ struct GodModeSection: View {
                 AllCrewsAnnouncementButton()
                 if GodMode.isOwner {
                     NavigationLink {
+                        CrewNameView()
+                    } label: {
+                        Label("Crew Name", systemImage: "character.cursor.ibeam").font(AppFont.bodyBold)
+                    }
+                    NavigationLink {
                         CoachesView()
                     } label: {
                         Label("Coaches", systemImage: "person.2.badge.gearshape.fill").font(AppFont.bodyBold)

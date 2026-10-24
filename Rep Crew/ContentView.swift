@@ -19,6 +19,7 @@ struct ContentView: View {
     @AppStorage(CrewSettings.name) private var name = ""
     @AppStorage(CrewSettings.testFlight) private var testFlight = ""
     @AppStorage(CrewSettings.crewNumber) private var crewNumber = 0
+    @AppStorage(CrewSettings.crewName) private var crewName = ""
     @State private var listings: [CrewListing] = []
     private var cloud = CrewCloud.shared
 
@@ -64,7 +65,7 @@ struct ContentView: View {
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { Task { await syncCrew() } }
             }
-            .navigationTitle("Rep Crew")
+            .navigationTitle(CrewCloud.displayName(crewName))   // the head coach's name for the crew (CrewName.swift)
             .navigationDestination(for: Challenge.self) { ChallengeDetailView(challenge: $0) }
             .navigationDestination(for: CrewListing.self) { CrewChallengeView(listing: $0) }
             .navigationDestination(for: CrewScreen.self) { screen in
