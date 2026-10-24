@@ -201,7 +201,11 @@ struct PhotoBoardSection: View {
             Section {
                 // One button per row: two buttons sharing a List row both fire on a tap (build 35
                 // opened the camera when Choose Photo was tapped, and neither screen worked).
-                if canAdd {
+                if canAdd && !CrewCloud.shared.can(.photos) {
+                    // Access level or command keys (Access.swift).
+                    Text("Your access doesn't include posting photos yet. The head coach can change it.").font(AppFont.body)
+                }
+                if canAdd && CrewCloud.shared.can(.photos) {
                     if cameraAvailable {
                         Button { CameraPresenter.shared.present { image in Task { await upload(image) } } } label: {
                             Label("Take Photo", systemImage: "camera.fill").font(AppFont.bodyBold)

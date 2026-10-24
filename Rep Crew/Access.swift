@@ -31,13 +31,14 @@ enum AccessAbility: String, Codable, CaseIterable, Identifiable {
     // only from a leader, a coach or the head coach (isModerator, checked against who wrote it), so a
     // level can't grant them yet; a button for it would do nothing. Coaches are still made by long-press,
     // and their level shows as at least 250.
-    case join, start, post
+    case join, start, post, photos
     var id: String { rawValue }
     var label: String {
         switch self {
         case .join: "Join crew challenges"
         case .start: "Start challenges"
         case .post: "Post crew messages"
+        case .photos: "Post photos"
         }
     }
 }
@@ -50,6 +51,14 @@ struct AccessBand: Codable, Identifiable, Equatable {
     var abilities: Set<AccessAbility>
 }
 
+/// A command's keys, Renegade style. His word 2026-10-24: "you had to have a key flagged to use a menu
+/// command or if you had another key flagged you were denied access … like x you were allowed to log in
+/// but you were not allowed to do any menu command". Letters: needs ALL of `requires`, NONE of `blockedBy`.
+struct AccessKeys: Codable, Equatable {
+    var requires = ""
+    var blockedBy = ""
+}
+
 struct AccessFlag: Codable, Identifiable, Equatable {
     var id: String { letter }
     var letter: String
@@ -59,15 +68,17 @@ struct AccessFlag: Codable, Identifiable, Equatable {
 struct AccessTable: Codable, Equatable {
     var bands: [AccessBand]
     var flags: [AccessFlag]
+    /// Per command (AccessAbility raw value). Missing = no keys needed. Optional so older saved tables still read.
+    var keys: [String: AccessKeys]? = nil
 
     static let starter = AccessTable(bands: [
-        AccessBand(low: 0, high: 5, name: "New user, no application", abilities: [.join, .start]),
-        AccessBand(low: 6, high: 10, name: "New user, application not verified", abilities: [.join, .start]),
-        AccessBand(low: 11, high: 15, name: "Verified new user", abilities: [.join, .start, .post]),
-        AccessBand(low: 16, high: 49, name: "Member", abilities: [.join, .start, .post]),
-        AccessBand(low: 50, high: 54, name: "Message base member", abilities: [.join, .start, .post]),
-        AccessBand(low: 55, high: 249, name: "Moderator", abilities: [.join, .start, .post]),
-        AccessBand(low: 250, high: 254, name: "Coach", abilities: [.join, .start, .post]),
+        AccessBand(low: 0, high: 5, name: "New user, no application", abilities: [.join, .start, .photos]),
+        AccessBand(low: 6, high: 10, name: "New user, application not verified", abilities: [.join, .start, .photos]),
+        AccessBand(low: 11, high: 15, name: "Verified new user", abilities: [.join, .start, .post, .photos]),
+        AccessBand(low: 16, high: 49, name: "Member", abilities: [.join, .start, .post, .photos]),
+        AccessBand(low: 50, high: 54, name: "Message base member", abilities: [.join, .start, .post, .photos]),
+        AccessBand(low: 55, high: 249, name: "Moderator", abilities: [.join, .start, .post, .photos]),
+        AccessBand(low: 250, high: 254, name: "Coach", abilities: [.join, .start, .post, .photos]),
         AccessBand(low: 255, high: 255, name: "Head Coach", abilities: Set(AccessAbility.allCases)),
     ], flags: [])
 
@@ -152,7 +163,11 @@ extension CrewCloud {
     /// True when this phone's member may do it.
     func can(_ ability: AccessAbility) -> Bool {
         if GodMode.isOwner { return true }
-        return accessTable.band(for: myAccess.level)?.abilities.contains(ability) ?? false
+        let table = accessTable
+        guard table.band(for: myAccess.level)?.abilities.contains(ability) ?? false else { return false }
+        let mine = Set(myAccess.flags.uppercased())
+        let keys = table.keys?[ability.rawValue] ?? AccessKeys()
+        return Set(keys.requires.uppercased()).isSubset(of: mine) && Set(keys.blockedBy.uppercased()).isDisjoint(with: mine)
     }
 }
 
@@ -185,6 +200,24 @@ struct AccessTableView: View {
                 .font(AppFont.body)
             } header: {
                 Text("Levels 0–255").font(AppFont.bodyBold).textCase(nil)
+            }
+
+            Section {
+                ForEach(AccessAbility.allCases) { ability in
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(ability.label).font(AppFont.bodyBold)
+                        TextField("Needs flags, like Z", text: keyBinding(ability, \.requires))
+                            .font(AppFont.body).textInputAutocapitalization(.characters).autocorrectionDisabled()
+                        TextField("Blocked by flags, like X", text: keyBinding(ability, \.blockedBy))
+                            .font(AppFont.body).textInputAutocapitalization(.characters).autocorrectionDisabled()
+                    }
+                    .padding(.vertical, 4)
+                }
+            } header: {
+                Text("Command Keys").font(AppFont.bodyBold).textCase(nil)
+            } footer: {
+                Text("A member needs every \"needs\" letter and none of the \"blocked by\" letters, plus a range that allows the command. Put X in every \"blocked by\" to let someone sign in and look without doing anything.")
+                    .font(AppFont.body)
             }
 
             Section {
@@ -223,6 +256,17 @@ struct AccessTableView: View {
     }
 
     static let letters = (65...90).map { String(UnicodeScalar($0)!) }
+
+    private func keyBinding(_ ability: AccessAbility, _ path: WritableKeyPath<AccessKeys, String>) -> Binding<String> {
+        Binding(get: { table.keys?[ability.rawValue]?[keyPath: path] ?? "" },
+                set: { text in
+                    var keys = table.keys ?? [:]
+                    var entry = keys[ability.rawValue] ?? AccessKeys()
+                    entry[keyPath: path] = String(Set(text.uppercased().filter(\.isLetter)).sorted())
+                    keys[ability.rawValue] = entry
+                    table.keys = keys
+                })
+    }
 }
 
 private struct AccessBandView: View {
