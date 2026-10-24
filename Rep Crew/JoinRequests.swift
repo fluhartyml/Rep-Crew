@@ -25,6 +25,7 @@ struct JoinRequest: Identifiable {
     let crewID: String
     let requesterID: String
     let name: String
+    let requestedAt: Date?
 }
 
 /// Where you stand on someone else's challenge.
@@ -93,7 +94,8 @@ extension CrewCloud {
         return records.compactMap { record -> JoinRequest? in
             guard let id = record["requesterID"] as? String, !answered.contains(id), !hide.contains(id) else { return nil }
             return JoinRequest(id: record.recordID.recordName, crewID: crewID, requesterID: id,
-                               name: record["name"] as? String ?? "A crew member")
+                               name: record["name"] as? String ?? "A crew member",
+                               requestedAt: record["requestedAt"] as? Date ?? record.creationDate)
         }
         .sorted { $0.name < $1.name }
     }

@@ -47,6 +47,10 @@ struct InboxItem: Identifiable {
     let title: String
     let detail: String
     let destination: Destination
+    /// Shown under the item without changing its place. A join request keeps date nil so it stays
+    /// first and unread until answered, but still shows when it was asked (his word 2026-10-24,
+    /// "add the date to the asked to join item").
+    var shownDate: Date? = nil
 }
 
 extension CrewCloud {
@@ -80,7 +84,8 @@ extension CrewCloud {
         for crewID in Set(led) {
             for request in await joinRequests(crewID: crewID) {
                 items.append(InboxItem(id: request.id, date: nil, icon: "hand.wave.fill",
-                                       title: "\(request.name) asked to join", detail: "Open the challenge to answer.", destination: .challenge(crewID)))
+                                       title: "\(request.name) asked to join", detail: "Open the challenge to answer.", destination: .challenge(crewID),
+                                       shownDate: request.requestedAt))
             }
         }
         if GodMode.isOn {
@@ -133,7 +138,7 @@ struct InboxView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.title).font(AppFont.bodyBold).foregroundStyle(.primary)
                 Text(item.detail).font(AppFont.body).foregroundStyle(.primary).lineLimit(3)
-                if let date = item.date {
+                if let date = item.shownDate ?? item.date {
                     Text(date.formatted(date: .abbreviated, time: .shortened))
                         .font(AppFont.body).foregroundStyle(.secondary)
                 }
