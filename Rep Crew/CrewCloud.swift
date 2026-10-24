@@ -86,6 +86,7 @@ final class CrewCloud {
             // REM: clear only this challenge's own old error. Resetting to "Connected" on any success
             // hid other challenges' failures (2026-10-23: every CrewChallenge save was BAD_REQUEST).
             if status.hasPrefix("Couldn't share \(info.title):") { status = "Connected to iCloud" }
+            await refreshMyAccess()   // starting a challenge is level 55 (Access.swift)
         } catch {
             status = "Couldn't share \(info.title): \(error.localizedDescription)"
         }
@@ -216,6 +217,7 @@ final class CrewCloud {
         record["crewNumber"] = crewNumber
         do {
             _ = try await db.modifyRecords(saving: [record], deleting: [], savePolicy: .allKeys)
+            await refreshMyAccess()   // joining a challenge is level 16 (Access.swift)
         } catch {
             status = "Couldn't tell your crew you joined: \(error.localizedDescription)"
         }

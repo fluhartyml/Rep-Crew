@@ -13,11 +13,23 @@
 //                 meanings. Head coach only (GodMode.ids).
 //    MemberAccess name = "access.<member ID>". One member's level, flags and title. Head coach only.
 //  A member can't raise their own level: a record they wrote themselves is ignored.
-//  REM: with no MemberAccess record, a member is level 0, or 6 once their application is in (the
-//  bands' defaults). Coaches are at least 250 and the head coach is 255, whatever the table says.
+//  REM: THE LOWER LEVELS ARE EARNED, NOT GRANTED. His words, 2026-10-24: "i want to promote use so i
+//  want the lower access levels to be automatic where the upper moderator above is more manual
+//  moderator is probably the last automatic level because a moderator starts their own challenge"
+//  · "yes build it sounds awesome". Each step comes from something the member did, read from iCloud:
+//    0   signed in
+//    6   application in (Send or Not Now; both write the CrewApplication record)
+//    11  application sent with an email (the "verified new user" line, and the first that posts)
+//    16  joined someone's challenge (a Membership record they wrote)
+//    55  started their own challenge (a CrewChallenge they lead), the last automatic step
+//  Coach (250+) and Head Coach (255) stay by hand. 50–54 "Message base member" has no automatic step.
+//  REM: a member's level is the HIGHER of what they earned and what the head coach set, so editing
+//  someone's title never freezes them. To hold someone back, give them a flag that blocks the command
+//  (Access Levels → command keys). Only records the member wrote themselves count toward what they earned;
+//  forging one is the same as doing the thing, so it buys nothing.
 //  REM: Claude's default abilities, not his: new and unverified members (0–10) can still keep and
 //  join challenges, so nobody already testing loses that, but they can't post crew messages until
-//  the head coach raises them to 11 or higher. He can change every line.
+//  they reach 11. He can change every line.
 //  ⚠️ The phone checks the abilities before showing a button. CloudKit's public database can't
 //  enforce them on its own, so this keeps honest people on the right side, like the rest of the app.
 //
@@ -129,18 +141,46 @@ extension CrewCloud {
         }
     }
 
-    /// Someone's level, flags and title. Only a record the head coach wrote counts.
+    /// Someone's level, flags and title: the higher of what they earned and what the head coach set.
+    /// Only a MemberAccess record the head coach wrote counts.
     func memberAccess(_ id: String) async -> MemberAccess {
         var access = MemberAccess(level: 0, flags: "", title: "")
         if let record = try? await db.record(for: Self.memberID(id)), let writer = writer(of: record), GodMode.ids.contains(writer) {
             access = MemberAccess(level: record["level"] as? Int ?? 0, flags: record["flags"] as? String ?? "",
                                   title: record["title"] as? String ?? "")
-        } else if id == myID, UserDefaults.standard.bool(forKey: CrewSettings.applicationDone) {
-            access.level = 6
         }
+        access.level = max(access.level, await earnedLevel(id))
         if coaches[id] != nil { access.level = max(access.level, 250) }
         if GodMode.ids.contains(id) { access.level = 255 }
         return access
+    }
+
+    /// The level someone reached by using the app (the steps in the REM at the top). Highest step first.
+    func earnedLevel(_ id: String) async -> Int {
+        if await wroteAny("CrewChallenge", NSPredicate(format: "leaderID == %@", id), as: id) { return 55 }
+        if await wroteAny("Membership", NSPredicate(format: "memberID == %@", id), as: id) { return 16 }
+        let defaults = UserDefaults.standard
+        if id == myID, defaults.bool(forKey: CrewSettings.applicationEmailGiven) { return 11 }
+        if let record = try? await db.record(for: CKRecord.ID(recordName: "application.\(id)")), writer(of: record) == id {
+            // A coach's phone can open the application and see whether an email came with it.
+            if let myID, let key = ContactKey.mine(create: false), let sealed = record["sealed"] as? Data,
+               let answers = ContactSeal.open(CrewApplication.self, sealed, for: myID, key: key), !answers.email.isEmpty { return 11 }
+            return 6
+        }
+        if id == myID, defaults.bool(forKey: CrewSettings.applicationDone) { return 6 }
+        return 0
+    }
+
+    /// True when the member wrote at least one record of this type matching the predicate.
+    private func wroteAny(_ type: String, _ predicate: NSPredicate, as id: String) async -> Bool {
+        guard let (results, _) = try? await db.records(matching: CKQuery(recordType: type, predicate: predicate), resultsLimit: 20)
+        else { return false }
+        return results.compactMap { try? $0.1.get() }.contains { writer(of: $0) == id }
+    }
+
+    /// Re-reads this phone's member's level after they did something that may have raised it.
+    func refreshMyAccess() async {
+        if let myID { myAccess = await memberAccess(myID) }
     }
 
     func saveMemberAccess(_ access: MemberAccess, for id: String) async -> Bool {

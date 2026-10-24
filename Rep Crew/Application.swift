@@ -29,6 +29,8 @@ extension CrewSettings {
     static let appleEmail = "appleEmail"
     /// The application screen has been shown and answered (sent or Not Now). It never shows again.
     static let applicationDone = "applicationDone"
+    /// The member sent the application with an email in it: level 11 (Access.swift).
+    static let applicationEmailGiven = "applicationEmailGiven"
     /// Answers waiting to reach the coaches (no coach key loaded yet, or offline). Empty once sent.
     static let applicationWaiting = "applicationWaiting"
     /// Coach's phone: the welcome letter, and the members it was sent to.
@@ -116,7 +118,8 @@ struct ApplicationView: View {
                                       suggestions: send ? answers.suggestions.trimmingCharacters(in: .whitespacesAndNewlines) : "")
         waiting = String(data: (try? JSONEncoder().encode(trimmed)) ?? Data(), encoding: .utf8) ?? ""
         done = true
-        Task { await CrewCloud.shared.sendWaitingApplication() }
+        if !trimmed.email.isEmpty { UserDefaults.standard.set(true, forKey: CrewSettings.applicationEmailGiven) }
+        Task { await CrewCloud.shared.sendWaitingApplication(); await CrewCloud.shared.refreshMyAccess() }
         Task { await MyProfile.saveIfChanged() }
     }
 }
