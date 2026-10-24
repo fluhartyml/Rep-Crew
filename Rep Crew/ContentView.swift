@@ -197,6 +197,9 @@ struct ContentView: View {
         await cloud.subscribe(crewIDs: challenges.map(\.crewID).filter { !$0.isEmpty }, listedCrewIDs: listings.map(\.id))
         await cloud.subscribeToJoinRequests()
         await cloud.subscribeToInvites()
+        // A coach's key goes up; everyone re-seals Coaches-only fields if the coaches changed.
+        await cloud.publishCoachKey()
+        await MyProfile.saveIfChanged()
     }
 
     private var emptyState: some View {

@@ -38,6 +38,9 @@ struct CrewProfile {
     var photoID = ""
     /// A ContactMethod raw value, or "" for no preference (CrewDirectory.swift).
     var preferred = ""
+    /// "phone", "email", "facetime": shown here only because this phone is a coach or the owner
+    /// (ContactSeal.swift).
+    var privateFields: Set<String> = []
     /// Nil when there's none, or it was removed, reported, or caught by the filter.
     var photo: UIImage?
 }
@@ -48,6 +51,10 @@ extension CrewSettings {
     static let profileFaceTime = "profileFaceTime"
     /// A ContactMethod raw value; empty for no preference.
     static let profilePreferred = "profilePreferred"
+    /// Coaches only (ContactSeal.swift).
+    static let profilePhonePrivate = "profilePhonePrivate"
+    static let profileEmailPrivate = "profileEmailPrivate"
+    static let profileFaceTimePrivate = "profileFaceTimePrivate"
     /// "profile.<your ID>.<UUID>" for the photo on this phone; empty for none.
     static let profilePhotoID = "profilePhotoID"
     /// What iCloud last got, so an unchanged profile isn't saved again.
@@ -71,9 +78,14 @@ enum MyProfile {
         (defaults.string(forKey: key) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    static var signature: String {
-        [CrewSettings.name, CrewSettings.profilePhone, CrewSettings.profileEmail,
-         CrewSettings.profileFaceTime, CrewSettings.profilePhotoID, CrewSettings.profilePreferred].map(value).joined(separator: "\u{1F}")
+    private static func isPrivate(_ key: String) -> Bool { defaults.bool(forKey: key) }
+
+    @MainActor static var signature: String {
+        ([CrewSettings.name, CrewSettings.profilePhone, CrewSettings.profileEmail,
+          CrewSettings.profileFaceTime, CrewSettings.profilePhotoID, CrewSettings.profilePreferred].map(value)
+         + [CrewSettings.profilePhonePrivate, CrewSettings.profileEmailPrivate, CrewSettings.profileFaceTimePrivate]
+            .map { isPrivate($0) ? "1" : "0" }
+         + [CrewCloud.shared.coachKeysSignature]).joined(separator: "\u{1F}")
     }
 
     /// Runs the photo through the same filter as the photo board, then keeps a small copy.
@@ -102,16 +114,31 @@ enum MyProfile {
     /// Saves to iCloud when something changed since the last save.
     @MainActor static func saveIfChanged() async {
         guard defaults.bool(forKey: CrewSettings.profileRestored) else { return }
+        await CrewCloud.shared.connect()
         let now = signature
         guard now != defaults.string(forKey: CrewSettings.profileSaved) else { return }
         var profile = CrewProfile(id: "")
         profile.name = value(CrewSettings.name)
-        profile.phone = value(CrewSettings.profilePhone)
-        profile.email = value(CrewSettings.profileEmail)
-        profile.facetime = value(CrewSettings.profileFaceTime)
         profile.photoID = value(CrewSettings.profilePhotoID)
         profile.preferred = value(CrewSettings.profilePreferred)
-        if await CrewCloud.shared.saveProfile(profile, photoFile: profile.photoID.isEmpty ? nil : photoFile) {
+        // Coaches only: the plain field goes up blank and the value goes into the seal.
+        var hidden = PrivateContact()
+        for (key, flag, path) in [(CrewSettings.profilePhone, CrewSettings.profilePhonePrivate, \CrewProfile.phone),
+                                  (CrewSettings.profileEmail, CrewSettings.profileEmailPrivate, \CrewProfile.email),
+                                  (CrewSettings.profileFaceTime, CrewSettings.profileFaceTimePrivate, \CrewProfile.facetime)] {
+            let text = value(key)
+            if isPrivate(flag) && !text.isEmpty {
+                switch key {
+                case CrewSettings.profilePhone: hidden.phone = text
+                case CrewSettings.profileEmail: hidden.email = text
+                default: hidden.facetime = text
+                }
+            } else {
+                profile[keyPath: path] = text
+            }
+        }
+        let sealed = hidden.isEmpty ? nil : ContactSeal.seal(hidden, to: CrewCloud.shared.sealReaders())
+        if await CrewCloud.shared.saveProfile(profile, photoFile: profile.photoID.isEmpty ? nil : photoFile, sealed: sealed) {
             defaults.set(now, forKey: CrewSettings.profileSaved)
         }
     }
@@ -133,6 +160,10 @@ enum MyProfile {
                                  (CrewSettings.profilePreferred, saved.preferred)] where value(key).isEmpty {
                 defaults.set(cloud, forKey: key)
             }
+            for (field, flag) in [("phone", CrewSettings.profilePhonePrivate), ("email", CrewSettings.profileEmailPrivate),
+                                  ("facetime", CrewSettings.profileFaceTimePrivate)] where saved.privateFields.contains(field) {
+                defaults.set(true, forKey: flag)
+            }
             if value(CrewSettings.profilePhotoID).isEmpty, let photo = saved.photo,
                let data = photo.jpegData(compressionQuality: 0.85) {
                 try? FileManager.default.createDirectory(at: URL.applicationSupportDirectory, withIntermediateDirectories: true)
@@ -140,8 +171,8 @@ enum MyProfile {
                     defaults.set(saved.photoID, forKey: CrewSettings.profilePhotoID)
                 }
             }
-            defaults.set([saved.name, saved.phone, saved.email, saved.facetime, saved.photoID, saved.preferred]
-                .joined(separator: "\u{1F}"), forKey: CrewSettings.profileSaved)
+            // Saved again on the next check, with this phone's merged entries and seal.
+            defaults.set("", forKey: CrewSettings.profileSaved)
         }
         defaults.set(true, forKey: CrewSettings.profileRestored)
     }
@@ -160,7 +191,7 @@ extension CrewCloud {
         CKRecord.ID(recordName: "profile.\(memberID)")
     }
 
-    func saveProfile(_ profile: CrewProfile, photoFile: URL?) async -> Bool {
+    func saveProfile(_ profile: CrewProfile, photoFile: URL?, sealed: Data?) async -> Bool {
         await connect()
         guard let myID else { return false }
         let record = CKRecord(recordType: "Profile", recordID: Self.profileRecordID(myID))
@@ -169,9 +200,8 @@ extension CrewCloud {
         record["email"] = profile.email
         record["facetime"] = profile.facetime
         record["photoID"] = profile.photoID
-        // REM: a new field — left off until someone picks one, so profiles still save before
-        // Profile.preferred is deployed to Production.
-        if !profile.preferred.isEmpty { record["preferred"] = profile.preferred }
+        record["preferred"] = profile.preferred
+        record["sealed"] = sealed
         record["photo"] = photoFile.map { CKAsset(fileURL: $0) }
         record["updatedAt"] = Date.now
         do {
@@ -207,6 +237,17 @@ extension CrewCloud {
         profile.facetime = record["facetime"] as? String ?? ""
         profile.photoID = record["photoID"] as? String ?? ""
         profile.preferred = record["preferred"] as? String ?? ""
+        // Coaches only: opens when one of the envelopes is for this phone. A plain field that's
+        // filled in wins, so an old seal can't bring back a number they've since made public.
+        if let sealed = record["sealed"] as? Data, let myID, let key = ContactKey.mine(create: false),
+           let opened = ContactSeal.open(sealed, for: myID, key: key) {
+            for (field, path, text) in [("phone", \CrewProfile.phone, opened.phone), ("email", \CrewProfile.email, opened.email),
+                                        ("facetime", \CrewProfile.facetime, opened.facetime)] {
+                guard let text, profile[keyPath: path].isEmpty else { continue }
+                profile[keyPath: path] = text
+                profile.privateFields.insert(field)
+            }
+        }
         if !profile.photoID.isEmpty, !Blocklist.hiddenPhotos.contains(profile.photoID),
            await !profilePhotoRemoved(profile.photoID),
            let url = (record["photo"] as? CKAsset)?.fileURL,
@@ -244,6 +285,9 @@ struct MyProfileSection: View {
     @AppStorage(CrewSettings.profileFaceTime) private var facetime = ""
     @AppStorage(CrewSettings.profilePhotoID) private var photoID = ""
     @AppStorage(CrewSettings.profilePreferred) private var preferred = ""
+    @AppStorage(CrewSettings.profilePhonePrivate) private var phonePrivate = false
+    @AppStorage(CrewSettings.profileEmailPrivate) private var emailPrivate = false
+    @AppStorage(CrewSettings.profileFaceTimePrivate) private var facetimePrivate = false
     @State private var picked: PhotosPickerItem?
     @State private var note: String?
 
@@ -279,17 +323,20 @@ struct MyProfileSection: View {
                 .font(AppFont.body)
                 .keyboardType(.phonePad)
                 .textContentType(.telephoneNumber)
+            coachesOnly($phonePrivate)
             TextField("Email", text: $email)
                 .font(AppFont.body)
                 .keyboardType(.emailAddress)
                 .textContentType(.emailAddress)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+            coachesOnly($emailPrivate)
             TextField("FaceTime phone or email", text: $facetime)
                 .font(AppFont.body)
                 .keyboardType(.emailAddress)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+            coachesOnly($facetimePrivate)
             // His word, 2026-10-23: the directory "displays prefered contact method".
             Picker(selection: $preferred) {
                 Text("No preference").font(AppFont.body).tag("")
@@ -302,7 +349,7 @@ struct MyProfileSection: View {
         } footer: {
             // REM: his word: "they have to manually add their contact info that way they can omit or
             // use alternate contact info". Sign in with Apple gives a name only.
-            Text("Everything here is optional. Your crew sees your photo and a button for each way you fill in. Leave any blank to keep it private. Your preferred contact shows next to your name in the Crew Directory.")
+            Text("Everything here is optional. Your crew sees your photo and a button for each way you fill in. Leave any blank to keep it private, or switch on Coaches only to share it with coaches and no one else. Your preferred contact shows next to your name in the Crew Directory.")
                 .font(AppFont.body)
         }
         .onChange(of: picked) { _, item in
@@ -314,6 +361,10 @@ struct MyProfileSection: View {
                 picked = nil
             }
         }
+    }
+
+    private func coachesOnly(_ isOn: Binding<Bool>) -> some View {
+        Toggle(isOn: isOn) { Label("Coaches only", systemImage: "lock.fill").font(AppFont.body) }
     }
 
     private func use(_ image: UIImage) async {
@@ -404,6 +455,10 @@ struct ProfileView: View {
                             Text("Loading…").font(AppFont.body)
                         }
                     } else if let profile, hasContact(profile) {
+                        if !profile.privateFields.isEmpty {
+                            Label(isMine ? "Locked items are for coaches only." : "Locked items: you see them as a coach.",
+                                  systemImage: "lock.fill").font(AppFont.body).foregroundStyle(.secondary)
+                        }
                         // REM: his word: "export … to apple contacts" · "i want it to be one contact and
                         // not all contacts". One card, only what they typed; no Contacts access asked.
                         Button { ContactsPresenter.shared.save(contact(from: profile)) } label: {

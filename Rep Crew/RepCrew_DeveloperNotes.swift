@@ -230,8 +230,16 @@
 //  🟡 BUILT 2026-10-23 (build 61), not tested. People icon on Home. Everyone in your challenges (leader
 //  + Membership, minus banned and blocked, minus you). New: Profile.preferred (STRING) — Settings →
 //  Your profile → Preferred contact; the profile shows "Prefers …" and a Text button. Save to Contacts
-//  already carried the photo. ⚠️ Profile.preferred needs a Production schema deploy after first use
-//  in Development; until then the field is left off the record unless someone picks one.
+//  already carried the photo.
+//
+//  Coaches only (ContactSeal.swift). His words, 2026-10-23: "every textbox has a privacy toggle but
+//  the coache or coaches can overide the toggle and see" · coaches are made by long-press, nothing else.
+//  🟡 BUILT 2026-10-23 (build 62), not tested on a device; seal/open round trip checked on the Mac.
+//  Phone, email and FaceTime each get a Coaches only switch. A private field goes up blank and lives in
+//  Profile.sealed, encrypted per coach + the owner (Curve25519 → HKDF → ChaChaPoly). Each phone's key
+//  sits in iCloud Keychain; a coach's phone publishes CoachKey (coachkey.<ID>) on launch. Members re-seal
+//  when the coach keys change. ⚠️ Schema: CoachKey, Profile.preferred, Profile.sealed are in
+//  CloudKit-Schema.ckdb — import and deploy to Production BEFORE uploading build 61+, or profile saves fail.
 //
 //  ⚠️ The local store (challenges, reps) must stay OFF iCloud:
 //  ModelConfiguration(cloudKitDatabase: .none). Without it, the iCloud entitlement

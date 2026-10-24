@@ -14,6 +14,20 @@ DEFINE SCHEMA
         GRANT READ TO "_world"
     );
 
+    RECORD TYPE CoachKey (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        coachID         STRING QUERYABLE SEARCHABLE SORTABLE,
+        publicKey       BYTES,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
     RECORD TYPE CrewBan (
         "___createTime" TIMESTAMP,
         "___createdBy"  REFERENCE,
@@ -171,6 +185,8 @@ DEFINE SCHEMA
         phone           STRING,
         photo           ASSET,
         photoID         STRING QUERYABLE SEARCHABLE SORTABLE,
+        preferred       STRING,
+        sealed          BYTES,
         updatedAt       TIMESTAMP QUERYABLE SORTABLE,
         GRANT WRITE TO "_creator",
         GRANT CREATE TO "_icloud",
