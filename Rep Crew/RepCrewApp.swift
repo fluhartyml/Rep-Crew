@@ -3,6 +3,7 @@
 //  Rep Crew
 //
 
+import CoreData
 import SwiftUI
 import SwiftData
 
@@ -30,6 +31,9 @@ struct RepCrewApp: App {
     private let container: ModelContainer = {
         let schema = Schema([Challenge.self, ExerciseGoal.self, RepEntry.self, CrewMember.self, HealthMatch.self])
         let synced = ModelConfiguration(schema: schema, cloudKitDatabase: .private("iCloud.com.accountability.dailyrepcrew"))
+        #if DEBUG
+        initializeCloudKitSchema(at: synced.url)
+        #endif
         if let container = try? ModelContainer(for: schema, configurations: synced) {
             UserDefaults.standard.set(false, forKey: "storeNotInICloud")
             return container
@@ -42,6 +46,41 @@ struct RepCrewApp: App {
         }
     }()
 }
+
+#if DEBUG
+/// Creates every CD_ record type in the Development iCloud at once, so they can all be deployed to
+/// Production together. Debug builds only, once per build number.
+/// REM: his "yes build it and install on the 11", 2026-10-24. SwiftData makes a type only when a record
+/// of it is first saved, so a Debug run made CD_Challenge, CD_ExerciseGoal and CD_RepEntry but not
+/// CD_CrewMember or CD_HealthMatch. Deploying three would leave TestFlight unable to save the other two.
+/// This is Apple's documented way (NSPersistentCloudKitContainer.initializeCloudKitSchema) for SwiftData.
+private func initializeCloudKitSchema(at url: URL) {
+    let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+    let doneKey = "cloudKitSchemaInitializedBuild"
+    guard UserDefaults.standard.string(forKey: doneKey) != build,
+          let model = NSManagedObjectModel.makeManagedObjectModel(for: [Challenge.self, ExerciseGoal.self, RepEntry.self,
+                                                                         CrewMember.self, HealthMatch.self]) else { return }
+    autoreleasepool {
+        let description = NSPersistentStoreDescription(url: url)
+        description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(containerIdentifier: "iCloud.com.accountability.dailyrepcrew")
+        description.shouldAddStoreAsynchronously = false
+        let container = NSPersistentCloudKitContainer(name: "RepCrew", managedObjectModel: model)
+        container.persistentStoreDescriptions = [description]
+        var loaded = true
+        container.loadPersistentStores { _, error in if error != nil { loaded = false } }
+        guard loaded else { return }
+        do {
+            try container.initializeCloudKitSchema()
+            UserDefaults.standard.set(build, forKey: doneKey)
+        } catch {
+            print("CloudKit schema not initialized: \(error)")
+        }
+        if let store = container.persistentStoreCoordinator.persistentStores.first {
+            try? container.persistentStoreCoordinator.remove(store)
+        }
+    }
+}
+#endif
 
 /// Text sizes. 18 pt is the floor for every piece of text in the app.
 enum AppFont {
