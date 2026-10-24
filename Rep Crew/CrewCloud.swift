@@ -225,6 +225,19 @@ final class CrewCloud {
         pending.removeAll { $0.challenge?.crewID == crewID }
     }
 
+    /// Public challenges that have ended, newest first, for Start Again on Home.
+    func pastChallenges() async -> [CrewListing] {
+        await connect()
+        guard myID != nil else { return [] }
+        let query = CKQuery(recordType: "CrewChallenge", predicate: NSPredicate(format: "endsAt <= %@", Date.now as NSDate))
+        query.sortDescriptors = [NSSortDescriptor(key: "endsAt", ascending: false)]
+        guard let (results, _) = try? await db.records(matching: query, resultsLimit: 30) else { return [] }
+        return results.compactMap { try? $0.1.get() }.compactMap { record in
+            guard record["isPublic"] as? Int != 0, let invite = Self.invite(from: record), let info = invite.challenge else { return nil }
+            return CrewListing(info: info, leaderID: invite.fromID ?? "", leaderName: invite.from)
+        }
+    }
+
     /// Also read by CrewRestore.swift.
     static func invite(from record: CKRecord) -> Invite? {
         guard let title = record["title"] as? String,

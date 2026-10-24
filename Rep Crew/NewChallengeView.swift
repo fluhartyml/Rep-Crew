@@ -33,11 +33,18 @@ struct NewChallengeView: View {
     private let onCreate: ((ExerciseGoal) -> Void)?
 
     /// `workout`: a Health workout's name, from Match Health Workouts, filled in as the challenge and its exercise.
-    init(fromHealth workout: String? = nil, onCreate: ((ExerciseGoal) -> Void)? = nil) {
+    /// `again`: a past challenge to run again (his word 2026-10-24, "maybe someone wants to revive a past
+    /// challenge"). Same title, days and goals; starts today; a new challenge with you as the leader.
+    init(fromHealth workout: String? = nil, again: Invite.ChallengeInfo? = nil, onCreate: ((ExerciseGoal) -> Void)? = nil) {
         self.onCreate = onCreate
         if let workout {
             _title = State(initialValue: "\(workout) Challenge")
             _drafts = State(initialValue: [Draft(name: workout, target: 1)])
+        }
+        if let again {
+            _title = State(initialValue: again.title)
+            _days = State(initialValue: again.days)
+            _drafts = State(initialValue: again.goals.map { Draft(name: $0.name, target: $0.target) })
         }
     }
 

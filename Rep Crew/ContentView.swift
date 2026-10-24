@@ -21,6 +21,9 @@ struct ContentView: View {
     @AppStorage(CrewSettings.crewNumber) private var crewNumber = 0
     @AppStorage(CrewSettings.crewName) private var crewName = ""
     @State private var listings: [CrewListing] = []
+    @State private var past: [CrewListing] = []
+    /// A past challenge to run again (NewChallengeView(again:)).
+    @State private var again: Invite.ChallengeInfo?
     private var cloud = CrewCloud.shared
 
     @State private var showingNew = false
@@ -46,6 +49,7 @@ struct ContentView: View {
                         section("Your challenges", active + upcoming.reversed())
                         crewChallenges
                         section("Finished", finished)
+                        pastChallenges
                     }
                     .refreshable { await syncCrew() }
                 }
@@ -103,6 +107,7 @@ struct ContentView: View {
                 }
             }
             .sheet(isPresented: $showingNew) { NewChallengeView() }
+            .sheet(item: Binding(get: { again.map(AgainItem.init) }, set: { again = $0?.info })) { NewChallengeView(again: $0.info) }
             .sheet(isPresented: $showingAbout) { AboutView() }
             .sheet(isPresented: $showingSettings) { SettingsView() }
             .sheet(item: $joining) { JoinView(invite: $0) }
@@ -122,6 +127,13 @@ struct ContentView: View {
             Section {
                 ForEach(items) { challenge in
                     NavigationLink(value: challenge) { ChallengeRow(challenge: challenge) }
+                    // Its own row: two buttons in one List row both fire on a tap (PhotoBoard REM).
+                    if challenge.isFinished && cloud.can(.start) {
+                        Button { again = Invite.ChallengeInfo(challenge) } label: {
+                            Label("Start Again", systemImage: "arrow.counterclockwise").font(AppFont.body)
+                        }
+                        .deleteDisabled(true)   // a swipe here must not delete the challenge above it
+                    }
                 }
                 .onDelete { offsets in
                     // REM: a challenge you delete stays deleted: without this, CrewRestore would rebuild
@@ -160,6 +172,26 @@ struct ContentView: View {
     private var others: [CrewListing] {
         let mine = Set(challenges.map(\.crewID)).union(cloud.pending.compactMap { $0.challenge?.crewID })
         return listings.filter { !mine.contains($0.id) }.sorted { $0.info.startDay > $1.info.startDay }
+    }
+
+    /// Everyone's ended public challenges, plus Start Again on your own finished ones (in `section`).
+    @ViewBuilder
+    private var pastChallenges: some View {
+        if !past.isEmpty && cloud.can(.start) {
+            Section {
+                ForEach(past) { listing in
+                    Button { again = listing.info } label: {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(listing.info.title).font(AppFont.bodyBold).foregroundStyle(.primary)
+                            Text("\(listing.leaderName) · \(listing.info.days) days · Start Again").font(AppFont.body).foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            } header: {
+                Text("Past challenges").font(AppFont.bodyBold).textCase(nil)
+            }
+        }
     }
 
     @ViewBuilder
@@ -202,6 +234,7 @@ struct ContentView: View {
         await cloud.refreshPending(skipping: skip)
         await CrewNotifications.requestPermission()
         listings = await cloud.crewChallenges()
+        past = await cloud.pastChallenges()
         // Each respects its Settings → Notifications switch, so one turned off isn't re-created here.
         await cloud.subscribe(crewIDs: challenges.map(\.crewID).filter { !$0.isEmpty }, listedCrewIDs: listings.map(\.id))
         await cloud.subscribeToJoinRequests()
@@ -267,4 +300,10 @@ struct ChallengeRow: View {
 
 #Preview {
     ContentView(openedURL: .constant(nil)).modelContainer(for: [Challenge.self, ExerciseGoal.self, RepEntry.self, CrewMember.self], inMemory: true)
+}
+
+/// Wraps a past challenge for `.sheet(item:)`.
+private struct AgainItem: Identifiable {
+    let info: Invite.ChallengeInfo
+    var id: String { info.crewID + info.title }
 }
