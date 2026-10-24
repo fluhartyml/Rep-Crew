@@ -7,7 +7,9 @@
 //  kick or ban it has weight" · "were not the apple id police we are making our honest best
 //  effort to protect our crew members."
 //
-//  Only the name is requested, never the email. The Apple user ID is kept on this phone; on
+//  The name and email are requested. The email goes only to coaches, in the new member's
+//  application (Application.swift, his asks 2026-10-24; was name only).
+//   The Apple user ID is kept on this phone; on
 //  every launch the app asks Apple whether that sign-in still stands, and if it was revoked
 //  the sign-in screen comes back.
 //
@@ -25,6 +27,7 @@ extension CrewSettings {
 struct RootView: View {
     @AppStorage(CrewSettings.appleUser) private var appleUser = ""
     @AppStorage(CrewSettings.name) private var name = ""
+    @AppStorage(CrewSettings.applicationDone) private var applicationDone = false
     @State private var openedURL: URL?
 
     var body: some View {
@@ -35,6 +38,8 @@ struct RootView: View {
                 // REM: shakedown bug 3 (2026-10-23), "it says anonymous". Apple gives the name only on the
                 // very first sign-in, so a reinstall left it empty and the crew saw "A crew member".
                 NameView()
+            } else if !applicationDone {
+                ApplicationView()
             } else {
                 ContentView(openedURL: $openedURL)
             }
@@ -61,11 +66,11 @@ struct SignInView: View {
                 .font(.system(size: 64))
                 .foregroundStyle(.tint)
             Text("Rep Crew").font(AppFont.title)
-            Text("Sign in with Apple to join the crew. It keeps every crew member a real person. Rep Crew asks Apple only for your name.")
+            Text("Sign in with Apple to join the crew. It keeps every crew member a real person. Rep Crew asks Apple for your name and email. Your email goes only to the head coach.")
                 .font(AppFont.body)
                 .multilineTextAlignment(.center)
             SignInWithAppleButton(.signIn) { request in
-                request.requestedScopes = [.fullName]
+                request.requestedScopes = [.fullName, .email]
             } onCompletion: { result in
                 switch result {
                 case .success(let authorization):
@@ -74,6 +79,8 @@ struct SignInView: View {
                     if name.trimmingCharacters(in: .whitespaces).isEmpty, let given = credential.fullName?.givenName {
                         name = given
                     }
+                    // Apple gives the email only the first time too; it's offered on the application.
+                    if let email = credential.email { UserDefaults.standard.set(email, forKey: CrewSettings.appleEmail) }
                     appleUser = credential.user
                 case .failure(let error):
                     failed = (error as? ASAuthorizationError)?.code != .canceled

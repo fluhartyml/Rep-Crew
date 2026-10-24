@@ -79,7 +79,8 @@ enum ContactSeal {
     }
 
     /// One envelope per reader (iCloud ID → public key).
-    static func seal(_ contact: PrivateContact, to readers: [String: Data]) -> Data? {
+    /// Any private answers, sealed the same way (a new member's application, Application.swift).
+    static func seal<T: Encodable>(_ contact: T, to readers: [String: Data]) -> Data? {
         guard let plain = try? JSONEncoder().encode(contact) else { return nil }
         var envelopes: [Envelope] = []
         for (id, publicKey) in readers {
@@ -94,13 +95,17 @@ enum ContactSeal {
 
     /// The private fields, when one of the envelopes is for this phone.
     static func open(_ sealed: Data, for id: String, key: Curve25519.KeyAgreement.PrivateKey) -> PrivateContact? {
+        open(PrivateContact.self, sealed, for: id, key: key)
+    }
+
+    static func open<T: Decodable>(_ type: T.Type, _ sealed: Data, for id: String, key: Curve25519.KeyAgreement.PrivateKey) -> T? {
         guard let envelopes = try? JSONDecoder().decode([Envelope].self, from: sealed),
               let mine = envelopes.first(where: { $0.to == id }),
               let ephemeral = try? Curve25519.KeyAgreement.PublicKey(rawRepresentation: mine.eph),
               let secret = try? key.sharedSecretFromKeyAgreement(with: ephemeral),
               let box = try? ChaChaPoly.SealedBox(combined: mine.box),
               let plain = try? ChaChaPoly.open(box, using: symmetricKey(secret, for: id)) else { return nil }
-        return try? JSONDecoder().decode(PrivateContact.self, from: plain)
+        return try? JSONDecoder().decode(T.self, from: plain)
     }
 }
 

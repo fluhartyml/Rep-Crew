@@ -29,6 +29,8 @@ enum NotificationSettings {
     static let invites = "invites"
     static let joinRequests = "join-requests"
     static let allCrews = "all-crews"
+    /// Coaches: a new member sent their application (Application.swift).
+    static let newMembers = "new-members"
 
     static func isOn(_ subscriptionID: String) -> Bool { !ids(offKey).contains(subscriptionID) }
     static var coachCrewIDs: Set<String> { ids(coachKey) }
@@ -80,6 +82,9 @@ struct NotificationSettingsView: View {
                 Toggle(isOn: offBinding(NotificationSettings.allCrews)) { Text("Coach announcements").font(AppFont.body) }
                 if leadsOne {
                     Toggle(isOn: offBinding(NotificationSettings.joinRequests)) { Text("Join requests").font(AppFont.body) }
+                }
+                if GodMode.isOn {
+                    Toggle(isOn: offBinding(NotificationSettings.newMembers)) { Text("New crew members").font(AppFont.body) }
                 }
             } header: {
                 header("General")

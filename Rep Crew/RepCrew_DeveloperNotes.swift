@@ -404,6 +404,28 @@
 //  off". Internal testers install right after processing; external waits on Apple review.
 
 // ============================================================================
+// MARK: - NEW MEMBER APPLICATION + WELCOME LETTER (his, 2026-10-24 ~08:4x)
+// ============================================================================
+//
+//  His words: "it used to be a form email written by the sysop when the sysop created the bbs and
+//  there was also a new user email the new user had to write to the sysop" · "maybe the new user
+//  application is integrated with their new profile? … some just goes to the head coach" · "not a
+//  gate at least not for me" · "yea". 🟡 BUILT (Application.swift), not run on any device:
+//  • Sign in with Apple now asks for name + email. After the name, a one-time "Welcome to the Crew"
+//    screen: email (Apple's, editable), why joining, fitness goals, onboarding ideas — coaches only,
+//    sealed — plus the same profile section as Settings. Send or Not Now; no gate. Existing members
+//    see it once too.
+//  • Coaches: notification "<name> joined the crew" (Settings → Notifications → New crew members);
+//    tapping it opens Coach Mode → New Crew Members. Each application → Send Welcome Letter opens Mail
+//    with the letter (Welcome Letter, editable, starter text included), from his own address.
+//  ⚠️ Schema: new CrewApplication type in CloudKit-Schema.ckdb — import to Development, deploy to Production.
+//  ⚠️ Answers wait on the phone until a coach key is loaded. Production may give him a different ID
+//    than GodMode.ids (unverified); if Coach Mode is missing on TestFlight, nothing reaches him there.
+//  ⬜ FUTURE (his idea, not built): every head coach runs their own board, like starting a BBS
+//    ("wildcat or renegade"), with their own switch to require approval of new members.
+//
+
+// ============================================================================
 // MARK: - CHALLENGES LIVE IN ICLOUD (his, 2026-10-24 ~07:3x)
 // ============================================================================
 //

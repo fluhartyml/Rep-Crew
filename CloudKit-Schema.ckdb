@@ -44,6 +44,21 @@ DEFINE SCHEMA
         GRANT READ TO "_world"
     );
 
+    RECORD TYPE CrewApplication (
+        "___createTime" TIMESTAMP QUERYABLE SORTABLE,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        memberID        STRING QUERYABLE SEARCHABLE SORTABLE,
+        name            STRING QUERYABLE SEARCHABLE SORTABLE,
+        sealed          BYTES,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
     RECORD TYPE CrewChallenge (
         "___createTime" TIMESTAMP,
         "___createdBy"  REFERENCE,

@@ -55,6 +55,12 @@ struct ContentView: View {
                 if scenePhase == .active, challenges.contains(where: \.countsHealth) { await HealthLibrary.shared.refresh() }
             }
             .task(id: watchSignature) { WatchBridge.shared.sendGoals(challenges) }
+            // A coach tapped a "joined the crew" notification (CrewNotifications).
+            .onChange(of: cloud.openNewMembers, initial: true) { _, open in
+                guard open else { return }
+                cloud.openNewMembers = false
+                path.append(CrewScreen.newMembers)
+            }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { Task { await syncCrew() } }
             }
@@ -65,6 +71,7 @@ struct ContentView: View {
                 switch screen {
                 case .leaderboards: LeaderboardsView()
                 case .directory: CrewDirectoryView()
+                case .newMembers: ApplicationsView()
                 }
             }
             .toolbar {
@@ -197,9 +204,12 @@ struct ContentView: View {
         await cloud.subscribe(crewIDs: challenges.map(\.crewID).filter { !$0.isEmpty }, listedCrewIDs: listings.map(\.id))
         await cloud.subscribeToJoinRequests()
         await cloud.subscribeToInvites()
+        await cloud.subscribeToNewMembers()
         // A coach's key goes up; everyone re-seals Coaches-only fields if the coaches changed.
         await cloud.publishCoachKey()
         await MyProfile.saveIfChanged()
+        // After the coach keys load (publishCoachKey above), so the answers can be sealed to them.
+        await cloud.sendWaitingApplication()
     }
 
     private var emptyState: some View {

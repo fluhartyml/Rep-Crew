@@ -265,6 +265,11 @@ final class CrewNotifications: NSObject, UIApplicationDelegate, UNUserNotificati
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+        let userInfo = response.notification.request.content.userInfo
+        if CKNotification(fromRemoteNotificationDictionary: userInfo)?.subscriptionID == NotificationSettings.newMembers {
+            await MainActor.run { CrewCloud.shared.openNewMembers = true }
+            return
+        }
         guard let typed = response as? UNTextInputNotificationResponse,
               case let text = typed.userText.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty,
               let note = CKQueryNotification(fromRemoteNotificationDictionary: response.notification.request.content.userInfo),

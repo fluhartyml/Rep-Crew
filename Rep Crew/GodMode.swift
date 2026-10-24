@@ -131,6 +131,11 @@ struct GodModeSection: View {
                 } label: {
                     Label("Reports", systemImage: "bolt.shield.fill").font(AppFont.bodyBold)
                 }
+                NavigationLink {
+                    ApplicationsView()
+                } label: {
+                    Label("New Crew Members", systemImage: "person.crop.circle.badge.plus").font(AppFont.bodyBold)
+                }
                 AllCrewsAnnouncementButton()
                 if GodMode.isOwner {
                     NavigationLink {

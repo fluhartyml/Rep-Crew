@@ -38,6 +38,8 @@ final class CrewCloud {
     var coaches: [String: String] = [:]
     /// Coaches' public keys for Coaches-only contact info (ContactSeal.swift). Loaded on connect.
     var coachKeys: [String: Data] = [:]
+    /// Set when a coach taps a "joined the crew" notification; Home opens New Crew Members.
+    var openNewMembers = false
 
     func connect() async {
         if myID != nil { return }
