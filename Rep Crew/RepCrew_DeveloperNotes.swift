@@ -228,7 +228,7 @@
 //  Crew Directory (CrewDirectory.swift). His words, 2026-10-23: thumbnails, preferred contact on the
 //  list, tap the name for the profile, Save to Contacts with the photo.
 //  🟡 BUILT 2026-10-23 (build 61), not tested. People icon on Home. Everyone in your challenges (leader
-//  + Membership, minus banned and blocked, minus you). New: Profile.preferred (STRING) — Settings →
+//  + Membership, minus banned and blocked, minus you). New: Profile.contactPreference (STRING) — Settings →
 //  Your profile → Preferred contact; the profile shows "Prefers …" and a Text button. Save to Contacts
 //  already carried the photo.
 //
@@ -238,7 +238,7 @@
 //  Phone, email and FaceTime each get a Coaches only switch. A private field goes up blank and lives in
 //  Profile.sealed, encrypted per coach + the owner (Curve25519 → HKDF → ChaChaPoly). Each phone's key
 //  sits in iCloud Keychain; a coach's phone publishes CoachKey (coachkey.<ID>) on launch. Members re-seal
-//  when the coach keys change. ⚠️ Schema: CoachKey, Profile.preferred, Profile.sealed are in
+//  when the coach keys change. ⚠️ Schema: CoachKey, Profile.contactPreference, Profile.sealed are in
 //  CloudKit-Schema.ckdb — import and deploy to Production BEFORE uploading build 61+, or profile saves fail.
 //
 //  ⚠️ The local store (challenges, reps) must stay OFF iCloud:

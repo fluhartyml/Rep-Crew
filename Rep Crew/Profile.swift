@@ -200,7 +200,7 @@ extension CrewCloud {
         record["email"] = profile.email
         record["facetime"] = profile.facetime
         record["photoID"] = profile.photoID
-        record["preferred"] = profile.preferred
+        record["contactPreference"] = profile.preferred
         record["sealed"] = sealed
         record["photo"] = photoFile.map { CKAsset(fileURL: $0) }
         record["updatedAt"] = Date.now
@@ -236,7 +236,7 @@ extension CrewCloud {
         profile.email = record["email"] as? String ?? ""
         profile.facetime = record["facetime"] as? String ?? ""
         profile.photoID = record["photoID"] as? String ?? ""
-        profile.preferred = record["preferred"] as? String ?? ""
+        profile.preferred = record["contactPreference"] as? String ?? ""
         // Coaches only: opens when one of the envelopes is for this phone. A plain field that's
         // filled in wins, so an old seal can't bring back a number they've since made public.
         if let sealed = record["sealed"] as? Data, let myID, let key = ContactKey.mine(create: false),
