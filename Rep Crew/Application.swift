@@ -55,8 +55,13 @@ struct ApplicationView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Text("Welcome to the Crew")
+                    .font(AppFont.title)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 24, leading: 4, bottom: 0, trailing: 4))
                 Section {
-                    Text("Welcome to the crew! Tell the head coach a little about yourself. Only coaches see this section.")
+                    Text("Tell the head coach a little about yourself. Only coaches see this section.")
                         .font(AppFont.body)
                     field("Your email", text: $answers.email, keyboard: .emailAddress)
                     field("Why are you joining Rep Crew?", text: $answers.why)
@@ -78,8 +83,9 @@ struct ApplicationView: View {
                     }
                 }
             }
-            // REM: "Welcome to the Crew" was cut off as a large title on his 11 (build 72); short title, full line inside.
-            .navigationTitle("Welcome")
+            // REM: his word 2026-10-24, "welcome to the... should take two lines if needed". A navigation
+            // title can't wrap, so the title is the form's first line and wraps like any text.
+            .toolbar(.hidden, for: .navigationBar)
             .onAppear { if answers.email.isEmpty { answers.email = appleEmail } }
             // REM: the profile came back from iCloud only when Settings opened, so on his reinstalled 16e
             // this screen showed "No photo" while his 11 showed it (build 72). Fetch it here first.
