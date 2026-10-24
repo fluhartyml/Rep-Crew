@@ -215,6 +215,23 @@
 //  challenge's one switch. ⚠️ Build 48 and older: an unknown kind reads as .message, so a one-way
 //  announcement shows as a plain message (sender name, no 📣) and its notification still offers
 //  Reply / Reply All, until that phone runs this build and re-saves crew-<crewID>.
+//  God mode announcements, two separate cases (his words, 2026-10-23: "yes, god mode can announce" ·
+//  "god mode where it goes to all crew" · "both are two separate cases of need").
+//  🟡 BUILT 2026-10-23 (builds 59–60), not tested. (1) One challenge: a coach gets Send an
+//  Announcement in any challenge's messages, same as its leader. (2) All crews: Settings → Coach Mode
+//  → Announce to All Crews sends kind announcementOneWay with crewID "all-crews". Every phone keeps an
+//  all-crews subscription (senderID IN him + coaches, category CREW_ANNOUNCEMENT), switch "Coach
+//  announcements" in Settings → Notifications, on by default; it shows in every challenge's messages,
+//  only when CloudKit's creator is a coach or him. Always one way: no Reply All to every phone.
+//  ⚠️ Phones get it only after running build 60+ once (that saves the subscription).
+//
+//  Crew Directory (CrewDirectory.swift). His words, 2026-10-23: thumbnails, preferred contact on the
+//  list, tap the name for the profile, Save to Contacts with the photo.
+//  🟡 BUILT 2026-10-23 (build 61), not tested. People icon on Home. Everyone in your challenges (leader
+//  + Membership, minus banned and blocked, minus you). New: Profile.preferred (STRING) — Settings →
+//  Your profile → Preferred contact; the profile shows "Prefers …" and a Text button. Save to Contacts
+//  already carried the photo. ⚠️ Profile.preferred needs a Production schema deploy after first use
+//  in Development; until then the field is left off the record unless someone picks one.
 //
 //  ⚠️ The local store (challenges, reps) must stay OFF iCloud:
 //  ModelConfiguration(cloudKitDatabase: .none). Without it, the iCloud entitlement

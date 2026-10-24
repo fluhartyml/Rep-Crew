@@ -36,6 +36,8 @@ struct CrewProfile {
     var email = ""
     var facetime = ""
     var photoID = ""
+    /// A ContactMethod raw value, or "" for no preference (CrewDirectory.swift).
+    var preferred = ""
     /// Nil when there's none, or it was removed, reported, or caught by the filter.
     var photo: UIImage?
 }
@@ -44,6 +46,8 @@ extension CrewSettings {
     static let profilePhone = "profilePhone"
     static let profileEmail = "profileEmail"
     static let profileFaceTime = "profileFaceTime"
+    /// A ContactMethod raw value; empty for no preference.
+    static let profilePreferred = "profilePreferred"
     /// "profile.<your ID>.<UUID>" for the photo on this phone; empty for none.
     static let profilePhotoID = "profilePhotoID"
     /// What iCloud last got, so an unchanged profile isn't saved again.
@@ -69,7 +73,7 @@ enum MyProfile {
 
     static var signature: String {
         [CrewSettings.name, CrewSettings.profilePhone, CrewSettings.profileEmail,
-         CrewSettings.profileFaceTime, CrewSettings.profilePhotoID].map(value).joined(separator: "\u{1F}")
+         CrewSettings.profileFaceTime, CrewSettings.profilePhotoID, CrewSettings.profilePreferred].map(value).joined(separator: "\u{1F}")
     }
 
     /// Runs the photo through the same filter as the photo board, then keeps a small copy.
@@ -106,6 +110,7 @@ enum MyProfile {
         profile.email = value(CrewSettings.profileEmail)
         profile.facetime = value(CrewSettings.profileFaceTime)
         profile.photoID = value(CrewSettings.profilePhotoID)
+        profile.preferred = value(CrewSettings.profilePreferred)
         if await CrewCloud.shared.saveProfile(profile, photoFile: profile.photoID.isEmpty ? nil : photoFile) {
             defaults.set(now, forKey: CrewSettings.profileSaved)
         }
@@ -124,7 +129,8 @@ enum MyProfile {
             break
         case .found(let saved):
             for (key, cloud) in [(CrewSettings.profilePhone, saved.phone), (CrewSettings.profileEmail, saved.email),
-                                 (CrewSettings.profileFaceTime, saved.facetime)] where value(key).isEmpty {
+                                 (CrewSettings.profileFaceTime, saved.facetime),
+                                 (CrewSettings.profilePreferred, saved.preferred)] where value(key).isEmpty {
                 defaults.set(cloud, forKey: key)
             }
             if value(CrewSettings.profilePhotoID).isEmpty, let photo = saved.photo,
@@ -134,7 +140,7 @@ enum MyProfile {
                     defaults.set(saved.photoID, forKey: CrewSettings.profilePhotoID)
                 }
             }
-            defaults.set([saved.name, saved.phone, saved.email, saved.facetime, saved.photoID]
+            defaults.set([saved.name, saved.phone, saved.email, saved.facetime, saved.photoID, saved.preferred]
                 .joined(separator: "\u{1F}"), forKey: CrewSettings.profileSaved)
         }
         defaults.set(true, forKey: CrewSettings.profileRestored)
@@ -163,6 +169,9 @@ extension CrewCloud {
         record["email"] = profile.email
         record["facetime"] = profile.facetime
         record["photoID"] = profile.photoID
+        // REM: a new field — left off until someone picks one, so profiles still save before
+        // Profile.preferred is deployed to Production.
+        if !profile.preferred.isEmpty { record["preferred"] = profile.preferred }
         record["photo"] = photoFile.map { CKAsset(fileURL: $0) }
         record["updatedAt"] = Date.now
         do {
@@ -197,6 +206,7 @@ extension CrewCloud {
         profile.email = record["email"] as? String ?? ""
         profile.facetime = record["facetime"] as? String ?? ""
         profile.photoID = record["photoID"] as? String ?? ""
+        profile.preferred = record["preferred"] as? String ?? ""
         if !profile.photoID.isEmpty, !Blocklist.hiddenPhotos.contains(profile.photoID),
            await !profilePhotoRemoved(profile.photoID),
            let url = (record["photo"] as? CKAsset)?.fileURL,
@@ -233,6 +243,7 @@ struct MyProfileSection: View {
     @AppStorage(CrewSettings.profileEmail) private var email = ""
     @AppStorage(CrewSettings.profileFaceTime) private var facetime = ""
     @AppStorage(CrewSettings.profilePhotoID) private var photoID = ""
+    @AppStorage(CrewSettings.profilePreferred) private var preferred = ""
     @State private var picked: PhotosPickerItem?
     @State private var note: String?
 
@@ -279,12 +290,19 @@ struct MyProfileSection: View {
                 .keyboardType(.emailAddress)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+            // His word, 2026-10-23: the directory "displays prefered contact method".
+            Picker(selection: $preferred) {
+                Text("No preference").font(AppFont.body).tag("")
+                ForEach(ContactMethod.allCases) { Text($0.title).font(AppFont.body).tag($0.rawValue) }
+            } label: {
+                Text("Preferred contact").font(AppFont.body)
+            }
         } header: {
             Text("Your profile").font(AppFont.bodyBold).textCase(nil)
         } footer: {
             // REM: his word: "they have to manually add their contact info that way they can omit or
             // use alternate contact info". Sign in with Apple gives a name only.
-            Text("Everything here is optional. Your crew sees your photo and a button for each way you fill in. Leave any blank to keep it private.")
+            Text("Everything here is optional. Your crew sees your photo and a button for each way you fill in. Leave any blank to keep it private. Your preferred contact shows next to your name in the Crew Directory.")
                 .font(AppFont.body)
         }
         .onChange(of: picked) { _, item in
@@ -370,6 +388,10 @@ struct ProfileView: View {
                     VStack(spacing: 12) {
                         ProfilePhoto(image: profile?.photo, size: 140)
                         Text(name).font(AppFont.title).multilineTextAlignment(.center)
+                        if let profile, let method = ContactMethod.preferred(profile) {
+                            Label("Prefers \(method.title)", systemImage: method.systemImage)
+                                .font(AppFont.body).foregroundStyle(.secondary)
+                        }
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
@@ -448,6 +470,9 @@ struct ProfileView: View {
         if let profile {
             if let url = Self.url("tel:", Self.dialable(profile.phone)) {
                 Link(destination: url) { Label("Call", systemImage: "phone.fill").font(AppFont.bodyBold) }
+            }
+            if let url = Self.url("sms:", Self.dialable(profile.phone)) {
+                Link(destination: url) { Label("Text", systemImage: "message.fill").font(AppFont.bodyBold) }
             }
             if let url = Self.url("mailto:", profile.email.trimmingCharacters(in: .whitespaces)) {
                 Link(destination: url) { Label("Email", systemImage: "envelope.fill").font(AppFont.bodyBold) }

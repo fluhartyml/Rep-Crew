@@ -61,7 +61,12 @@ struct ContentView: View {
             .navigationTitle("Rep Crew")
             .navigationDestination(for: Challenge.self) { ChallengeDetailView(challenge: $0) }
             .navigationDestination(for: CrewListing.self) { CrewChallengeView(listing: $0) }
-            .navigationDestination(for: CrewScreen.self) { _ in LeaderboardsView() }
+            .navigationDestination(for: CrewScreen.self) { screen in
+                switch screen {
+                case .leaderboards: LeaderboardsView()
+                case .directory: CrewDirectoryView()
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { showingAbout = true } label: {
@@ -74,6 +79,12 @@ struct ContentView: View {
                         Image(systemName: "gearshape").font(AppFont.heading)
                     }
                     .accessibilityLabel("Settings")
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { path.append(CrewScreen.directory) } label: {
+                        Image(systemName: "person.3.fill").font(AppFont.heading)
+                    }
+                    .accessibilityLabel("Crew Directory")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { path.append(CrewScreen.leaderboards) } label: {
