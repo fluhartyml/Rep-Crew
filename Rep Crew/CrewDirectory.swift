@@ -124,7 +124,9 @@ struct ChallengeSeal: View {
 
     var body: some View {
         if count > 0 {
-            Label("\(count)", systemImage: "checkmark.seal.fill")
+            // REM: "×7" = one seal times seven, his word 2026-10-24: "^7 means one seal times the exponent
+            // number" · "yes switch it to x7". A superscript would drop below the 18 pt floor.
+            Label("×\(count)", systemImage: "checkmark.seal.fill")
                 .font(AppFont.bodyBold)
                 .foregroundStyle(Self.color(count))
                 .accessibilityLabel(count == 1 ? "1 challenge finished" : "\(count) challenges finished")
