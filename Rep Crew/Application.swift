@@ -56,7 +56,7 @@ struct ApplicationView: View {
         NavigationStack {
             Form {
                 Section {
-                    Text("Tell the head coach a little about yourself. Only coaches see this section.")
+                    Text("Welcome to the crew! Tell the head coach a little about yourself. Only coaches see this section.")
                         .font(AppFont.body)
                     field("Your email", text: $answers.email, keyboard: .emailAddress)
                     field("Why are you joining Rep Crew?", text: $answers.why)
@@ -78,7 +78,8 @@ struct ApplicationView: View {
                     }
                 }
             }
-            .navigationTitle("Welcome to the Crew")
+            // REM: "Welcome to the Crew" was cut off as a large title on his 11 (build 72); short title, full line inside.
+            .navigationTitle("Welcome")
             .onAppear { if answers.email.isEmpty { answers.email = appleEmail } }
         }
     }
@@ -86,7 +87,8 @@ struct ApplicationView: View {
     private func field(_ title: String, text: Binding<String>, keyboard: UIKeyboardType = .default) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title).font(AppFont.bodyBold)
-            TextField(title, text: text, axis: .vertical)
+            // The question is the label above, so the box doesn't repeat it (seen doubled on his 11, build 72).
+            TextField(keyboard == .emailAddress ? "name@example.com" : "Type here", text: text, axis: .vertical)
                 .font(AppFont.body)
                 .keyboardType(keyboard)
                 .textInputAutocapitalization(keyboard == .emailAddress ? .never : .sentences)
