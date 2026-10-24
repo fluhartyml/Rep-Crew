@@ -60,7 +60,9 @@ enum ContactMethod: String, CaseIterable, Identifiable {
 // MARK: - iCloud
 
 extension CrewCloud {
-    /// Everyone in these challenges but you, once each, by name.
+    /// Everyone in these challenges but you, once each, by name — after him.
+    /// His word, 2026-10-23: "I should be user number one 'head coach'". He heads every directory,
+    /// his own included, whether or not he's in your challenges.
     func directory(crewIDs: [String]) async -> [ProfileTarget] {
         await connect()
         guard let myID else { return [] }
@@ -83,8 +85,10 @@ extension CrewCloud {
             let hide = await hidden(crewID: crewID, leaderID: leaderID)
             for (id, name) in found where id != myID && !hide.contains(id) { people[id] = people[id] ?? name }
         }
-        return people.map { ProfileTarget(id: $0.key, name: $0.value) }
+        let heads = GodMode.ids.filter { !Blocklist.ids.contains($0) }
+        let others = people.filter { !heads.contains($0.key) }.map { ProfileTarget(id: $0.key, name: $0.value) }
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        return heads.sorted().map { ProfileTarget(id: $0, name: people[$0] ?? "Head Coach") } + others
     }
 }
 
@@ -129,6 +133,10 @@ struct CrewDirectoryView: View {
             ProfilePhoto(image: profile?.photo, size: 56)
             VStack(alignment: .leading, spacing: 2) {
                 Text(saved.isEmpty ? person.name : saved).font(AppFont.bodyBold)
+                if GodMode.ids.contains(person.id) {
+                    Label(person.id == CrewCloud.shared.myID ? "You · Head Coach" : "Head Coach", systemImage: "star.fill")
+                        .font(AppFont.body).foregroundStyle(.tint)
+                }
                 if let profile, let method = ContactMethod.preferred(profile) {
                     Label("\(method.title): \(method.value(in: profile))", systemImage: method.systemImage)
                         .font(AppFont.body).foregroundStyle(.secondary).lineLimit(1)
