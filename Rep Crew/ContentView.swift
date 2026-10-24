@@ -81,12 +81,6 @@ struct ContentView: View {
                     .accessibilityLabel("Settings")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { path.append(CrewScreen.directory) } label: {
-                        Image(systemName: "person.3.fill").font(AppFont.heading)
-                    }
-                    .accessibilityLabel("Crew Directory")
-                }
-                ToolbarItem(placement: .topBarTrailing) {
                     Button { path.append(CrewScreen.leaderboards) } label: {
                         Image(systemName: "chart.bar.fill").font(AppFont.heading)
                     }

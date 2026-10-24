@@ -396,6 +396,13 @@ struct LeaderboardsView: View {
 
     var body: some View {
         List {
+            // REM: his word, 2026-10-23: "yes do it". A fifth Home button pushed Leaderboards and + into
+            // an overflow menu that wouldn't open on the 11 Pro (build 64), so the directory lives here.
+            Section {
+                NavigationLink(value: CrewScreen.directory) {
+                    Label("Crew Directory", systemImage: "person.3.fill").font(AppFont.bodyBold)
+                }
+            }
             Section {
                 if mine.isEmpty {
                     Text("You're not in a challenge running today.").font(AppFont.body)
