@@ -103,12 +103,63 @@ extension CrewCloud {
     }
 }
 
+// MARK: - Finished-challenge seal
+
+/// One seal under a name, with how many challenges they finished. His words, 2026-10-24: "a gold
+/// checkmark seal for every challenge completed. should there be a color code to them" · "yeah silver
+/// bronze gold sounds olympic like". REM: one seal plus a number, not one seal per challenge (a row of
+/// twenty won't fit under a name), and bronze/silver/gold instead of blue so it doesn't read as X's
+/// "verified" check — both Claude's suggestions, his "yeah".
+struct ChallengeSeal: View {
+    let count: Int
+
+    /// Bronze 1–4, silver 5–9, gold 10 and up.
+    static func color(_ count: Int) -> Color {
+        switch count {
+        case 10...: return Color(red: 0.85, green: 0.68, blue: 0.21)
+        case 5...: return Color(red: 0.75, green: 0.76, blue: 0.79)
+        default: return Color(red: 0.80, green: 0.50, blue: 0.24)
+        }
+    }
+
+    var body: some View {
+        if count > 0 {
+            Label("\(count)", systemImage: "checkmark.seal.fill")
+                .font(AppFont.bodyBold)
+                .foregroundStyle(Self.color(count))
+                .accessibilityLabel(count == 1 ? "1 challenge finished" : "\(count) challenges finished")
+        }
+    }
+}
+
+extension CrewCloud {
+    /// How many challenges someone finished: every day of the challenge marked complete in their own
+    /// Progress records (only records they wrote count), checked against the challenge's length.
+    func finishedChallenges(_ id: String) async -> Int {
+        await connect()
+        let query = CKQuery(recordType: "Progress", predicate: NSPredicate(format: "memberID == %@ AND complete == 1", id))
+        guard let (results, _) = try? await db.records(matching: query, resultsLimit: 400) else { return 0 }
+        var days: [String: Set<Int>] = [:]
+        for record in results.compactMap({ try? $0.1.get() }) where writer(of: record) == id {
+            guard let crewID = record["crewID"] as? String, let day = record["dayNumber"] as? Int else { continue }
+            days[crewID, default: []].insert(day)
+        }
+        guard !days.isEmpty,
+              let found = try? await db.records(for: days.keys.map { CKRecord.ID(recordName: $0) }) else { return 0 }
+        return found.filter { recordID, result in
+            guard let length = (try? result.get())?["days"] as? Int, length > 0 else { return false }
+            return (days[recordID.recordName]?.count ?? 0) >= length
+        }.count
+    }
+}
+
 // MARK: - The list
 
 struct CrewDirectoryView: View {
     @Query private var challenges: [Challenge]
     @State private var people: [ProfileTarget] = []
     @State private var profiles: [String: CrewProfile] = [:]
+    @State private var finished: [String: Int] = [:]
     @State private var loaded = false
     @State private var profileOf: ProfileTarget?
 
@@ -154,6 +205,7 @@ struct CrewDirectoryView: View {
                             Label(person.id == CrewCloud.shared.myID ? "You · Head Coach" : "Head Coach", systemImage: "star.fill")
                                 .font(AppFont.body).foregroundStyle(.tint)
                         }
+                        ChallengeSeal(count: finished[person.id] ?? 0)
                     }
                     Spacer()
                     Image(systemName: "chevron.right").font(AppFont.body).foregroundStyle(.tertiary)
@@ -183,6 +235,7 @@ struct CrewDirectoryView: View {
         loaded = true
         for person in people {
             if case .found(let profile) = await CrewCloud.shared.fetchProfile(person.id) { profiles[person.id] = profile }
+            finished[person.id] = await CrewCloud.shared.finishedChallenges(person.id)
         }
     }
 }
