@@ -123,7 +123,9 @@ struct CrewDirectoryView: View {
                     Text("Loading…").font(AppFont.body)
                 }
             }
-            ForEach(people) { person in row(person) }
+            // REM: His word, 2026-10-23: "the contacts arnt cards they are one list". A Section per person is
+            // REM: what makes each one its own rounded card in an inset-grouped List.
+            ForEach(people) { person in Section { row(person) } }
         }
         .navigationTitle("Crew Directory")
         .navigationBarTitleDisplayMode(.inline)
