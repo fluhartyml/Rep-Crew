@@ -132,6 +132,11 @@ struct GodModeSection: View {
                     Label("Reports", systemImage: "bolt.shield.fill").font(AppFont.bodyBold)
                 }
                 NavigationLink {
+                    UserListView()
+                } label: {
+                    Label("User List", systemImage: "person.3.sequence.fill").font(AppFont.bodyBold)
+                }
+                NavigationLink {
                     ApplicationsView()
                 } label: {
                     Label("New Crew Members", systemImage: "person.crop.circle.badge.plus").font(AppFont.bodyBold)
