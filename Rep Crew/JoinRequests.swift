@@ -132,6 +132,7 @@ extension CrewCloud {
         let subscription = CKQuerySubscription(recordType: "JoinRequest", predicate: NSPredicate(format: "leaderID == %@", myID),
                                                subscriptionID: "join-requests", options: [.firesOnRecordCreation])
         let info = CKSubscription.NotificationInfo()
+        info.shouldSendContentAvailable = true   // wakes the app to raise the icon badge (InboxBadge)
         // A key with no translation is used as the format itself, so the record's own fields fill it in.
         info.titleLocalizationKey = "%1$@ asked to join"
         info.titleLocalizationArgs = ["name"]

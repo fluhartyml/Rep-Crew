@@ -183,6 +183,7 @@ extension CrewCloud {
         let subscription = CKQuerySubscription(recordType: "CrewApplication", predicate: NSPredicate(value: true),
                                                subscriptionID: NotificationSettings.newMembers, options: [.firesOnRecordCreation])
         let info = CKSubscription.NotificationInfo()
+        info.shouldSendContentAvailable = true   // wakes the app to raise the icon badge (InboxBadge)
         info.titleLocalizationKey = "%1$@ joined the crew"
         info.titleLocalizationArgs = ["name"]
         info.alertBody = "Tap to read their application."

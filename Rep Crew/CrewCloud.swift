@@ -129,6 +129,7 @@ final class CrewCloud {
         let subscription = CKQuerySubscription(recordType: "CrewChallenge", predicate: NSPredicate(format: "memberIDs CONTAINS %@", myID),
                                                subscriptionID: "invites", options: [.firesOnRecordCreation])
         let info = CKSubscription.NotificationInfo()
+        info.shouldSendContentAvailable = true   // wakes the app to raise the icon badge (InboxBadge)
         // A key with no translation is used as the format itself, so the record's own fields fill it in.
         info.titleLocalizationKey = "%1$@ invited you to a challenge"
         info.titleLocalizationArgs = ["leaderName"]

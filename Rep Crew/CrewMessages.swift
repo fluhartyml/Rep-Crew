@@ -208,6 +208,7 @@ extension CrewCloud {
         let subscription = CKQuerySubscription(recordType: "CrewMessage", predicate: predicate,
                                                subscriptionID: id, options: [.firesOnRecordCreation])
         let info = CKSubscription.NotificationInfo()
+        info.shouldSendContentAvailable = true   // wakes the app to raise the icon badge (InboxBadge)
         // A key with no translation is used as the format itself, so the record's own fields fill it in.
         info.titleLocalizationKey = "%1$@"
         info.titleLocalizationArgs = ["title"]
@@ -258,7 +259,14 @@ final class CrewNotifications: NSObject, UIApplicationDelegate, UNUserNotificati
 
     /// Asked once, the first time the app opens after this build.
     static func requestPermission() async {
-        _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
+        _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
+    }
+
+    /// A crew notification arrived: one more unread on the app icon until the app opens and counts properly.
+    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any]) async -> UIBackgroundFetchResult {
+        guard CKNotification(fromRemoteNotificationDictionary: userInfo) != nil else { return .noData }
+        await InboxBadge.set(InboxBadge.current + 1)
+        return .newData
     }
 
     // Show crew messages even while the app is open.

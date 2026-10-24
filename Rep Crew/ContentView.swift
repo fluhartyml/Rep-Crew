@@ -20,6 +20,8 @@ struct ContentView: View {
     @AppStorage(CrewSettings.testFlight) private var testFlight = ""
     @AppStorage(CrewSettings.crewNumber) private var crewNumber = 0
     @AppStorage(CrewSettings.crewName) private var crewName = ""
+    @AppStorage(CrewSettings.inboxUnread) private var inboxUnread = 0
+    @AppStorage(CrewSettings.inboxOpened) private var inboxOpened = 0.0
     @State private var listings: [CrewListing] = []
     @State private var past: [CrewListing] = []
     /// A past challenge to run again (NewChallengeView(again:)).
@@ -47,7 +49,17 @@ struct ContentView: View {
                     List {
                         // A row, not a toolbar button: a fifth toolbar button pushed others into an overflow menu (build 61).
                         NavigationLink(value: CrewScreen.inbox) {
-                            Label("Inbox", systemImage: "tray.full.fill").font(AppFont.bodyBold)
+                            HStack {
+                                Label("Inbox", systemImage: "tray.full.fill").font(AppFont.bodyBold)
+                                Spacer()
+                                if inboxUnread > 0 {
+                                    Text("\(inboxUnread)")
+                                        .font(AppFont.bodyBold).foregroundStyle(.white)
+                                        .padding(.horizontal, 10).padding(.vertical, 2)
+                                        .background(Capsule().fill(.red))
+                                        .accessibilityLabel("\(inboxUnread) unread")
+                                }
+                            }
                         }
                         invitations
                         section("Your challenges", active + upcoming.reversed())
@@ -240,6 +252,9 @@ struct ContentView: View {
         await CrewNotifications.requestPermission()
         listings = await cloud.crewChallenges()
         past = await cloud.pastChallenges()
+        let inbox = await cloud.inbox(crewIDs: challenges.map(\.crewID).filter { !$0.isEmpty },
+                                      led: challenges.filter { $0.leaderID.isEmpty && !$0.crewID.isEmpty }.map(\.crewID))
+        await InboxBadge.set(InboxBadge.unread(inbox, since: inboxOpened))
         // Each respects its Settings → Notifications switch, so one turned off isn't re-created here.
         await cloud.subscribe(crewIDs: challenges.map(\.crewID).filter { !$0.isEmpty }, listedCrewIDs: listings.map(\.id))
         await cloud.subscribeToJoinRequests()

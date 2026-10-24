@@ -13,9 +13,26 @@
 //
 
 import SwiftUI
+import UserNotifications
 
 extension CrewSettings {
     static let inboxOpened = "inboxOpenedAt"
+    static let inboxUnread = "inboxUnread"
+}
+
+/// Unread = arrived since the inbox was last opened, plus invites and join requests still waiting on you.
+/// His word 2026-10-24: "yes build it with the app icon badge" — red count, unread only (Apple's badge rule).
+enum InboxBadge {
+    static func unread(_ items: [InboxItem], since opened: Double) -> Int {
+        let last = Date(timeIntervalSince1970: opened)
+        return items.filter { ($0.date ?? .distantFuture) > last }.count
+    }
+    static var current: Int { UserDefaults.standard.integer(forKey: CrewSettings.inboxUnread) }
+    /// Home's count and the app icon's, kept the same.
+    static func set(_ count: Int) async {
+        UserDefaults.standard.set(count, forKey: CrewSettings.inboxUnread)
+        try? await UNUserNotificationCenter.current().setBadgeCount(count)
+    }
 }
 
 struct InboxItem: Identifiable {
@@ -101,19 +118,23 @@ struct InboxView: View {
             lastVisit = Date(timeIntervalSince1970: openedAt)
             await load()
             openedAt = Date.now.timeIntervalSince1970
+            await InboxBadge.set(InboxBadge.unread(items, since: openedAt))
         }
     }
 
     @ViewBuilder
     private func row(_ item: InboxItem) -> some View {
         let label = HStack(alignment: .top, spacing: 12) {
+            // Blue dot = unread, like Mail.
+            Circle().fill(.blue).frame(width: 10, height: 10).padding(.top, 8)
+                .opacity((item.date ?? .distantFuture) > lastVisit ? 1 : 0)
+                .accessibilityLabel((item.date ?? .distantFuture) > lastVisit ? "Unread" : "")
             Image(systemName: item.icon).font(AppFont.heading).foregroundStyle(.tint).frame(width: 32)
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.title).font(AppFont.bodyBold).foregroundStyle(.primary)
                 Text(item.detail).font(AppFont.body).foregroundStyle(.primary).lineLimit(3)
                 if let date = item.date {
-                    Text(date.formatted(date: .abbreviated, time: .shortened)
-                         + (date > lastVisit ? " · New" : ""))
+                    Text(date.formatted(date: .abbreviated, time: .shortened))
                         .font(AppFont.body).foregroundStyle(.secondary)
                 }
             }
