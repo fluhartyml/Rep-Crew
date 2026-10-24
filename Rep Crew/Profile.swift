@@ -558,7 +558,7 @@ struct ProfileView: View {
         return trimmed.contains("@") ? trimmed : dialable(trimmed)
     }
 
-    private static func url(_ scheme: String, _ value: String) -> URL? {
+    static func url(_ scheme: String, _ value: String) -> URL? {
         guard !value.isEmpty, let encoded = value.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else { return nil }
         return URL(string: scheme + encoded)
     }

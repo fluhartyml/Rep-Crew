@@ -50,6 +50,17 @@ enum ContactMethod: String, CaseIterable, Identifiable {
         }
     }
 
+    /// The link that starts it straight away — the same links the profile's buttons use.
+    func link(in profile: CrewProfile) -> URL? {
+        switch self {
+        case .call: return ProfileView.url("tel:", ProfileView.dialable(profile.phone))
+        case .text: return ProfileView.url("sms:", ProfileView.dialable(profile.phone))
+        case .email: return ProfileView.url("mailto:", profile.email.trimmingCharacters(in: .whitespaces))
+        case .facetime: return ProfileView.url("facetime:", ProfileView.handle(profile.facetime))
+        case .facetimeAudio: return ProfileView.url("facetime-audio:", ProfileView.handle(profile.facetime))
+        }
+    }
+
     /// Their preferred way, only when they filled in what it needs.
     static func preferred(_ profile: CrewProfile) -> ContactMethod? {
         guard let method = ContactMethod(rawValue: profile.preferred), !method.value(in: profile).isEmpty else { return nil }
@@ -112,11 +123,7 @@ struct CrewDirectoryView: View {
                     Text("Loading…").font(AppFont.body)
                 }
             }
-            ForEach(people) { person in
-                Button { profileOf = person } label: { row(person).contentShape(Rectangle()) }
-                    .buttonStyle(.plain)
-                    .accessibilityHint("Opens their profile")
-            }
+            ForEach(people) { person in row(person) }
         }
         .navigationTitle("Crew Directory")
         .navigationBarTitleDisplayMode(.inline)
@@ -126,26 +133,46 @@ struct CrewDirectoryView: View {
         .sheet(item: $profileOf) { ProfileView(target: $0) }
     }
 
+    // REM: His ask, 2026-10-23: "on the directory ... it has greyed out facetime video.... that should
+    // REM: be a link without having to open the contact should the contact card be larger so that can be
+    // REM: a button and not be truncated?" — and "its not only facetime because i chose facetime as my
+    // REM: prefered contact method". So the card is taller: photo and name on top open the profile; under
+    // REM: them, one full-width button for THAT person's own preferred way, which starts it straight away.
+    // REM: The address isn't shown on the card, so nothing gets cut off. No preference → no button.
     private func row(_ person: ProfileTarget) -> some View {
         let profile = profiles[person.id]
         let saved = profile?.name.trimmingCharacters(in: .whitespaces) ?? ""
-        return HStack(spacing: 14) {
-            ProfilePhoto(image: profile?.photo, size: 56)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(saved.isEmpty ? person.name : saved).font(AppFont.bodyBold)
-                if GodMode.ids.contains(person.id) {
-                    Label(person.id == CrewCloud.shared.myID ? "You · Head Coach" : "Head Coach", systemImage: "star.fill")
-                        .font(AppFont.body).foregroundStyle(.tint)
+        return VStack(alignment: .leading, spacing: 12) {
+            Button { profileOf = person } label: {
+                HStack(spacing: 14) {
+                    ProfilePhoto(image: profile?.photo, size: 56)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(saved.isEmpty ? person.name : saved).font(AppFont.bodyBold)
+                        if GodMode.ids.contains(person.id) {
+                            Label(person.id == CrewCloud.shared.myID ? "You · Head Coach" : "Head Coach", systemImage: "star.fill")
+                                .font(AppFont.body).foregroundStyle(.tint)
+                        }
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right").font(AppFont.body).foregroundStyle(.tertiary)
                 }
-                if let profile, let method = ContactMethod.preferred(profile) {
-                    Label("\(method.title): \(method.value(in: profile))", systemImage: method.systemImage)
-                        .font(AppFont.body).foregroundStyle(.secondary).lineLimit(1)
-                }
+                .contentShape(Rectangle())
             }
-            Spacer()
-            Image(systemName: "chevron.right").font(AppFont.body).foregroundStyle(.tertiary)
+            .buttonStyle(.borderless)
+            .tint(.primary)
+            .accessibilityHint("Opens their profile")
+            // REM: .borderless on the name and .borderedProminent here are what let one List row hold two
+            // REM: separate tap targets; with the default style the whole row fires the first button.
+            if let profile, let method = ContactMethod.preferred(profile), let url = method.link(in: profile) {
+                Link(destination: url) {
+                    Label(method.title, systemImage: method.systemImage)
+                        .font(AppFont.bodyBold)
+                        .frame(maxWidth: .infinity, minHeight: 34)
+                }
+                .buttonStyle(.borderedProminent)
+            }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 6)
     }
 
     /// Names first, then each profile as it arrives.
