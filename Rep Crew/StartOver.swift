@@ -86,3 +86,40 @@ struct StartOverMenuItem: View {
         }
     }
 }
+
+#if DEBUG
+extension CrewCloud {
+    /// Creates the shared record types a fresh feature uses in the Development iCloud, so they can be deployed to
+    /// Production before TestFlight. Debug builds only, once per build number: one placeholder of each, every
+    /// field filled, saved and then deleted at once.
+    /// REM: his "yes build it and install on the 11", 2026-10-25. The console showed Approval, StartOver,
+    /// StartOverDone and Welcomed missing: CloudKit makes a type only when a record of it is first saved, and the
+    /// 11 never saved one (Approve refuses coaches, Start Over can't target him). Deploying without them would leave
+    /// Approve, Start Over and the shared Welcomed failing for the real crew. Add any new public type here.
+    func seedSchemaTypes() async {
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+        let doneKey = "publicSchemaSeededBuild"
+        guard UserDefaults.standard.string(forKey: doneKey) != build else { return }
+        await connect()
+        let now = Date.now
+        let fields: [(type: String, values: [String: CKRecordValue])] = [
+            ("Approval", ["memberID": "schema.seed" as NSString, "approvedAt": now as NSDate]),
+            ("StartOver", ["memberID": "schema.seed" as NSString, "requestedAt": now as NSDate]),
+            ("StartOverDone", ["memberID": "schema.seed" as NSString, "requestedAt": now as NSDate]),
+            ("Welcomed", ["memberID": "schema.seed" as NSString, "welcomedAt": now as NSDate]),
+        ]
+        let records = fields.map { item -> CKRecord in
+            let record = CKRecord(recordType: item.type, recordID: CKRecord.ID(recordName: "schema.seed.\(item.type)"))
+            for (key, value) in item.values { record[key] = value }
+            return record
+        }
+        do {
+            _ = try await db.modifyRecords(saving: records, deleting: [], savePolicy: .allKeys)
+            _ = try await db.modifyRecords(saving: [], deleting: records.map(\.recordID))
+            UserDefaults.standard.set(build, forKey: doneKey)
+        } catch {
+            print("Public schema not seeded: \(error)")
+        }
+    }
+}
+#endif

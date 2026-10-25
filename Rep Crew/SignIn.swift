@@ -67,6 +67,9 @@ struct RootView: View {
                 appleUser = ""
                 return
             }
+            #if DEBUG
+            await CrewCloud.shared.seedSchemaTypes()
+            #endif
             await CrewCloud.shared.startOverIfRequested()
             await MyProfile.restoreIfNeeded()
             // A new member's profile is made now, once there's a name to put on it.
