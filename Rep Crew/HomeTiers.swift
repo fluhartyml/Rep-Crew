@@ -330,7 +330,12 @@ struct CrewBoardsSection: View {
             Section {
                 ForEach(boards) { challenge in
                     NavigationLink { CrewBoardView(challenge: challenge) } label: {
-                        Label(challenge.title, systemImage: "bubble.left.and.bubble.right.fill").font(AppFont.bodyBold)
+                        Label {
+                            Text(challenge.title)
+                        } icon: {
+                            Image(systemName: "bubble.left.and.bubble.right.fill").foregroundStyle(.blue)
+                        }
+                        .font(AppFont.bodyBold)
                     }
                 }
             } header: {
@@ -364,8 +369,14 @@ struct CrewsYouLeadSection: View {
                         .padding(.vertical, 2)
                     }
                     // Their own rows: two buttons in one List row both fire on a tap (PhotoBoard REM).
+                    // His word, 2026-10-25: "the message bubble should be apple blue and not android green".
                     NavigationLink { CrewBoardView(challenge: challenge) } label: {
-                        Label("Message Crew", systemImage: "bubble.left.fill").font(AppFont.body)
+                        Label {
+                            Text("Message Crew")
+                        } icon: {
+                            Image(systemName: "bubble.left.fill").foregroundStyle(.blue)
+                        }
+                        .font(AppFont.body)
                     }
                     // The lock red like the words (his word, 2026-10-25: "yes make the lock red").
                     Button(role: .destructive) { closing = challenge } label: {
