@@ -124,7 +124,9 @@ struct SetView: View {
                     }
                     Text("\(Int(set.calories)) cal").font(WatchFont.body)
                     Button("Finish Set") {
-                        reps = Double(max(goal.target - goal.done, 0))
+                        // REM: Watch feedback he passed on, 2026-10-25: "instead of having the Reps set at Max when
+                        // you finish a set, it should probably start at 0". Crown up from 0; Save stays off until 1.
+                        reps = 0
                         set.finish()
                     }
                     .tint(.green)
