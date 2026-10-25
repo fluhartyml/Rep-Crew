@@ -11,6 +11,7 @@
 //  head-coach only (MemberAccessSection).
 //
 
+import PhotosUI
 import SwiftUI
 
 struct CrewUser: Identifiable {
@@ -70,6 +71,7 @@ struct UserAccountView: View {
                 }
                 .listRowBackground(Color.clear)
             }
+            if GodMode.isOwner { HeadCoachPhotoSection(memberID: user.id, hasOwnPhoto: user.profile?.photo != nil) }
             MemberAccessSection(memberID: user.id, name: user.name)
             Section {
                 field("Phone", user.profile?.phone, privately: user.profile?.privateFields.contains("phone") ?? false)
@@ -111,5 +113,83 @@ struct UserAccountView: View {
                 .textSelection(.enabled)
         }
         .padding(.vertical, 2)
+    }
+}
+
+/// Head coach only: set this person's photo from Crew Media, the camera roll or the camera, or take
+/// yours off so their own shows again (CrewCloud.setAvatarOverride, Profile.swift).
+private struct HeadCoachPhotoSection: View {
+    let memberID: String
+    let hasOwnPhoto: Bool
+    private var cloud = CrewCloud.shared
+    @State private var picked: PhotosPickerItem?
+    @State private var working = false
+    @State private var note: String?
+
+    init(memberID: String, hasOwnPhoto: Bool) {
+        self.memberID = memberID
+        self.hasOwnPhoto = hasOwnPhoto
+    }
+
+    private var cameraAvailable: Bool { UIImagePickerController.isSourceTypeAvailable(.camera) }
+    private var isSet: Bool { cloud.avatarOverrides[memberID] != nil }
+
+    var body: some View {
+        Section {
+            // One button per row (two buttons in one List row both fire).
+            ChooseFromMediaButton { _, image in Task { await set(image) } }
+                .disabled(working)
+            PhotosPicker(selection: $picked, matching: .images) {
+                Label("Choose Photo", systemImage: "photo.on.rectangle").font(AppFont.bodyBold)
+            }
+            .disabled(working)
+            if cameraAvailable {
+                Button { CameraPresenter.shared.present { image in Task { await set(image) } } } label: {
+                    Label("Take Photo", systemImage: "camera.fill").font(AppFont.bodyBold)
+                }
+                .disabled(working)
+            }
+            if isSet {
+                Button(role: .destructive) { Task { await set(nil) } } label: {
+                    Label(hasOwnPhoto ? "Use Their Own Photo" : "Remove Photo", systemImage: "arrow.uturn.backward")
+                        .font(AppFont.bodyBold)
+                }
+                .disabled(working)
+            }
+            if working {
+                HStack(spacing: 12) {
+                    ProgressView()
+                    Text("Saving…").font(AppFont.body)
+                }
+            }
+            if let note { Text(note).font(AppFont.body) }
+        } header: {
+            Text("Their Photo").font(AppFont.bodyBold).textCase(nil)
+        } footer: {
+            Text(isSet ? "You set this photo. Everyone sees it in place of theirs, them included."
+                       : hasOwnPhoto ? "Pick a photo to show in place of theirs, everywhere in the app."
+                                     : "They have no photo. Pick one to give them.")
+                .font(AppFont.body)
+        }
+        .onChange(of: picked) { _, item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) {
+                    await set(image)
+                }
+                picked = nil
+            }
+        }
+    }
+
+    private func set(_ image: UIImage?) async {
+        working = true
+        note = nil
+        if let image, await ContentFilter.isSensitive(image) {
+            note = "This photo can't be used."
+        } else if !(await cloud.setAvatarOverride(image, for: memberID)) {
+            note = "That didn't go through. Check iCloud in Settings and try again."
+        }
+        working = false
     }
 }

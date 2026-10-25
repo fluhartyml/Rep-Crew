@@ -268,6 +268,61 @@ extension CrewCloud {
         return isModerator(writer(of: removal), leaderID: nil)
     }
 
+    // MARK: Head coach's photo for someone
+
+    // REM: his word, 2026-10-25: "as head coach i want to be able to maintain the user lists i want to
+    // overide their avitar or add one if one is missing". He can't edit someone else's Profile record,
+    // so his photo is a CrewPhoto of his own named avatar.<their ID> on the "avatars" board — an existing
+    // record type, so nothing new to deploy in iCloud. It counts only when CloudKit says he wrote it
+    // (GodMode.ids), and it wins over their own photo on every phone, theirs too. Remove it and their
+    // own photo shows again.
+    static let avatarsBoard = "avatars"
+
+    private static func avatarRecordID(_ memberID: String) -> CKRecord.ID {
+        CKRecord.ID(recordName: "avatar.\(memberID)")
+    }
+
+    func loadAvatarOverrides() async {
+        let query = CKQuery(recordType: "CrewPhoto", predicate: NSPredicate(format: "crewID == %@", Self.avatarsBoard))
+        guard let (results, _) = try? await db.records(matching: query, desiredKeys: ["crewID", "thumb"], resultsLimit: 400) else { return }
+        var found: [String: UIImage] = [:]
+        for record in results.compactMap({ try? $0.1.get() }) {
+            let name = record.recordID.recordName
+            guard name.hasPrefix("avatar."), let by = writer(of: record), GodMode.ids.contains(by),
+                  let url = (record["thumb"] as? CKAsset)?.fileURL,
+                  let data = try? Data(contentsOf: url), let image = UIImage(data: data) else { continue }
+            found[String(name.dropFirst("avatar.".count))] = image
+        }
+        avatarOverrides = found
+    }
+
+    /// Head coach only: set someone's photo, or (nil) take yours off so theirs shows again.
+    func setAvatarOverride(_ image: UIImage?, for memberID: String) async -> Bool {
+        await connect()
+        guard GodMode.isOwner, let myID else { return false }
+        do {
+            if let image {
+                guard let thumb = Self.jpegFile(image, longestSide: 600) else { return false }
+                defer { try? FileManager.default.removeItem(at: thumb) }
+                let record = CKRecord(recordType: "CrewPhoto", recordID: Self.avatarRecordID(memberID))
+                record["crewID"] = Self.avatarsBoard
+                record["senderID"] = myID
+                record["senderName"] = "Head Coach"
+                record["takenAt"] = Date.now
+                record["thumb"] = CKAsset(fileURL: thumb)
+                _ = try await db.modifyRecords(saving: [record], deleting: [], savePolicy: .allKeys)
+                avatarOverrides[memberID] = UIImage(contentsOfFile: thumb.path(percentEncoded: false)) ?? image
+            } else {
+                _ = try await db.modifyRecords(saving: [], deleting: [Self.avatarRecordID(memberID)])
+                avatarOverrides[memberID] = nil
+            }
+            return true
+        } catch {
+            status = "Couldn't change the photo: \(error.localizedDescription)"
+            return false
+        }
+    }
+
     /// The profile photo a report points at, for the Reports screen. Nil once it's been replaced.
     func profilePhoto(_ photoID: String) async -> UIImage? {
         let parts = photoID.split(separator: ".")
@@ -404,7 +459,8 @@ struct ProfilePhoto: View {
 
     var body: some View {
         Group {
-            if let image {
+            // The head coach's photo for them wins (CrewCloud.avatarOverrides).
+            if let image = CrewCloud.shared.avatarOverrides[seed] ?? image {
                 Image(uiImage: image).resizable().scaledToFill()
             } else {
                 Image(systemName: "dumbbell.fill").resizable().scaledToFit().padding(size * 0.2)

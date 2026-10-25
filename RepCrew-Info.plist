@@ -20,7 +20,7 @@
 	<key>NSHealthShareUsageDescription</key>
 	<string>Rep Crew reads your workouts, their active energy and heart rate so you can match them to your challenges, and your body stats when you ask to see them. Everything Rep Crew reads stays on this iPhone unless you choose to share it, and Rep Crew never changes it.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>Save each timed set to Health as a strength workout.</string>
+	<string>Save each timed set to Health as a strength workout, and save the weights you log.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Save crew photos to your photo library.</string>
 	<key>UIBackgroundModes</key>

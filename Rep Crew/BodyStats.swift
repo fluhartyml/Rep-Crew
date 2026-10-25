@@ -8,8 +8,11 @@
 //  build the body stats".
 //
 //  REM: read from Health every time, never copied into SwiftData or iCloud, so nothing here can reach the
-//  crew. Health stays the record; Rep Crew never writes a body stat. Asked for only when you tap the
-//  button here, in its own prompt, so Start Set never asks for body stats.
+//  crew. Health stays the record. Asked for only when you tap the button here, in its own prompt, so
+//  Start Set never asks for body stats.
+//  REM: his word, 2026-10-25: "i want to be able to track my weight in the crew app" → "yes add log
+//  weight". Log Weight saves to Health (the one body stat Rep Crew writes), so it stays private and
+//  shows in the chart with readings from a scale or the Health app.
 //
 
 import Charts
@@ -115,6 +118,22 @@ enum BodyStatsReader {
         try? await HealthSets.store.requestAuthorization(toShare: [], read: BodyStat.readTypes)
     }
 
+    /// Saves a weight you typed, in your region's unit (lb or kg). Health asks first, the first time.
+    static func logWeight(_ value: Double, at date: Date) async -> Bool {
+        guard HKHealthStore.isHealthDataAvailable(), value > 0 else { return false }
+        let type = BodyStat.weight.type
+        do {
+            try await HealthSets.store.requestAuthorization(toShare: [type], read: BodyStat.readTypes)
+            guard HealthSets.store.authorizationStatus(for: type) == .sharingAuthorized else { return false }
+            let unit: HKUnit = BodyStat.weight.chartUnit == "lb" ? .pound() : .gramUnit(with: .kilo)
+            let sample = HKQuantitySample(type: type, quantity: HKQuantity(unit: unit, doubleValue: value), start: date, end: date)
+            try await HealthSets.store.save(sample)
+            return true
+        } catch {
+            return false
+        }
+    }
+
     /// Newest first, up to a year of daily readings. Empty when Health has none or access wasn't given.
     static func history(_ stat: BodyStat) async -> [BodyReading] {
         guard HKHealthStore.isHealthDataAvailable() else { return [] }
@@ -144,9 +163,17 @@ struct BodyStatsView: View {
     @AppStorage(CrewSettings.bodyStatsAsked) private var asked = false
     @State private var readings: [BodyStat: [BodyReading]] = [:]
     @State private var loaded = false
+    @State private var loggingWeight = false
 
     var body: some View {
         List {
+            Section {
+                Button { loggingWeight = true } label: {
+                    Label("Log Weight", systemImage: "scalemass.fill").font(AppFont.bodyBold)
+                }
+            } footer: {
+                Text("Saved to Health, so only you see it.").font(AppFont.body)
+            }
             if !asked {
                 Section {
                     Button {
@@ -170,7 +197,7 @@ struct BodyStatsView: View {
                         }
                     }
                 } footer: {
-                    Text("Only you see these, on this iPhone. To add a reading or change what Rep Crew may read, use the Health app.")
+                    Text("Only you see these, on this iPhone. To add another reading or change what Rep Crew may read, use the Health app.")
                         .font(AppFont.body)
                 }
             }
@@ -179,6 +206,7 @@ struct BodyStatsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { if asked { await load() } }
         .refreshable { await load() }
+        .sheet(isPresented: $loggingWeight, onDismiss: { Task { if asked { await load() } } }) { LogWeightView() }
     }
 
     private func load() async {
@@ -264,5 +292,66 @@ struct BodyStatHistoryView: View {
         }
         .navigationTitle(stat.title)
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// Type a weight, pick when, Save. It goes to Health; nothing goes to iCloud or the crew.
+private struct LogWeightView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var weight: Double?
+    @State private var date = Date.now
+    @State private var saving = false
+    @State private var failed = false
+    @FocusState private var focused: Bool
+
+    private var unit: String { BodyStat.weight.chartUnit }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    HStack {
+                        TextField("Weight", value: $weight, format: .number.precision(.fractionLength(0...1)))
+                            .font(AppFont.title)
+                            .keyboardType(.decimalPad)
+                            .focused($focused)
+                        Text(unit).font(AppFont.heading).foregroundStyle(.secondary)
+                    }
+                    DatePicker("When", selection: $date, in: ...Date.now).font(AppFont.body)
+                } footer: {
+                    Text("Saved to Health, with your other weight readings. Only you see it.").font(AppFont.body)
+                }
+                if failed {
+                    Text("It wasn't saved. Allow Rep Crew to save Weight in the Health app: Sharing → Apps → Rep Crew.")
+                        .font(AppFont.body)
+                }
+            }
+            .navigationTitle("Log Weight")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }.font(AppFont.bodyBold)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { Task { await save() } }
+                        .font(AppFont.bodyBold)
+                        .disabled(saving || (weight ?? 0) <= 0)
+                }
+            }
+            .onAppear { focused = true }
+        }
+    }
+
+    private func save() async {
+        guard let weight else { return }
+        saving = true
+        failed = false
+        if await BodyStatsReader.logWeight(weight, at: date) {
+            UserDefaults.standard.set(true, forKey: CrewSettings.bodyStatsAsked)
+            dismiss()
+        } else {
+            failed = true
+        }
+        saving = false
     }
 }

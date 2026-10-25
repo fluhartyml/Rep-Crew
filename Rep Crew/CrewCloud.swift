@@ -20,6 +20,7 @@
 import CloudKit
 import Foundation
 import Observation
+import UIKit
 
 @MainActor @Observable
 final class CrewCloud {
@@ -42,6 +43,8 @@ final class CrewCloud {
     var openNewMembers = false
     /// This phone's member's level, flags and title (Access.swift). Loaded on connect.
     var myAccess = MemberAccess(level: 0, flags: "", title: "")
+    /// Photos the head coach set for people, by iCloud ID (Profile.swift). Loaded on connect.
+    var avatarOverrides: [String: UIImage] = [:]
 
     func connect() async {
         if myID != nil { return }
@@ -57,6 +60,7 @@ final class CrewCloud {
             await loadCoachKeys()
             await loadCrewName()
             await loadAccess()
+            await loadAvatarOverrides()
             status = "Connected to iCloud"
         } catch {
             status = "iCloud problem: \(error.localizedDescription)"
