@@ -105,6 +105,10 @@ extension CrewCloud {
                 case .announcement, .announcementOneWay:
                     items.append(InboxItem(id: message.id, date: message.sentAt, icon: "megaphone.fill",
                                            title: "📣 \(message.senderName)", detail: message.text, destination: .challenge(crewID)))
+                case .closed where ChallengeClosure.isClosed(crewID):
+                    // Only a closing the leader or a coach really wrote (refreshClosures checked it).
+                    items.append(InboxItem(id: message.id, date: message.sentAt, icon: "lock.fill",
+                                           title: "🔒 \(message.senderName)", detail: message.text, destination: .challenge(crewID)))
                 default:
                     break
                 }

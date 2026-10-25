@@ -155,7 +155,9 @@ enum MyProfile {
         case .none:
             break
         case .found(let saved):
-            for (key, cloud) in [(CrewSettings.profilePhone, saved.phone), (CrewSettings.profileEmail, saved.email),
+            // Your name too, so a reinstall or a new phone doesn't ask it again (SignIn.swift).
+            for (key, cloud) in [(CrewSettings.name, saved.name),
+                                 (CrewSettings.profilePhone, saved.phone), (CrewSettings.profileEmail, saved.email),
                                  (CrewSettings.profileFaceTime, saved.facetime),
                                  (CrewSettings.profilePreferred, saved.preferred)] where value(key).isEmpty {
                 defaults.set(cloud, forKey: key)
@@ -171,6 +173,8 @@ enum MyProfile {
                     defaults.set(saved.photoID, forKey: CrewSettings.profilePhotoID)
                 }
             }
+            // A profile is only saved from the home screen, so whoever has one already sent the application.
+            defaults.set(true, forKey: CrewSettings.applicationDone)
             // Saved again on the next check, with this phone's merged entries and seal.
             defaults.set("", forKey: CrewSettings.profileSaved)
         }

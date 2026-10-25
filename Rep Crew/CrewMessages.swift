@@ -19,7 +19,8 @@ struct CrewMessage: Identifiable {
     /// announcementOneWay: an announcement sent with Allow replies off. Shown exactly like one, minus
     /// Reply / Reply All. Builds before it read the unknown kind as .message.
     /// direct: one person to one person, outside any challenge (see `direct(to:)`).
-    enum Kind: String { case announcement, announcementOneWay, message, reply, welcome, finished, direct }
+    /// closed: the crew leader or a coach closed the challenge (ChallengeClose.swift).
+    enum Kind: String { case announcement, announcementOneWay, message, reply, welcome, finished, direct, closed }
 
     let id: String
     let crewID: String
@@ -69,6 +70,7 @@ extension CrewCloud {
         case .welcome: record["title"] = "✅ \(senderName)"
         case .finished: record["title"] = "🏁 \(senderName)"
         case .direct: record["title"] = "✉️ \(senderName)"
+        case .closed: record["title"] = "🔒 \(senderName)"
         }
         do {
             _ = try await db.modifyRecords(saving: [record], deleting: [], savePolicy: .allKeys)
@@ -450,6 +452,7 @@ struct CrewMessagesSection: View {
         case .welcome: return "✅ \(from)"
         case .finished: return "🏁 \(from)"
         case .direct: return "✉️ \(from)"
+        case .closed: return "🔒 \(from)"
         }
     }
 

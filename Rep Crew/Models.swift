@@ -61,8 +61,10 @@ final class Challenge {
     }
 
     var hasStarted: Bool { Calendar.current.startOfDay(for: .now) >= startDate }
-    var isFinished: Bool { Calendar.current.startOfDay(for: .now) > lastDay }
-    var isActive: Bool { dayNumber() != nil }
+    /// The crew leader or a coach closed it before its last day (ChallengeClose.swift).
+    var isClosed: Bool { ChallengeClosure.isClosed(crewID) }
+    var isFinished: Bool { isClosed || Calendar.current.startOfDay(for: .now) > lastDay }
+    var isActive: Bool { !isClosed && dayNumber() != nil }
 
     /// Every goal met on `date`.
     func isComplete(on date: Date) -> Bool {

@@ -16,6 +16,10 @@ struct ChallengeDetailView: View {
     @State private var customGoal: ExerciseGoal?
     @State private var setGoal: ExerciseGoal?
     @State private var confirmingDelete = false
+    @State private var confirmingClose = false
+    @State private var closeFailed: String?
+    /// Read so this screen redraws the moment a closing arrives (ChallengeClose.swift).
+    @AppStorage(CrewSettings.closedChallenges) private var closedChallenges = ""
     /// The leader removed you; your own reps stay, the crew parts go.
     @State private var removed = false
     /// People asking to join, when you lead this challenge.
@@ -28,6 +32,12 @@ struct ChallengeDetailView: View {
     var body: some View {
         List {
             Section { summary }
+
+            if let notice = closingNotice {
+                Section {
+                    Label(notice, systemImage: "lock.fill").font(AppFont.bodyBold)
+                }
+            }
 
             if challenge.isActive {
                 Section {
@@ -89,6 +99,11 @@ struct ChallengeDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    if canClose {
+                        Button { confirmingClose = true } label: {
+                            Label("Close Challenge", systemImage: "lock")
+                        }
+                    }
                     Button(role: .destructive) { confirmingDelete = true } label: {
                         Label("Delete Challenge", systemImage: "trash")
                     }
@@ -117,6 +132,35 @@ struct ChallengeDetailView: View {
             }
         } message: {
             Text("This can't be undone.")
+        }
+        .confirmationDialog("Close \(challenge.title)?", isPresented: $confirmingClose, titleVisibility: .visible) {
+            Button("Close Challenge for Everyone") { Task { await close() } }
+        } message: {
+            Text("It ends today for the whole crew and moves to Finished. Everyone's reps stay. This can't be undone.")
+        }
+        .alert("Couldn't close the challenge", isPresented: Binding(get: { closeFailed != nil }, set: { if !$0 { closeFailed = nil } })) {
+            Button("OK") { closeFailed = nil }
+        } message: {
+            Text(closeFailed ?? "")
+        }
+    }
+
+    private var closingNotice: String? { _ = closedChallenges; return ChallengeClosure.notice(challenge.crewID) }
+
+    /// His rule: the crew leader closes their own challenge; a coach can close anyone's.
+    private var canClose: Bool {
+        guard !challenge.crewID.isEmpty, !challenge.isFinished else { return false }
+        return challenge.leaderID.isEmpty || challenge.leaderID == CrewCloud.shared.myID || GodMode.isOn
+    }
+
+    private func close() async {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        let ok = await CrewCloud.shared.close(crewID: challenge.crewID, leaderID: challenge.leaderID,
+                                              senderName: trimmed.isEmpty ? "A crew member" : trimmed)
+        if ok {
+            closedChallenges = UserDefaults.standard.string(forKey: CrewSettings.closedChallenges) ?? ""
+        } else {
+            closeFailed = CrewCloud.shared.status.hasPrefix("Couldn't close") ? CrewCloud.shared.status : "Check that you're signed in to iCloud, then try again."
         }
     }
 
@@ -158,7 +202,9 @@ struct ChallengeDetailView: View {
     @ViewBuilder
     private var summary: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if let day = challenge.dayNumber() {
+            if challenge.isClosed {
+                Text("Closed").font(AppFont.title)
+            } else if let day = challenge.dayNumber() {
                 Text("Day \(day) of \(challenge.days)").font(AppFont.title)
                 if challenge.isComplete(on: .now) {
                     Label("Today's challenge complete", systemImage: "checkmark.seal.fill")

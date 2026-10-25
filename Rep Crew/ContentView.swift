@@ -22,6 +22,8 @@ struct ContentView: View {
     @AppStorage(CrewSettings.crewName) private var crewName = ""
     @AppStorage(CrewSettings.inboxUnread) private var inboxUnread = 0
     @AppStorage(CrewSettings.inboxOpened) private var inboxOpened = 0.0
+    /// Read by the lists below so they redraw the moment a closing arrives (ChallengeClose.swift).
+    @AppStorage(CrewSettings.closedChallenges) private var closedChallenges = ""
     @State private var listings: [CrewListing] = []
     @State private var past: [CrewListing] = []
     /// A past challenge to run again (NewChallengeView(again:)).
@@ -34,11 +36,11 @@ struct ContentView: View {
     @State private var joining: Invite?
     @State private var path = NavigationPath()
 
-    private var active: [Challenge] { challenges.filter(\.isActive) }
+    private var active: [Challenge] { _ = closedChallenges; return challenges.filter(\.isActive) }
     /// Changes whenever today's numbers do, so the Watch gets a fresh copy.
     private var watchSignature: String { challenges.map { "\($0.title).\($0.repsToday)" }.joined(separator: "|") }
-    private var upcoming: [Challenge] { challenges.filter { !$0.hasStarted } }
-    private var finished: [Challenge] { challenges.filter(\.isFinished) }
+    private var upcoming: [Challenge] { _ = closedChallenges; return challenges.filter { !$0.hasStarted && !$0.isClosed } }
+    private var finished: [Challenge] { _ = closedChallenges; return challenges.filter(\.isFinished) }
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -188,7 +190,9 @@ struct ContentView: View {
     /// Everyone else's challenges: not on this phone and not already waiting as an invitation.
     private var others: [CrewListing] {
         let mine = Set(challenges.map(\.crewID)).union(cloud.pending.compactMap { $0.challenge?.crewID })
-        return listings.filter { !mine.contains($0.id) }.sorted { $0.info.startDay > $1.info.startDay }
+        _ = closedChallenges
+        // A coach's closing leaves the leader's record running, so it's filtered here too.
+        return listings.filter { !mine.contains($0.id) && !ChallengeClosure.isClosed($0.id) }.sorted { $0.info.startDay > $1.info.startDay }
     }
 
     /// Everyone's ended public challenges, plus Start Again on your own finished ones (in `section`).
@@ -234,6 +238,9 @@ struct ContentView: View {
     private func syncCrew() async {
         // Challenges this phone lost (app deleted before they reached your iCloud) come back from the crew's copy.
         await CrewRestore.run(context: context, declined: Set(declined.split(separator: "\n").map(String.init)))
+        // Closings first: ensurePublished would put a closed challenge's end date back.
+        await cloud.refreshClosures(Dictionary(challenges.filter { !$0.crewID.isEmpty }.map { ($0.crewID, $0.leaderID) },
+                                               uniquingKeysWith: { first, _ in first }))
         // Challenges you started go to the shared space so the whole crew can see them.
         let leader = name.trimmingCharacters(in: .whitespaces)
         for challenge in challenges where challenge.leaderID.isEmpty && !challenge.isFinished {
@@ -250,7 +257,9 @@ struct ContentView: View {
             .union(declined.split(separator: "\n").map(String.init))
         await cloud.refreshPending(skipping: skip)
         await CrewNotifications.requestPermission()
-        listings = await cloud.crewChallenges()
+        let found = await cloud.crewChallenges()
+        await cloud.refreshClosures(Dictionary(found.map { ($0.id, $0.leaderID) }, uniquingKeysWith: { first, _ in first }))
+        listings = found
         past = await cloud.pastChallenges()
         let inbox = await cloud.inbox(crewIDs: challenges.map(\.crewID).filter { !$0.isEmpty },
                                       led: challenges.filter { $0.leaderID.isEmpty && !$0.crewID.isEmpty }.map(\.crewID))
@@ -308,7 +317,9 @@ struct ChallengeRow: View {
     }
 
     private var status: String {
-        if let day = challenge.dayNumber() {
+        if challenge.isClosed {
+            return "Closed · \(challenge.completedDays) of \(challenge.days) days completed"
+        } else if let day = challenge.dayNumber() {
             return "Day \(day) of \(challenge.days)"
         } else if !challenge.hasStarted {
             return "Starts \(challenge.startDate.formatted(date: .abbreviated, time: .omitted))"

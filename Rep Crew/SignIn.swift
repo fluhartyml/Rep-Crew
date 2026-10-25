@@ -13,6 +13,11 @@
 //  every launch the app asks Apple whether that sign-in still stands, and if it was revoked
 //  the sign-in screen comes back.
 //
+//  REM: the account is made at sign-in (his "can you do everything we discussed please?", 2026-10-24).
+//  Right after signing in, the app looks for your Profile in iCloud. Found: your name and profile come
+//  back and nothing is asked again. None: your profile is made then, with the name Apple gave. Apple
+//  gives the name only on the very first sign-in ever, so with no profile and no name, it's asked.
+//
 
 import AuthenticationServices
 import SwiftUI
@@ -28,12 +33,18 @@ struct RootView: View {
     @AppStorage(CrewSettings.appleUser) private var appleUser = ""
     @AppStorage(CrewSettings.name) private var name = ""
     @AppStorage(CrewSettings.applicationDone) private var applicationDone = false
+    @AppStorage(CrewSettings.profileRestored) private var accountChecked = false
+    /// The iCloud lookup was tried; if iCloud didn't answer, the name is asked as before.
+    @State private var lookedUp = false
     @State private var openedURL: URL?
 
     var body: some View {
         Group {
             if appleUser.isEmpty {
                 SignInView()
+            } else if !accountChecked && !lookedUp && !applicationDone {
+                // Until iCloud answers, so a returning member isn't asked their name or the application again.
+                ProgressView("Setting up your account…").font(AppFont.body)
             } else if name.trimmingCharacters(in: .whitespaces).isEmpty {
                 // REM: shakedown bug 3 (2026-10-23), "it says anonymous". Apple gives the name only on the
                 // very first sign-in, so a reinstall left it empty and the crew saw "A crew member".
@@ -46,9 +57,16 @@ struct RootView: View {
         }
         .onOpenURL { openedURL = $0 }
         .task(id: appleUser) {
-            guard !appleUser.isEmpty,
-                  let state = try? await ASAuthorizationAppleIDProvider().credentialState(forUserID: appleUser) else { return }
-            if state == .revoked || state == .notFound { appleUser = "" }
+            guard !appleUser.isEmpty else { return }
+            if let state = try? await ASAuthorizationAppleIDProvider().credentialState(forUserID: appleUser),
+               state == .revoked || state == .notFound {
+                appleUser = ""
+                return
+            }
+            await MyProfile.restoreIfNeeded()
+            // A new member's profile is made now, once there's a name to put on it.
+            if !name.trimmingCharacters(in: .whitespaces).isEmpty { await MyProfile.saveIfChanged() }
+            lookedUp = true
         }
     }
 }
