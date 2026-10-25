@@ -18,6 +18,7 @@
 
 import EventKit
 import EventKitUI
+import PhotosUI
 import SwiftUI
 
 /// What the board shows, saved as JSON in the message text.
@@ -27,6 +28,12 @@ struct CrewEventDetails: Codable, Equatable {
     var endsAt: Date
     var location = ""
     var notes = ""
+    /// REM: his word, 2026-10-25: crew media "anywhere in the app", and "they can also upload their own
+    /// from camera roll incase they have an event poster". One or the other: a Crew Media name, or the
+    /// ID of a CrewPhoto posted on the events board. Optional, so events posted before decode unchanged
+    /// and builds before this ignore both.
+    var media: String? = nil
+    var posterID: String? = nil
 }
 
 struct CrewEvent: Identifiable {
@@ -121,12 +128,19 @@ struct EventsView: View {
         NavigationLink {
             EventDetailView(event: event) { Task { await load() } }
         } label: {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(event.details.title).font(AppFont.bodyBold)
-                Text(event.whenText).font(AppFont.body)
-                Text(event.details.location.isEmpty ? "Posted by \(event.message.senderName)"
-                                                    : "\(event.details.location) · \(event.message.senderName)")
-                    .font(AppFont.body).foregroundStyle(.secondary)
+            HStack(spacing: 12) {
+                if event.details.media != nil || event.details.posterID != nil {
+                    EventPicture(details: event.details)
+                        .frame(width: 64, height: 64)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(event.details.title).font(AppFont.bodyBold)
+                    Text(event.whenText).font(AppFont.body)
+                    Text(event.details.location.isEmpty ? "Posted by \(event.message.senderName)"
+                                                        : "\(event.details.location) · \(event.message.senderName)")
+                        .font(AppFont.body).foregroundStyle(.secondary)
+                }
             }
             .padding(.vertical, 2)
         }
@@ -152,6 +166,13 @@ private struct EventDetailView: View {
 
     var body: some View {
         List {
+            if event.details.media != nil || event.details.posterID != nil {
+                Section {
+                    EventPicture(details: event.details, fit: true)
+                        .frame(maxWidth: .infinity)
+                        .listRowInsets(EdgeInsets())
+                }
+            }
             Section {
                 Text(event.details.title).font(AppFont.title).fixedSize(horizontal: false, vertical: true)
                 Label(event.whenText, systemImage: "calendar").font(AppFont.body)
@@ -199,6 +220,12 @@ private struct EventDetailView: View {
             Button(isMine ? "Delete Event" : "Remove Event", role: .destructive) {
                 Task {
                     if await CrewCloud.shared.removeMessage(event.message) {
+                        // Your own poster goes with your event. Removing someone else's event hides
+                        // the event, and the poster only ever shows on it.
+                        if isMine, let posterID = event.details.posterID, let myID = CrewCloud.shared.myID {
+                            _ = await CrewCloud.shared.removePhoto(CrewPhoto(id: posterID, crewID: CrewCloud.eventsBoard, senderID: myID,
+                                                                             senderName: "", takenAt: .now, thumb: nil))
+                        }
                         onRemove()
                         dismiss()
                     } else {
@@ -206,6 +233,36 @@ private struct EventDetailView: View {
                     }
                 }
             }
+        }
+    }
+}
+
+/// An event's picture: its Crew Media, or its poster from iCloud. A poster the on-device filter flags
+/// stays off the screen, as on the photo board.
+private struct EventPicture: View {
+    let details: CrewEventDetails
+    var fit = false
+    @State private var poster: UIImage?
+
+    var body: some View {
+        Group {
+            if let image = CrewMedia.item(named: details.media)?.image ?? poster {
+                if fit {
+                    Image(uiImage: image).resizable().scaledToFit()
+                } else {
+                    Image(uiImage: image).resizable().scaledToFill()
+                }
+            } else {
+                Image(systemName: "photo").font(AppFont.heading).foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: fit ? 200 : 64)
+                    .background(Color.secondary.opacity(0.15))
+            }
+        }
+        .accessibilityHidden(true)
+        .task(id: details.posterID) {
+            guard details.media == nil, let id = details.posterID,
+                  let image = await CrewCloud.shared.fullPhoto(id), !(await ContentFilter.isSensitive(image)) else { return }
+            poster = image
         }
     }
 }
@@ -252,6 +309,12 @@ private struct PostEventView: View {
     @State private var details = CrewEventDetails(title: "", startsAt: PostEventView.nextHour, endsAt: PostEventView.nextHour.addingTimeInterval(3600))
     @State private var posting = false
     @State private var failed = false
+    /// Your own picture (camera or camera roll), uploaded as the poster when you tap Post.
+    @State private var poster: UIImage?
+    @State private var picked: PhotosPickerItem?
+    @State private var pictureNote: String?
+
+    private var cameraAvailable: Bool { UIImagePickerController.isSourceTypeAvailable(.camera) }
 
     private static var nextHour: Date {
         let cal = Calendar.current
@@ -285,6 +348,50 @@ private struct PostEventView: View {
                 } footer: {
                     Text("Everyone in Rep Crew can see this event and add it to their calendar.").font(AppFont.body)
                 }
+                Section {
+                    if let image = CrewMedia.item(named: details.media)?.image ?? poster {
+                        Image(uiImage: image).resizable().scaledToFit()
+                            .frame(maxWidth: .infinity, maxHeight: 240)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .accessibilityHidden(true)
+                    }
+                    // One button per row (two buttons in one List row both fire).
+                    ChooseFromMediaButton { item, _ in
+                        details.media = item.name
+                        poster = nil
+                        pictureNote = nil
+                    }
+                    PhotosPicker(selection: $picked, matching: .images) {
+                        Label("Choose Photo", systemImage: "photo.on.rectangle").font(AppFont.bodyBold)
+                    }
+                    if cameraAvailable {
+                        Button { CameraPresenter.shared.present { image in usePoster(image) } } label: {
+                            Label("Take Photo", systemImage: "camera.fill").font(AppFont.bodyBold)
+                        }
+                    }
+                    if details.media != nil || poster != nil {
+                        Button(role: .destructive) {
+                            details.media = nil
+                            poster = nil
+                        } label: {
+                            Label("Remove Picture", systemImage: "trash").font(AppFont.bodyBold)
+                        }
+                    }
+                    if let pictureNote { Text(pictureNote).font(AppFont.body) }
+                } header: {
+                    Text("Picture").font(AppFont.bodyBold).textCase(nil)
+                } footer: {
+                    Text("Optional. Pick one from Crew Media, or add your own, like the event's poster.").font(AppFont.body)
+                }
+                .onChange(of: picked) { _, item in
+                    guard let item else { return }
+                    Task {
+                        if let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) {
+                            usePoster(image)
+                        }
+                        picked = nil
+                    }
+                }
                 if failed {
                     Text("That didn't go through. Check Settings → iCloud and try again.").font(AppFont.body)
                 }
@@ -311,11 +418,32 @@ private struct PostEventView: View {
         trimmed.location = details.location.trimmingCharacters(in: .whitespacesAndNewlines)
         trimmed.notes = details.notes.trimmingCharacters(in: .whitespacesAndNewlines)
         let me = myName.trimmingCharacters(in: .whitespaces)
+        if let poster {
+            if await ContentFilter.isSensitive(poster) {
+                pictureNote = "This picture can't be shared with the crew."
+                posting = false
+                return
+            }
+            guard let id = await CrewCloud.shared.postPhotoID(poster, crewID: CrewCloud.eventsBoard,
+                                                               senderName: me.isEmpty ? "A crew member" : me) else {
+                failed = true
+                posting = false
+                return
+            }
+            trimmed.posterID = id
+            trimmed.media = nil
+        }
         if await CrewCloud.shared.postEvent(trimmed, senderName: me.isEmpty ? "A crew member" : me) {
             dismiss()
         } else {
             failed = true
         }
         posting = false
+    }
+
+    private func usePoster(_ image: UIImage) {
+        poster = image
+        details.media = nil
+        pictureNote = nil
     }
 }

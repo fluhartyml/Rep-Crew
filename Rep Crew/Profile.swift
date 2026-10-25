@@ -313,6 +313,8 @@ struct MyProfileSection: View {
             PhotosPicker(selection: $picked, matching: .images) {
                 Label("Choose Photo", systemImage: "photo.on.rectangle").font(AppFont.bodyBold)
             }
+            // REM: his word: "even if they want to use one as an avatar" (CrewMedia.swift).
+            ChooseFromMediaButton { _, image in Task { await use(image) } }
             if !photoID.isEmpty {
                 Button(role: .destructive) {
                     MyProfile.removePhoto()

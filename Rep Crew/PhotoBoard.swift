@@ -52,10 +52,16 @@ enum ContentFilter {
 
 extension CrewCloud {
     func postPhoto(_ image: UIImage, crewID: String, senderName: String) async -> Bool {
+        await postPhotoID(image, crewID: crewID, senderName: senderName) != nil
+    }
+
+    /// The same, handing back the photo's ID. An event poster is a CrewPhoto on the events board,
+    /// so it needs no new iCloud record type (Events.swift).
+    func postPhotoID(_ image: UIImage, crewID: String, senderName: String) async -> String? {
         await connect()
         guard let myID,
               let thumb = Self.jpegFile(image, longestSide: 400),
-              let full = Self.jpegFile(image, longestSide: 1600) else { return false }
+              let full = Self.jpegFile(image, longestSide: 1600) else { return nil }
         defer { try? FileManager.default.removeItem(at: thumb); try? FileManager.default.removeItem(at: full) }
         let record = CKRecord(recordType: "CrewPhoto")
         record["crewID"] = crewID
@@ -66,10 +72,10 @@ extension CrewCloud {
         record["image"] = CKAsset(fileURL: full)
         do {
             _ = try await db.modifyRecords(saving: [record], deleting: [], savePolicy: .allKeys)
-            return true
+            return record.recordID.recordName
         } catch {
             status = "Couldn't share your photo: \(error.localizedDescription)"
-            return false
+            return nil
         }
     }
 
@@ -216,6 +222,8 @@ struct PhotoBoardSection: View {
                         Label("Choose Photo", systemImage: "photo.on.rectangle").font(AppFont.bodyBold)
                     }
                     .disabled(uploading)
+                    ChooseFromMediaButton { _, image in Task { await upload(image) } }
+                        .disabled(uploading)
                 }
                 if uploading {
                     HStack(spacing: 12) {
