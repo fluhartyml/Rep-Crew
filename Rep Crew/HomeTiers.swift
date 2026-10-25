@@ -367,8 +367,14 @@ struct CrewsYouLeadSection: View {
                     NavigationLink { CrewBoardView(challenge: challenge) } label: {
                         Label("Message Crew", systemImage: "bubble.left.fill").font(AppFont.body)
                     }
+                    // The lock red like the words (his word, 2026-10-25: "yes make the lock red").
                     Button(role: .destructive) { closing = challenge } label: {
-                        Label("Close Challenge", systemImage: "lock.fill").font(AppFont.body)
+                        Label {
+                            Text("Close Challenge")
+                        } icon: {
+                            Image(systemName: "lock.fill").foregroundStyle(.red)
+                        }
+                        .font(AppFont.body)
                     }
                 }
                 if closeFailed {
