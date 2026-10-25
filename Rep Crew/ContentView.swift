@@ -307,8 +307,10 @@ struct ContentView: View {
         }
         activity = seen
         await loadMyEvents()
-        let inbox = await cloud.inbox(crewIDs: challenges.map(\.crewID).filter { !$0.isEmpty },
-                                      led: challenges.filter { $0.leaderID.isEmpty && !$0.crewID.isEmpty }.map(\.crewID))
+        let inboxCrewIDs = challenges.map(\.crewID).filter { !$0.isEmpty }
+        let inboxLed = challenges.filter { $0.leaderID.isEmpty && !$0.crewID.isEmpty }.map(\.crewID)
+        InboxBadge.remember(crewIDs: inboxCrewIDs, led: inboxLed)
+        let inbox = await cloud.inbox(crewIDs: inboxCrewIDs, led: inboxLed)
         await InboxBadge.set(InboxBadge.unread(inbox, since: inboxOpened))
         // Each respects its Settings → Notifications switch, so one turned off isn't re-created here.
         await cloud.subscribe(crewIDs: challenges.map(\.crewID).filter { !$0.isEmpty }, listedCrewIDs: listings.map(\.id))

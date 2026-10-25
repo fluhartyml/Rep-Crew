@@ -288,10 +288,10 @@ final class CrewNotifications: NSObject, UIApplicationDelegate, UNUserNotificati
         _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
     }
 
-    /// A crew notification arrived: one more unread on the app icon until the app opens and counts properly.
+    /// A crew notification arrived: recount the inbox for the app icon (InboxBadge.recount), so it matches Home.
     func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any]) async -> UIBackgroundFetchResult {
         guard CKNotification(fromRemoteNotificationDictionary: userInfo) != nil else { return .noData }
-        await InboxBadge.set(InboxBadge.current + 1)
+        await InboxBadge.recount()
         return .newData
     }
 

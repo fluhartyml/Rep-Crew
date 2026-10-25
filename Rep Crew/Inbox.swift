@@ -26,6 +26,9 @@ extension CrewSettings {
     static let inboxUnread = "inboxUnread"
     static let inboxSeen = "inboxSeenIDs"
     static let inboxDeleted = "inboxDeletedIDs"
+    /// The challenges Home last counted the inbox for, so a notification can recount without Home.
+    static let inboxCrewIDs = "inboxCrewIDs"
+    static let inboxLedIDs = "inboxLedIDs"
 }
 
 /// Which inbox items this phone has shown and which it deleted, by item ID, newline-joined.
@@ -64,6 +67,23 @@ enum InboxBadge {
         return items.filter { InboxState.isUnread($0, since: opened, seen: seen) }.count
     }
     static var current: Int { UserDefaults.standard.integer(forKey: CrewSettings.inboxUnread) }
+    /// REM: his finding on the 16e, 2026-10-25: "the badge counter said eight to start ... now it says two".
+    /// A notification used to add 1 for EVERY crew message, but only replies, announcements and closings
+    /// are inbox items, so the icon ran high until Home recounted. Now a notification recounts the real
+    /// inbox, with the challenges Home last counted for (remember).
+    static func remember(crewIDs: [String], led: [String]) {
+        UserDefaults.standard.set(crewIDs.joined(separator: "\n"), forKey: CrewSettings.inboxCrewIDs)
+        UserDefaults.standard.set(led.joined(separator: "\n"), forKey: CrewSettings.inboxLedIDs)
+    }
+
+    @MainActor static func recount() async {
+        let defaults = UserDefaults.standard
+        let crewIDs = (defaults.string(forKey: CrewSettings.inboxCrewIDs) ?? "").split(separator: "\n").map(String.init)
+        let led = (defaults.string(forKey: CrewSettings.inboxLedIDs) ?? "").split(separator: "\n").map(String.init)
+        let items = await CrewCloud.shared.inbox(crewIDs: crewIDs, led: led)
+        await set(unread(items, since: defaults.double(forKey: CrewSettings.inboxOpened)))
+    }
+
     /// Home's count and the app icon's, kept the same.
     static func set(_ count: Int) async {
         UserDefaults.standard.set(count, forKey: CrewSettings.inboxUnread)
@@ -198,19 +218,24 @@ struct InboxView: View {
             }
         }
         .padding(.vertical, 4)
+        // REM: his finding on the 16e, 2026-10-25: "after i do open a message ... and went back to the inbox the
+        // blue dot was still there". The dot was kept for the whole visit; now opening an item clears its dot.
+        let opened = TapGesture().onEnded { unread.remove(item.id) }
         switch item.destination {
         case .challenge(let crewID):
             if let challenge = challenges.first(where: { $0.crewID == crewID }) {
-                NavigationLink(value: challenge) { label }
+                NavigationLink(value: challenge) { label }.simultaneousGesture(opened)
             } else {
                 label   // all-crews announcements, or a challenge no longer on this phone
+                    .contentShape(Rectangle())
+                    .onTapGesture { unread.remove(item.id) }
             }
         case .invite(let invite):
-            Button { openInvite(invite) } label: { label }
+            Button { unread.remove(item.id); openInvite(invite) } label: { label }
         case .newMembers:
-            NavigationLink(value: CrewScreen.newMembers) { label }
+            NavigationLink(value: CrewScreen.newMembers) { label }.simultaneousGesture(opened)
         case .person(let sender):
-            Button { profileOf = sender } label: { label }
+            Button { unread.remove(item.id); profileOf = sender } label: { label }
         }
     }
 
