@@ -153,7 +153,7 @@ struct ProfileCardSection: View {
         var parts: [String] = []
         if let band = cloud.accessTable.band(for: level)?.name, band != tier.roleName { parts.append(band) }
         parts.append("Level \(level)")
-        if crewNumber > 0 { parts.append("Crew member \(crewNumber)") }
+        if crewNumber > 0 { parts.append("Crew member \(CrewCloud.numberText(crewNumber))") }
         return parts.joined(separator: " · ")
     }
 }

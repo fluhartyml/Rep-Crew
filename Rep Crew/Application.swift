@@ -222,6 +222,9 @@ extension CrewCloud {
     /// reached iCloud (creationDate, which a later save doesn't change). Empty when iCloud didn't answer.
     /// REM: his word, 2026-10-25, seeing "Crew member 2" on his own card: "i should have been number one".
     /// The old number came from the invite chain (inviter + 1, kept per phone), so it wasn't anyone's real place.
+    /// "01", "02" … "99", then "100". His word, 2026-10-25: "make my number 01".
+    static func numberText(_ number: Int) -> String { String(format: "%02d", number) }
+
     func userNumbers() async -> [String: Int] {
         await connect()
         let query = CKQuery(recordType: "CrewApplication", predicate: NSPredicate(value: true))

@@ -121,7 +121,7 @@ struct NewChallengeView: View {
                                     .font(AppFont.heading)
                                 Text(member.name).font(AppFont.bodyBold).foregroundStyle(.primary)
                                 Spacer()
-                                Text("Crew member \(member.crewNumber)").font(AppFont.body).foregroundStyle(.secondary)
+                                Text("Crew member \(CrewCloud.numberText(member.crewNumber))").font(AppFont.body).foregroundStyle(.secondary)
                             }
                         }
                     }

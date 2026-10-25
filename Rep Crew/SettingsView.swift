@@ -36,7 +36,7 @@ struct SettingsView: View {
                 } header: {
                     header("You")
                 } footer: {
-                    Text("Your crew sees this name on your invites. You are crew member \(crewNumber).")
+                    Text("Your crew sees this name on your invites. You are crew member \(CrewCloud.numberText(crewNumber)).")
                         .font(AppFont.body)
                 }
 
@@ -96,7 +96,7 @@ struct SettingsView: View {
                             HStack {
                                 Text(member.name).font(AppFont.bodyBold)
                                 Spacer()
-                                Text("Crew member \(member.crewNumber)").font(AppFont.body)
+                                Text("Crew member \(CrewCloud.numberText(member.crewNumber))").font(AppFont.body)
                             }
                         }
                     }
