@@ -297,6 +297,8 @@ struct ContentView: View {
             .union(declined.split(separator: "\n").map(String.init))
         await cloud.refreshPending(skipping: skip)
         await CrewNotifications.requestPermission()
+        // A leader's Edit Exercises reaches your copy of their challenge (EditExercises.swift).
+        await GoalSync.run(challenges, context: context)
         let found = await cloud.crewChallenges()
         await cloud.refreshClosures(Dictionary(found.map { ($0.id, $0.leaderID) }, uniquingKeysWith: { first, _ in first }))
         listings = found

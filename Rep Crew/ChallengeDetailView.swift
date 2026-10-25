@@ -18,6 +18,7 @@ struct ChallengeDetailView: View {
     @State private var confirmingDelete = false
     @State private var confirmingClose = false
     @State private var runningRoutine = false
+    @State private var editingExercises = false
     @State private var closeFailed: String?
     /// Read so this screen redraws the moment a closing arrives (ChallengeClose.swift).
     @AppStorage(CrewSettings.closedChallenges) private var closedChallenges = ""
@@ -113,6 +114,13 @@ struct ChallengeDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    // REM: his ask 2026-10-25 — change a running challenge's units and goals. The leader only:
+                    // the shared record is theirs, so nobody else's edit could reach the crew (EditExercises.swift).
+                    if challenge.leaderID.isEmpty && !challenge.isFinished {
+                        Button { editingExercises = true } label: {
+                            Label("Edit Exercises", systemImage: "slider.horizontal.3")
+                        }
+                    }
                     if canClose {
                         Button { confirmingClose = true } label: {
                             Label("Close Challenge", systemImage: "lock")
@@ -131,6 +139,7 @@ struct ChallengeDetailView: View {
         .sheet(item: $customGoal) { goal in CustomRepsView(goal: goal) }
         .sheet(item: $setGoal) { goal in SetTimerView(goal: goal) }
         .sheet(isPresented: $runningRoutine) { RoutineView(challenge: challenge) }
+        .sheet(isPresented: $editingExercises) { EditExercisesView(challenge: challenge) }
         .onAppear { assignCrewID() }
         // Only once something is paired, so opening a challenge never asks for Health access by itself.
         .task { if challenge.countsHealth { await HealthLibrary.shared.refresh() } else { await DailyStats.refreshHealthIfAllowed() } }
