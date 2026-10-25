@@ -207,7 +207,7 @@ struct ChallengeDetailView: View {
             for goal in challenge.sortedGoals {
                 let done = goal.total(on: .now)
                 let mark = done >= goal.dailyTarget ? " ✅" : ""
-                lines.append("\(goal.name): \(done)/\(goal.dailyTarget)\(mark)")
+                lines.append("\(goal.name): \(goal.unit.amount(done))/\(goal.unit.label(goal.dailyTarget))\(mark)")
             }
         }
         lines.append("\(challenge.completedDays) of \(challenge.days) days completed")
@@ -256,13 +256,13 @@ private struct GoalRow: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(goal.name).font(AppFont.heading)
                 Spacer()
-                Text("\(done) / \(goal.dailyTarget)").font(AppFont.bigNumber).monospacedDigit()
+                Text("\(goal.unit.amount(done)) / \(goal.unit.amount(goal.dailyTarget))").font(AppFont.bigNumber).monospacedDigit()
             }
             ProgressView(value: Double(min(done, goal.dailyTarget)), total: Double(goal.dailyTarget))
                 .tint(left == 0 ? .green : .accentColor)
             // Undo sits on the "to go" line so the add buttons get the full width.
             HStack {
-                Text(left == 0 ? "Goal met" : (byHealth ? "Checked off by a Health workout" : "\(left) to go"))
+                Text(left == 0 ? "Goal met" : (byHealth ? "Checked off by a Health workout" : "\(goal.unit.label(left)) to go"))
                     .font(AppFont.bodyBold)
                     .foregroundStyle(left == 0 || byHealth ? .green : .primary)
                 Spacer()
@@ -281,7 +281,7 @@ private struct GoalRow: View {
             }
             // +5, +10, Other, then the whole daily goal in one tap (Michael's layout).
             HStack(spacing: 10) {
-                ForEach([5, 10], id: \.self) { amount in
+                ForEach(goal.unit.quickAdds, id: \.self) { amount in
                     addButton(amount)
                 }
                 Button("Other") { onCustom() }
@@ -302,7 +302,7 @@ private struct GoalRow: View {
     }
 
     private func addButton(_ amount: Int) -> some View {
-        Button("+\(amount)") { log(amount) }
+        Button("+\(goal.unit.amount(amount))") { log(amount) }
             .font(AppFont.bodyBold)
             .buttonStyle(.bordered)
             .lineLimit(1)
@@ -334,7 +334,7 @@ private struct DayRow: View {
                 Text(isToday ? "Today" : day.formatted(.dateTime.weekday(.wide).month().day()))
                     .font(AppFont.bodyBold)
                 if !isFuture {
-                    Text(challenge.sortedGoals.map { "\($0.name) \($0.total(on: day))" }.joined(separator: " · "))
+                    Text(challenge.sortedGoals.map { "\($0.name) \($0.unit.amount($0.total(on: day)))" }.joined(separator: " · "))
                         .font(AppFont.body)
                     if let stats = challenge.statsText(on: day) {
                         Text(stats).font(AppFont.body).foregroundStyle(.secondary)
@@ -356,24 +356,26 @@ private struct CustomRepsView: View {
     @Environment(\.dismiss) private var dismiss
     let goal: ExerciseGoal
 
-    @State private var count = 20
+    @State private var text = ""
     @FocusState private var focused: Bool
+
+    private var count: Int { goal.unit.count(from: text) ?? 0 }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Reps", value: $count, format: .number)
-                        .keyboardType(.numberPad)
+                    TextField(goal.unit.title, text: $text)
+                        .keyboardType(goal.unit.takesDecimal ? .decimalPad : .numberPad)
                         .font(AppFont.bigNumber)
                         .focused($focused)
                 } header: {
-                    Text("How many \(goal.name.lowercased())?").font(AppFont.bodyBold).textCase(nil)
+                    Text(goal.unit == .reps ? "How many \(goal.name.lowercased())?" : "How many \(goal.unit.rawValue) of \(goal.name.lowercased())?").font(AppFont.bodyBold).textCase(nil)
                 } footer: {
-                    Text("\(goal.remaining(on: .now)) to go today.").font(AppFont.body)
+                    Text("\(goal.unit.label(goal.remaining(on: .now))) to go today.").font(AppFont.body)
                 }
             }
-            .navigationTitle("Log Reps")
+            .navigationTitle("Log \(goal.unit.title)")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -392,7 +394,7 @@ private struct CustomRepsView: View {
                 }
             }
             .onAppear {
-                count = max(goal.remaining(on: .now), 1)
+                text = goal.unit.amount(max(goal.remaining(on: .now), goal.unit.scale)).replacingOccurrences(of: ",", with: "")
                 focused = true
             }
         }

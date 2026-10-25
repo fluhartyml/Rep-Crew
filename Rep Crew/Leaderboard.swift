@@ -61,7 +61,7 @@ struct CrewListing: Identifiable, Hashable {
     }
 
     var goalsText: String {
-        info.goals.map { "\($0.target) \($0.name.lowercased())" }.joined(separator: " and ") + " a day for \(info.days) days"
+        info.goals.map { $0.exerciseUnit.goalText($0.target, name: $0.name) }.joined(separator: " and ") + " a day for \(info.days) days"
     }
 }
 
@@ -213,6 +213,8 @@ struct BoardBlock<Link: Hashable>: View {
     let crewID: String
     let day: Int
     let days: Int
+    /// What the board's totals count in: the challenge's one unit, or reps when its exercises differ.
+    var unit: ExerciseUnit = .reps
     /// You, when you're in this challenge.
     var me: CrewStanding?
     /// You lead this challenge, so you can remove people from it.
@@ -302,10 +304,10 @@ struct BoardBlock<Link: Hashable>: View {
     /// the board is where the whole crew is listed. Not before iCloud answers, and not for someone banned.
     @ViewBuilder private func standing(_ row: CrewStanding) -> some View {
         if row.disqualified || row.id == "me" {
-            StandingRow(row: row, isMe: row.id == me?.id)
+            StandingRow(row: row, isMe: row.id == me?.id, unit: unit)
         } else {
             Button { profileOf = ProfileTarget(id: row.id, name: row.name) } label: {
-                StandingRow(row: row, isMe: row.id == me?.id).contentShape(Rectangle())
+                StandingRow(row: row, isMe: row.id == me?.id, unit: unit).contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityHint("Opens their profile")
@@ -332,7 +334,7 @@ struct LeaderboardSection: View {
     var body: some View {
         if let day = challenge.dayNumber(), !challenge.crewID.isEmpty {
             Section {
-                BoardBlock<Challenge>(crewID: challenge.crewID, day: day, days: challenge.days, me: challenge.myStanding,
+                BoardBlock<Challenge>(crewID: challenge.crewID, day: day, days: challenge.days, unit: challenge.sharedUnit, me: challenge.myStanding,
                                       canBan: challenge.leaderID.isEmpty || GodMode.isOn)
             } header: {
                 Text("Leaderboard").font(AppFont.bodyBold).textCase(nil)
@@ -363,7 +365,7 @@ extension LeaderboardSection {
         guard challenge.isComplete(on: .now) else { return }
         let key = "finished.\(challenge.crewID).\(day)"
         guard !UserDefaults.standard.bool(forKey: key) else { return }
-        let goals = challenge.sortedGoals.map { "\($0.dailyTarget) \($0.name.lowercased())" }.joined(separator: " and ")
+        let goals = challenge.sortedGoals.map { $0.unit.goalText($0.dailyTarget, name: $0.name) }.joined(separator: " and ")
         if await CrewCloud.shared.send("Finished today: \(goals). Day \(day) of \(challenge.days).",
                                        crewID: challenge.crewID, kind: .finished,
                                        senderName: me.isEmpty ? "A crew member" : me) {
@@ -375,6 +377,7 @@ extension LeaderboardSection {
 private struct StandingRow: View {
     let row: CrewStanding
     let isMe: Bool
+    var unit: ExerciseUnit = .reps
 
     var body: some View {
         HStack(spacing: 12) {
@@ -389,14 +392,14 @@ private struct StandingRow: View {
                 }
             }
             Spacer()
-            Text("\(row.reps) reps").font(AppFont.bodyBold).monospacedDigit()
+            Text(unit.label(row.reps)).font(AppFont.bodyBold).monospacedDigit()
             if row.streak > 0 {
                 Text("🔥 \(row.streak)").font(AppFont.body).monospacedDigit()
             }
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(row.name), \(row.reps) reps today" + (healthLine.isEmpty ? "" : ", \(healthLine) from Health")
+        .accessibilityLabel("\(row.name), \(unit.label(row.reps)) today" + (healthLine.isEmpty ? "" : ", \(healthLine) from Health")
                             + (row.streak > 0 ? ", \(row.streak) day streak" : ""))
     }
 
@@ -436,7 +439,7 @@ struct LeaderboardsView: View {
                 ForEach(mine) { challenge in
                     if let day = challenge.dayNumber() {
                         BoardBlock(title: challenge.title, link: challenge, crewID: challenge.crewID,
-                                   day: day, days: challenge.days, me: challenge.myStanding,
+                                   day: day, days: challenge.days, unit: challenge.sharedUnit, me: challenge.myStanding,
                                    canBan: challenge.leaderID.isEmpty || GodMode.isOn)
                     }
                 }
@@ -450,7 +453,7 @@ struct LeaderboardsView: View {
                 ForEach(others) { listing in
                     if let day = listing.dayNumber {
                         BoardBlock(title: listing.info.title, link: listing, crewID: listing.id,
-                                   day: day, days: listing.info.days)
+                                   day: day, days: listing.info.days, unit: listing.info.sharedUnit)
                     }
                 }
             } header: {

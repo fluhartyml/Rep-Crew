@@ -91,6 +91,7 @@ enum CrewRestore {
             var goals: [ExerciseGoal] = []
             for (index, goal) in info.goals.enumerated() {
                 let exercise = ExerciseGoal(name: goal.name, dailyTarget: goal.target, order: index)
+                exercise.unit = goal.exerciseUnit
                 exercise.challenge = challenge
                 context.insert(exercise)
                 goals.append(exercise)

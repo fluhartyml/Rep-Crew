@@ -38,7 +38,7 @@ extension Challenge {
     func statsText(on date: Date) -> String? {
         let sets = sets(on: date)
         guard sets > 0 else { return nil }
-        var parts = ["\(sets) \(sets == 1 ? "set" : "sets")", "\(reps(on: date).formatted()) reps"]
+        var parts = ["\(sets) \(sets == 1 ? "set" : "sets")", sharedUnit.label(reps(on: date))]
         let seconds = activeSeconds(on: date)
         if seconds >= 1 { parts.append(DailyStats.duration(seconds)) }
         return parts.joined(separator: " · ")
@@ -139,7 +139,7 @@ struct ActivitySection: View {
         let entries = challenge.allGoals.flatMap(\.allEntries)
         let reps = entries.reduce(0) { $0 + $1.count }
         let seconds = challenge.allDays.reduce(0) { $0 + challenge.activeSeconds(on: $1) }
-        var text = "All days: \(reps.formatted()) reps in \(entries.count) \(entries.count == 1 ? "set" : "sets")"
+        var text = "All days: \(challenge.sharedUnit.label(reps)) in \(entries.count) \(entries.count == 1 ? "set" : "sets")"
         if seconds >= 1 { text += " · " + DailyStats.duration(seconds) }
         return text
     }
@@ -208,7 +208,7 @@ private struct SetRow: View {
             HStack {
                 Text(entry.goal?.name ?? "Exercise").font(AppFont.bodyBold)
                 Spacer()
-                Text("\(entry.count) reps").font(AppFont.bodyBold).monospacedDigit()
+                Text((entry.goal?.unit ?? .reps).label(entry.count)).font(AppFont.bodyBold).monospacedDigit()
             }
             Text(detail).font(AppFont.body).foregroundStyle(.secondary)
             if let heart {

@@ -21,6 +21,7 @@ struct NewChallengeView: View {
         let id = UUID()
         var name: String
         var target: Int
+        var unit: ExerciseUnit = .reps
     }
 
     @State private var title = ""
@@ -44,7 +45,7 @@ struct NewChallengeView: View {
         if let again {
             _title = State(initialValue: again.title)
             _days = State(initialValue: again.days)
-            _drafts = State(initialValue: again.goals.map { Draft(name: $0.name, target: $0.target) })
+            _drafts = State(initialValue: again.goals.map { Draft(name: $0.name, target: $0.target, unit: $0.exerciseUnit) })
         }
     }
 
@@ -91,8 +92,16 @@ struct NewChallengeView: View {
                     ForEach($drafts) { $draft in
                         VStack(alignment: .leading, spacing: 10) {
                             TextField("Exercise", text: $draft.name).font(AppFont.bodyBold)
-                            Stepper(value: $draft.target, in: 1...10_000, step: stepSize(for: draft.target)) {
-                                Text("\(draft.target) a day").font(AppFont.body)
+                            // REM: his ask 2026-10-25: each exercise counts in reps, steps, minutes, miles or laps.
+                            Picker("Counts in", selection: $draft.unit) {
+                                ForEach(ExerciseUnit.allCases) { unit in
+                                    Text(unit.title).tag(unit)
+                                }
+                            }
+                            .font(AppFont.body)
+                            .onChange(of: draft.unit) { draft.target = draft.unit.startingTarget }
+                            Stepper(value: $draft.target, in: draft.unit.targetRange, step: draft.unit.targetStep(at: draft.target)) {
+                                Text("\(draft.unit.label(draft.target)) a day").font(AppFont.body)
                             }
                         }
                         .padding(.vertical, 4)
@@ -156,9 +165,6 @@ struct NewChallengeView: View {
     }
 
     /// Small goals step by 1, bigger ones by 5 or 10, so reaching 100 doesn't take 100 taps.
-    private func stepSize(for target: Int) -> Int {
-        target < 20 ? 1 : (target < 100 ? 5 : 10)
-    }
 
     private func save() {
         let challenge = Challenge(title: trimmedTitle, startDate: startDate, days: days)
@@ -167,6 +173,7 @@ struct NewChallengeView: View {
         var first: ExerciseGoal?
         for (index, draft) in validDrafts.enumerated() {
             let goal = ExerciseGoal(name: draft.name.trimmingCharacters(in: .whitespaces), dailyTarget: draft.target, order: index)
+            goal.unit = draft.unit
             goal.challenge = challenge
             context.insert(goal)
             if first == nil { first = goal }

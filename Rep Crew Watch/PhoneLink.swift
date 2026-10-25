@@ -17,6 +17,15 @@ struct WatchGoal: Identifiable, Hashable {
     let name: String
     let done: Int
     let target: Int
+    /// "reps", "steps", "minutes", "miles" or "laps" (the iPhone's ExerciseUnit), and stored counts per unit:
+    /// miles travel in tenths, so 25 is 2.5 miles. An older iPhone build sends neither: reps.
+    var unit: String = "reps"
+    var scale: Int = 1
+
+    /// "2.5", "4,200".
+    func amount(_ count: Int) -> String {
+        scale > 1 ? (Double(count) / Double(scale)).formatted(.number.precision(.fractionLength(0...1))) : count.formatted()
+    }
 }
 
 @MainActor @Observable
@@ -41,7 +50,8 @@ final class PhoneLink: NSObject, WCSessionDelegate {
         goals = list.compactMap { item in
             guard let id = item["id"] as? String, let name = item["name"] as? String else { return nil }
             return WatchGoal(id: id, challenge: item["challenge"] as? String ?? "", name: name,
-                             done: item["done"] as? Int ?? 0, target: item["target"] as? Int ?? 0)
+                             done: item["done"] as? Int ?? 0, target: item["target"] as? Int ?? 0,
+                             unit: item["unit"] as? String ?? "reps", scale: max(item["scale"] as? Int ?? 1, 1))
         }
     }
 

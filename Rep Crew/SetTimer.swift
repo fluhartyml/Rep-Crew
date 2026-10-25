@@ -21,7 +21,9 @@ enum HealthSets {
     static let shareTypes: Set<HKSampleType> = [HKObjectType.workoutType()]
     /// Read for Match Health Workouts only. Asked in the same prompt as saving, so it's one question.
     static let readTypes: Set<HKObjectType> = [HKObjectType.workoutType(), HKQuantityType(.activeEnergyBurned),
-                                               HKQuantityType(.heartRate)]
+                                               HKQuantityType(.heartRate), HKQuantityType(.stepCount),
+                                               HKQuantityType(.distanceWalkingRunning), HKQuantityType(.distanceCycling),
+                                               HKQuantityType(.distanceSwimming)]
 
     /// The Health workout type for an exercise, by its name. Anything not named here stays strength training.
     /// REM: tester feedback he passed on, 2026-10-25: "When I did a walk (I clicked start set in the Rep Crew app) it
@@ -126,8 +128,8 @@ struct SetTimerPanel: View {
             Text(goal.name).font(AppFont.heading)
             if let end {
                 Text(Self.duration(end.timeIntervalSince(start))).font(AppFont.bigNumber).monospacedDigit()
-                TextField("Reps in this set", text: $reps)
-                    .keyboardType(.numberPad)
+                TextField("\(goal.unit.title) in this set", text: $reps)
+                    .keyboardType(goal.unit.takesDecimal ? .decimalPad : .numberPad)
                     .font(AppFont.heading)
                     .multilineTextAlignment(.center)
                     .textFieldStyle(.roundedBorder)
@@ -138,7 +140,7 @@ struct SetTimerPanel: View {
                     Text("Save Set").font(AppFont.bodyBold).frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(saving || logged || (Int(reps) ?? 0) <= 0)
+                .disabled(saving || logged || goal.unit.count(from: reps) == nil)
                 if let healthNote {
                     Text(healthNote).font(AppFont.body).multilineTextAlignment(.center)
                     Button { onSaved() } label: {
@@ -151,9 +153,27 @@ struct SetTimerPanel: View {
                     Text(Self.duration(context.date.timeIntervalSince(start))).font(AppFont.bigNumber).monospacedDigit()
                 }
                 Button {
-                    end = .now
+                    let finished = Date.now
+                    end = finished
                     timing = false
-                    reps = goal.remaining(on: .now) > 0 ? "\(goal.remaining(on: .now))" : ""
+                    // REM: his ask 2026-10-25 (units): minutes come from this set's clock, steps and miles from
+                    // what Health counted during it; reps and laps start at what's left of today's goal, as before.
+                    // Any of them can be changed before Save Set. Nothing measured → the field is left to type.
+                    switch goal.unit {
+                    case .minutes:
+                        reps = "\(max(Int((finished.timeIntervalSince(start) / 60).rounded()), 1))"
+                    case .steps, .miles:
+                        reps = ""
+                        let unit = goal.unit, name = goal.name, from = start
+                        Task {
+                            if let measured = await HealthSets.measured(unit, exercise: name, start: from, end: finished), reps.isEmpty {
+                                reps = unit.amount(measured).replacingOccurrences(of: ",", with: "")
+                            }
+                        }
+                    case .reps, .laps:
+                        let left = goal.remaining(on: .now)
+                        reps = left > 0 ? goal.unit.amount(left).replacingOccurrences(of: ",", with: "") : ""
+                    }
                     repsFocused = true
                 } label: {
                     Text("Finish Set").font(AppFont.bodyBold).frame(maxWidth: .infinity)
@@ -166,7 +186,7 @@ struct SetTimerPanel: View {
     }
 
     private func save(end: Date) async {
-        guard let count = Int(reps), count > 0 else { return }
+        guard let count = goal.unit.count(from: reps) else { return }
         saving = true
         let entry = RepEntry(count: count, loggedAt: end)
         entry.startedAt = start

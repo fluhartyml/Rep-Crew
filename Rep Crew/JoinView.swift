@@ -38,7 +38,7 @@ struct JoinView: View {
                         if let challenge = invite.challenge {
                             Text(challenge.title).font(AppFont.heading)
                             ForEach(challenge.goals, id: \.name) { goal in
-                                Text("\(goal.name): \(goal.target) a day").font(AppFont.body)
+                                Text("\(goal.name): \(goal.exerciseUnit.label(goal.target)) a day").font(AppFont.body)
                             }
                             Text("\(challenge.days) days, starting \(startText(challenge))").font(AppFont.body)
                         } else {
@@ -115,6 +115,7 @@ struct JoinView: View {
             context.insert(challenge)
             for (index, goal) in info.goals.enumerated() {
                 let exercise = ExerciseGoal(name: goal.name, dailyTarget: goal.target, order: index)
+                exercise.unit = goal.exerciseUnit
                 exercise.challenge = challenge
                 context.insert(exercise)
             }

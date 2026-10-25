@@ -34,7 +34,8 @@ final class WatchBridge: NSObject, WCSessionDelegate {
             challenge.sortedGoals.compactMap { goal -> [String: Any]? in
                 guard let id = Self.encode(goal.persistentModelID) else { return nil }
                 return ["id": id, "challenge": challenge.title, "name": goal.name,
-                        "done": goal.total(on: .now), "target": goal.dailyTarget]
+                        "done": goal.total(on: .now), "target": goal.dailyTarget,
+                        "unit": goal.unit.rawValue, "scale": goal.unit.scale]
             }
         }
         try? WCSession.default.updateApplicationContext(["goals": goals, "sent": Date.now.timeIntervalSince1970])

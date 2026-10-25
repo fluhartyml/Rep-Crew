@@ -23,7 +23,7 @@ struct GoalListView: View {
                     NavigationLink(value: goal) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(goal.name).font(WatchFont.bodyBold)
-                            Text("\(goal.done) / \(goal.target) · \(goal.challenge)").font(WatchFont.body)
+                            Text("\(goal.amount(goal.done)) / \(goal.amount(goal.target)) \(goal.unit) · \(goal.challenge)").font(WatchFont.body)
                                 .foregroundStyle(.secondary).lineLimit(1)
                         }
                     }
@@ -45,6 +45,9 @@ final class SetSession: NSObject, HKLiveWorkoutBuilderDelegate, HKWorkoutSession
     private(set) var start: Date?
     private(set) var end: Date?
     private(set) var calories: Double = 0
+    /// Steps or distance the Watch counted during the set, for a steps or miles goal.
+    private(set) var steps: Double = 0
+    private(set) var miles: Double = 0
     var problem: String?
 
     /// The Health workout type for an exercise, by its name. Anything not named here stays strength training.
@@ -67,7 +70,9 @@ final class SetSession: NSObject, HKLiveWorkoutBuilderDelegate, HKWorkoutSession
     func begin(exercise: String) async {
         let energy = HKQuantityType(.activeEnergyBurned)
         do {
-            try await store.requestAuthorization(toShare: [HKObjectType.workoutType(), energy], read: [energy])
+            let counted: Set<HKObjectType> = [HKQuantityType(.stepCount), HKQuantityType(.distanceWalkingRunning),
+                                              HKQuantityType(.distanceCycling), HKQuantityType(.distanceSwimming)]
+            try await store.requestAuthorization(toShare: [HKObjectType.workoutType(), energy], read: counted.union([energy]))
             let configuration = HKWorkoutConfiguration()
             configuration.activityType = Self.activityType(for: exercise)
             configuration.locationType = [.walking, .running, .hiking, .cycling].contains(configuration.activityType) ? .outdoor : .indoor
@@ -111,7 +116,14 @@ final class SetSession: NSObject, HKLiveWorkoutBuilderDelegate, HKWorkoutSession
 
     nonisolated func workoutBuilder(_ workoutBuilder: HKLiveWorkoutBuilder, didCollectDataOf collectedTypes: Set<HKSampleType>) {
         let kcal = workoutBuilder.statistics(for: HKQuantityType(.activeEnergyBurned))?.sumQuantity()?.doubleValue(for: .kilocalorie()) ?? 0
-        Task { @MainActor in self.calories = kcal }
+        let steps = workoutBuilder.statistics(for: HKQuantityType(.stepCount))?.sumQuantity()?.doubleValue(for: .count()) ?? 0
+        let miles = [HKQuantityType(.distanceWalkingRunning), HKQuantityType(.distanceCycling), HKQuantityType(.distanceSwimming)]
+            .compactMap { workoutBuilder.statistics(for: $0)?.sumQuantity()?.doubleValue(for: .mile()) }.max() ?? 0
+        Task { @MainActor in
+            self.calories = kcal
+            self.steps = steps
+            self.miles = miles
+        }
     }
 
     nonisolated func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {}
@@ -143,15 +155,23 @@ struct SetView: View {
                     Button("Finish Set") {
                         // REM: Watch feedback he passed on, 2026-10-25: "instead of having the Reps set at Max when
                         // you finish a set, it should probably start at 0". Crown up from 0; Save stays off until 1.
-                        reps = 0
+                        // Units (his ask, same day): minutes from the set's clock, steps and miles from what the Watch
+                        // counted; reps and laps still start at 0. The crown changes any of them.
+                        switch goal.unit {
+                        case "minutes": reps = Double(max(Int((Date.now.timeIntervalSince(start) / 60).rounded()), 1))
+                        case "steps": reps = set.steps.rounded()
+                        case "miles": reps = (set.miles * Double(goal.scale)).rounded()
+                        default: reps = 0
+                        }
                         set.finish()
                     }
                     .tint(.green)
                 } else if set.end != nil {
-                    Text("\(Int(reps))").font(WatchFont.bigNumber).monospacedDigit()
+                    Text(goal.amount(Int(reps))).font(WatchFont.bigNumber).monospacedDigit()
                         .focusable()
-                        .digitalCrownRotation($reps, from: 0, through: 1000, by: 1, sensitivity: .medium)
-                    Text("reps — turn the crown").font(WatchFont.body)
+                        .digitalCrownRotation($reps, from: 0, through: goal.unit == "steps" ? 100_000 : 1000,
+                                              by: goal.unit == "steps" ? 100 : 1, sensitivity: .medium)
+                    Text("\(goal.unit) — turn the crown").font(WatchFont.body)
                     Button("Save Set") { Task { await save() } }
                         .disabled(saving || reps < 1)
                         .tint(.green)

@@ -66,8 +66,8 @@ struct RoutineView: View {
         let left = goal.remaining(on: .now)
         VStack(spacing: 20) {
             Text(goal.name).font(AppFont.heading)
-            Text("\(done) / \(goal.dailyTarget)").font(AppFont.bigNumber).monospacedDigit()
-            Text(left == 0 ? "Goal met" : "\(left) to go").font(AppFont.bodyBold)
+            Text("\(goal.unit.amount(done)) / \(goal.unit.label(goal.dailyTarget))").font(AppFont.bigNumber).monospacedDigit()
+            Text(left == 0 ? "Goal met" : "\(goal.unit.label(left)) to go").font(AppFont.bodyBold)
                 .foregroundStyle(left == 0 ? .green : .primary)
             if let next = nextIndex {
                 Button { move(to: next) } label: {

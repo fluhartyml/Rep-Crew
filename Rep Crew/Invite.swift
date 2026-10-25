@@ -31,6 +31,8 @@ struct Invite: Codable, Equatable, Identifiable {
     struct Goal: Codable, Equatable {
         var name: String
         var target: Int
+        /// ExerciseUnit's raw value. Missing on invites made before units, which read as reps.
+        var unit: String? = nil
     }
 
     static let scheme = "repcrew"
@@ -72,7 +74,7 @@ struct Invite: Codable, Equatable, Identifiable {
     func message(isPublic: Bool) -> String {
         var lines: [String] = []
         if let challenge {
-            let goals = challenge.goals.map { "\($0.target) \($0.name.lowercased())" }.joined(separator: " and ")
+            let goals = challenge.goals.map { $0.exerciseUnit.goalText($0.target, name: $0.name) }.joined(separator: " and ")
             lines.append("\(from) challenged you on Rep Crew: \(challenge.title). \(goals) a day for \(challenge.days) days, starting \(Self.displayDay(challenge.startDay)).")
         } else {
             lines.append("\(from) invited you to join their crew on Rep Crew.")
@@ -128,7 +130,7 @@ extension Invite.ChallengeInfo {
                   title: challenge.title,
                   startDay: Invite.dayString(challenge.startDate),
                   days: challenge.days,
-                  goals: challenge.sortedGoals.map { Invite.Goal(name: $0.name, target: $0.dailyTarget) })
+                  goals: challenge.sortedGoals.map { Invite.Goal(name: $0.name, target: $0.dailyTarget, unit: $0.unit == .reps ? nil : $0.unit.rawValue) })
     }
 }
 

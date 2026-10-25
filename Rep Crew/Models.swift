@@ -113,6 +113,8 @@ final class ExerciseGoal {
     var name: String = ""
     var dailyTarget: Int = 0
     var order: Int = 0
+    /// Reps, steps, minutes, miles or laps (ExerciseUnit.swift). Empty = reps, as every exercise was before.
+    var unitName: String = ""
     var challenge: Challenge?
 
     @Relationship(deleteRule: .cascade, inverse: \RepEntry.goal)
