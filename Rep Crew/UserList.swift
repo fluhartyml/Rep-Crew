@@ -94,7 +94,7 @@ struct UserListView: View {
     }
 }
 
-private struct UserDetailView: View {
+struct UserDetailView: View {
     let user: CrewUser
 
     var body: some View {
@@ -107,7 +107,7 @@ private struct UserDetailView: View {
                 }
                 .listRowBackground(Color.clear)
             }
-            MemberAccessSection(memberID: user.id)
+            MemberAccessSection(memberID: user.id, name: user.name)
             Section {
                 field("Phone", user.profile?.phone, privately: user.profile?.privateFields.contains("phone") ?? false)
                 field("Email", user.profile?.email, privately: user.profile?.privateFields.contains("email") ?? false)
@@ -128,6 +128,7 @@ private struct UserDetailView: View {
             } header: {
                 Text("Application").font(AppFont.bodyBold).textCase(nil)
             }
+            if let application = user.application, GodMode.isOn { WelcomeLetterSection(entry: application) }
             Section {
                 Text(user.id).font(AppFont.body).foregroundStyle(.secondary).textSelection(.enabled)
             } header: {

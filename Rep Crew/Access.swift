@@ -341,9 +341,15 @@ private struct AccessBandView: View {
 /// Everyone sees a member's title and range; the head coach can change them here.
 struct MemberAccessSection: View {
     let memberID: String
+    /// Shown in Coach Mode → Coaches when a level of 250 or more makes them a coach.
+    var name = ""
     @State private var access = MemberAccess(level: 0, flags: "", title: "")
     @State private var loaded = false
     @State private var note: String?
+
+    /// 255 is the head coach alone (GodMode.ids), so a member tops out at 254.
+    static let highest = 254
+    static let coachLevel = 250
 
     var body: some View {
         Section {
@@ -354,24 +360,81 @@ struct MemberAccessSection: View {
                 Text("Flags \(access.flags)").font(AppFont.body).foregroundStyle(.secondary)
             }
             if GodMode.isOwner && loaded && !GodMode.ids.contains(memberID) {
-                Stepper("Level \(access.level)", value: $access.level, in: 0...249).font(AppFont.body)
+                // REM: his word 2026-10-25: "the up and down arrow should snap to the pre defined access levels and
+                // there should also be a number input box so you can fine adjust the levels … one point advantage
+                // over two coaches so one could have seniority". The arrows stopped at 249, so he couldn't make
+                // James a coach. Arrows jump to the start of each range; the box takes any level 0–254.
+                HStack {
+                    Text("Level").font(AppFont.body)
+                    TextField("0", value: $access.level, format: .number)
+                        .font(AppFont.bodyBold)
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.center)
+                        .frame(width: 72)
+                        .textFieldStyle(.roundedBorder)
+                        .onChange(of: access.level) { _, level in
+                            let clamped = min(max(level, 0), Self.highest)
+                            if clamped != level { access.level = clamped }
+                        }
+                    Spacer()
+                    Stepper("Level", onIncrement: { access.level = Self.nextStart(above: access.level, in: table) },
+                            onDecrement: { access.level = Self.previousStart(below: access.level, in: table) })
+                        .labelsHidden()
+                }
                 TextField("Title, like Team Leader", text: $access.title).font(AppFont.body)
                 TextField("Flags, like PZ", text: $access.flags)
                     .font(AppFont.body)
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
-                Button("Save Access") {
-                    Task { note = await CrewCloud.shared.saveMemberAccess(access, for: memberID) ? "Saved." : "Couldn't save. Check Settings → iCloud." }
-                }
-                .font(AppFont.bodyBold)
+                Button("Save Access") { Task { await save() } }
+                    .font(AppFont.bodyBold)
                 if let note { Text(note).font(AppFont.body) }
             }
         } header: {
             Text("Access").font(AppFont.bodyBold).textCase(nil)
+        } footer: {
+            if GodMode.isOwner && loaded && !GodMode.ids.contains(memberID) {
+                Text("The arrows jump to the start of each range. Type a number to set any level up to \(Self.highest). Level \(Self.coachLevel) or higher makes them a coach; lower takes it back.")
+                    .font(AppFont.body)
+            }
         }
         .task {
             access = await CrewCloud.shared.memberAccess(memberID)
             loaded = true
         }
+    }
+
+    /// REM: coach powers come from the CoachGrant list (GodMode.swift), not the level, so a level that
+    /// crosses 250 also grants or takes back coach. Otherwise "Coach" would show with no powers.
+    private func save() async {
+        let cloud = CrewCloud.shared
+        guard await cloud.saveMemberAccess(access, for: memberID) else {
+            note = "Couldn't save. Check Settings → iCloud."
+            return
+        }
+        let isCoach = cloud.coaches[memberID] != nil
+        let wantsCoach = access.level >= Self.coachLevel
+        if wantsCoach != isCoach {
+            let label = access.title.trimmingCharacters(in: .whitespaces)
+            guard await cloud.setCoach(memberID, name: name.isEmpty ? (label.isEmpty ? "Coach" : label) : name, on: wantsCoach) else {
+                note = "Level saved, but the coach change didn't go through. Check Settings → iCloud."
+                return
+            }
+        }
+        access = await cloud.memberAccess(memberID)
+        note = wantsCoach && !isCoach ? "Saved. They're a coach now." : (!wantsCoach && isCoach ? "Saved. They're no longer a coach." : "Saved.")
+    }
+
+    /// The starts of the table's ranges a member can hold, low to high, always including 0.
+    private static func starts(_ table: AccessTable) -> [Int] {
+        Array(Set([0] + table.bands.map { min($0.low, $0.high) }.filter { $0 <= highest })).sorted()
+    }
+
+    static func nextStart(above level: Int, in table: AccessTable) -> Int {
+        starts(table).first { $0 > level } ?? highest
+    }
+
+    static func previousStart(below level: Int, in table: AccessTable) -> Int {
+        starts(table).last { $0 < level } ?? 0
     }
 }

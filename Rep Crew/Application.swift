@@ -110,9 +110,12 @@ struct ApplicationView: View {
         .padding(.vertical, 4)
     }
 
-    /// Not Now still tells the coaches someone new arrived, just without answers.
+    /// Not Now still tells the coaches someone new arrived, without answers but with Apple's email.
+    /// REM: his word 2026-10-25, after James's blank application: "this is why i want an email from sign in
+    /// with apple". Sign-in already says the email goes only to the head coach, so Not Now keeps it.
     private func finish(send: Bool) {
-        let trimmed = CrewApplication(email: send ? answers.email.trimmingCharacters(in: .whitespacesAndNewlines) : "",
+        let email = (send ? answers.email : appleEmail).trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = CrewApplication(email: email,
                                       why: send ? answers.why.trimmingCharacters(in: .whitespacesAndNewlines) : "",
                                       goals: send ? answers.goals.trimmingCharacters(in: .whitespacesAndNewlines) : "",
                                       suggestions: send ? answers.suggestions.trimmingCharacters(in: .whitespacesAndNewlines) : "")
@@ -247,51 +250,77 @@ struct ApplicationsView: View {
     }
 }
 
+/// The same card as Coach Mode → User List (UserDetailView), which carries the welcome letter.
+/// REM: his word 2026-10-25: "new crew members should list the same card for the user as user list does".
 private struct ApplicationDetailView: View {
+    let entry: ApplicationEntry
+    @State private var user: CrewUser?
+
+    var body: some View {
+        Group {
+            if let user { UserDetailView(user: user) } else { ProgressView() }
+        }
+        .task {
+            let cloud = CrewCloud.shared
+            var profile: CrewProfile?
+            if case .found(let found) = await cloud.fetchProfile(entry.id) { profile = found }
+            user = CrewUser(id: entry.id, profile: profile, access: await cloud.memberAccess(entry.id), application: entry)
+        }
+    }
+}
+
+/// Send Welcome Letter: by email when one was given, else to their Rep Crew Inbox.
+struct WelcomeLetterSection: View {
     let entry: ApplicationEntry
     @AppStorage(CrewSettings.welcomeLetter) private var letter = WelcomeLetterView.starter
     @AppStorage(CrewSettings.welcomed) private var welcomed = ""
+    @AppStorage(CrewSettings.name) private var myName = ""
     @Environment(\.openURL) private var openURL
+    @State private var sending = false
+    @State private var note: String?
 
-    private var email: String { entry.answers?.email ?? "" }
+    private var email: String { entry.answers?.email.trimmingCharacters(in: .whitespacesAndNewlines) ?? "" }
 
     var body: some View {
-        List {
-            if let answers = entry.answers {
-                answer("Email", answers.email)
-                answer("Why they're joining", answers.why)
-                answer("Fitness goals", answers.goals)
-                answer("Ideas for getting started", answers.suggestions)
+        // REM: his word 2026-10-25: "if no email address is given i want the fallback to be within the apps inbox".
+        Section {
+            if email.isEmpty {
+                Button { Task { await sendToInbox() } } label: {
+                    Label("Send Welcome Letter to Inbox", systemImage: "tray.and.arrow.down.fill").font(AppFont.bodyBold)
+                }
+                .disabled(sending)
             } else {
-                Text("This application wasn't sealed to your phone's key, so it can't be opened here.")
-                    .font(AppFont.body)
-            }
-            Section {
-                Button(action: sendWelcome) {
+                Button(action: sendEmail) {
                     Label("Send Welcome Letter", systemImage: "paperplane.fill").font(AppFont.bodyBold)
                 }
-                .disabled(email.isEmpty)
-                if email.isEmpty {
-                    Text("No email was given, so there's nowhere to send it.").font(AppFont.body).foregroundStyle(.secondary)
-                }
             }
+            if let note { Text(note).font(AppFont.body) }
+        } header: {
+            Text("Welcome Letter").font(AppFont.bodyBold).textCase(nil)
+        } footer: {
+            Text(email.isEmpty ? "No email was given, so the letter goes to their Rep Crew Inbox."
+                               : (isWelcomed ? "Already welcomed." : "Opens Mail with your welcome letter."))
+                .font(AppFont.body)
         }
-        .navigationTitle(entry.name)
     }
 
-    private func answer(_ title: String, _ text: String) -> some View {
-        Section {
-            Text(text.isEmpty ? "Left blank" : text)
-                .font(AppFont.body)
-                .foregroundStyle(text.isEmpty ? .secondary : .primary)
-                .textSelection(.enabled)
-        } header: {
-            Text(title).font(AppFont.bodyBold).textCase(nil)
+    private var isWelcomed: Bool { welcomed.split(separator: "\n").contains(Substring(entry.id)) }
+
+    private func sendToInbox() async {
+        sending = true
+        let me = myName.trimmingCharacters(in: .whitespaces)
+        if await CrewCloud.shared.send(letter, crewID: CrewMessage.direct(to: entry.id), kind: .direct, to: entry.id,
+                                       senderName: me.isEmpty ? "Head Coach" : me) {
+            note = "Sent to \(entry.name)'s Inbox."
+            markWelcomed()
+        } else {
+            note = "That didn't go through. Check Settings → iCloud and try again."
         }
+        sending = false
     }
 
     /// Opens Mail with the letter, from his own address. The app can't send mail by itself.
-    private func sendWelcome() {
+    private func sendEmail() {
         var parts = URLComponents()
         parts.scheme = "mailto"
         parts.path = email
@@ -299,7 +328,11 @@ private struct ApplicationDetailView: View {
                             URLQueryItem(name: "body", value: letter)]
         guard let url = parts.url else { return }
         openURL(url)
-        if !welcomed.split(separator: "\n").contains(Substring(entry.id)) {
+        markWelcomed()
+    }
+
+    private func markWelcomed() {
+        if !isWelcomed {
             welcomed = (welcomed.split(separator: "\n").map(String.init) + [entry.id]).joined(separator: "\n")
         }
     }

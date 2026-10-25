@@ -455,7 +455,7 @@ struct ProfileView: View {
     var body: some View {
         NavigationStack {
             List {
-                MemberAccessSection(memberID: target.id)
+                MemberAccessSection(memberID: target.id, name: savedName)
                 Section {
                     VStack(spacing: 12) {
                         ProfilePhoto(image: profile?.photo, size: 140, seed: target.id)
