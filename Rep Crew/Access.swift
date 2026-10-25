@@ -484,6 +484,7 @@ struct AccessLevelMenu: View {
             } label: {
                 Label("Set Access Level", systemImage: "list.number")
             }
+            StartOverMenuItem(memberID: memberID)
         }
     }
 }

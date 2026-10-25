@@ -56,6 +56,9 @@ struct ApplicationView: View {
     @AppStorage(CrewSettings.name) private var name = ""
     @AppStorage(CrewSettings.crewName) private var crewName = ""
     @State private var answers = CrewApplication()
+    /// Send or Not Now tapped with no email: asks once more before going on.
+    @State private var askingEmail: Bool?
+    @FocusState private var focusedField: String?
 
     var body: some View {
         NavigationStack {
@@ -69,6 +72,16 @@ struct ApplicationView: View {
                     Text("Tell the head coach a little about yourself. Only coaches see this section.")
                         .font(AppFont.body)
                     field("Your email", text: $answers.email, keyboard: .emailAddress)
+                    // REM: his word, 2026-10-25: "as long as it pesters the user to enter an email address, can it
+                    // also offer a 'hide my email' by apple?" Hide My Email can't be made from inside an app; the
+                    // footer says where. The email field is marked as one, so the keyboard can suggest an address.
+                    if trimmedEmail.isEmpty {
+                        Label("Add your email to get verified. Without it you can look around, but you can't join or start challenges.",
+                              systemImage: "exclamationmark.circle.fill")
+                            .font(AppFont.bodyBold).foregroundStyle(.orange)
+                    }
+                    Text("Want to keep your address private? With iCloud+, make a Hide My Email address in Settings → your name → iCloud → Hide My Email, then paste it here.")
+                        .font(AppFont.body).foregroundStyle(.secondary)
                     field("Why are you joining Rep Crew?", text: $answers.why)
                     field("What are your fitness goals?", text: $answers.goals)
                     field("Any ideas to make getting started easier?", text: $answers.suggestions)
@@ -79,11 +92,11 @@ struct ApplicationView: View {
                 MyProfileSection()
 
                 Section {
-                    Button { finish(send: true) } label: {
+                    Button { tapped(send: true) } label: {
                         Text("Send to the Head Coach").font(AppFont.bodyBold).frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
-                    Button { finish(send: false) } label: {
+                    Button { tapped(send: false) } label: {
                         Text("Not Now").font(AppFont.body).frame(maxWidth: .infinity)
                     }
                 }
@@ -91,6 +104,16 @@ struct ApplicationView: View {
             // REM: his word 2026-10-24, "welcome to the... should take two lines if needed". A navigation
             // title can't wrap, so the title is the form's first line and wraps like any text.
             .toolbar(.hidden, for: .navigationBar)
+            .confirmationDialog("Go on without an email?", isPresented: Binding(get: { askingEmail != nil }, set: { if !$0 { askingEmail = nil } }),
+                                titleVisibility: .visible) {
+                Button("Add My Email") { askingEmail = nil; focusedField = "Your email" }
+                Button("Go On Without Email", role: .destructive) {
+                    if let send = askingEmail { finish(send: send) }
+                    askingEmail = nil
+                }
+            } message: {
+                Text("Without an email you stay a new user: you can look around but not join or start challenges, and the head coach can only welcome you in your Inbox.")
+            }
             .onAppear { if answers.email.isEmpty { answers.email = appleEmail } }
             // REM: the profile came back from iCloud only when Settings opened, so on his reinstalled 16e
             // this screen showed "No photo" while his 11 showed it (build 72). Fetch it here first.
@@ -108,8 +131,20 @@ struct ApplicationView: View {
                 .textInputAutocapitalization(keyboard == .emailAddress ? .never : .sentences)
                 .autocorrectionDisabled(keyboard == .emailAddress)
                 .lineLimit(1...6)
+                .textContentType(keyboard == .emailAddress ? .emailAddress : nil)
+                .focused($focusedField, equals: title)
         }
         .padding(.vertical, 4)
+    }
+
+    private var trimmedEmail: String {
+        answers.email.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Asks once more when there's no email to send (Send uses the typed one, Not Now Apple's).
+    private func tapped(send: Bool) {
+        let email = send ? trimmedEmail : appleEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        if email.isEmpty { askingEmail = send } else { finish(send: send) }
     }
 
     /// Not Now still tells the coaches someone new arrived, without answers but with Apple's email.
@@ -123,6 +158,7 @@ struct ApplicationView: View {
                                       suggestions: send ? answers.suggestions.trimmingCharacters(in: .whitespacesAndNewlines) : "")
         waiting = String(data: (try? JSONEncoder().encode(trimmed)) ?? Data(), encoding: .utf8) ?? ""
         done = true
+        UserDefaults.standard.set(false, forKey: CrewSettings.startingOver)
         if !trimmed.email.isEmpty { UserDefaults.standard.set(true, forKey: CrewSettings.applicationEmailGiven) }
         Task { await CrewCloud.shared.sendWaitingApplication(); await CrewCloud.shared.refreshMyAccess() }
         Task { await MyProfile.saveIfChanged() }
@@ -229,14 +265,24 @@ struct ApplicationsView: View {
                     Text("No applications yet.").font(AppFont.body).foregroundStyle(.secondary)
                 }
                 ForEach(entries) { entry in
+                    let isWelcomed = welcomed.split(separator: "\n").contains(Substring(entry.id))
                     NavigationLink {
                         UserAccountView(memberID: entry.id, application: entry)
                     } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(entry.name).font(AppFont.bodyBold)
-                            Text(entry.sent.formatted(date: .abbreviated, time: .shortened)
-                                 + (welcomed.split(separator: "\n").contains(Substring(entry.id)) ? " · Welcomed" : ""))
-                                .font(AppFont.body).foregroundStyle(.secondary)
+                        HStack(alignment: .top, spacing: 12) {
+                            // REM: his word, 2026-10-25: "it should have a blue dot or something till i have processed or
+                            // sent a welcome letter". Blue until the welcome letter goes, like Inbox.
+                            Circle().fill(.blue).frame(width: 10, height: 10).padding(.top, 8)
+                                .opacity(isWelcomed ? 0 : 1)
+                                .accessibilityLabel(isWelcomed ? "" : "Not welcomed yet")
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(entry.name).font(AppFont.bodyBold)
+                                Text(entry.sent.formatted(date: .abbreviated, time: .shortened) + (isWelcomed ? " · Welcomed" : ""))
+                                    .font(AppFont.body).foregroundStyle(.secondary)
+                                if entry.answers.map({ $0.email.isEmpty }) ?? false {
+                                    Text("No email given").font(AppFont.body).foregroundStyle(.orange)
+                                }
+                            }
                         }
                     }
                     .contextMenu { AccessLevelMenu(memberID: entry.id, name: entry.name) }
