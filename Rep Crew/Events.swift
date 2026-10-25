@@ -224,8 +224,14 @@ struct EventDetailView: View {
                             Label("Edit Event", systemImage: "pencil").font(AppFont.bodyBold)
                         }
                     }
+                    // The trash can red like the words (his word, 2026-10-25: "yes make the trash can red").
                     Button(role: .destructive) { confirmingRemove = true } label: {
-                        Label(isMine ? "Delete Event" : "Remove Event", systemImage: "trash").font(AppFont.bodyBold)
+                        Label {
+                            Text(isMine ? "Delete Event" : "Remove Event")
+                        } icon: {
+                            Image(systemName: "trash").foregroundStyle(.red)
+                        }
+                        .font(AppFont.bodyBold)
                     }
                 }
             }
