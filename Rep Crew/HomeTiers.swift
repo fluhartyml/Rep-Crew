@@ -153,14 +153,14 @@ struct ProfileCardSection: View {
         }
     }
 
-    /// "Member · Level 16 · Crew member 4".
+    /// "Member · Level 16", then "Crew member 04" on its own line (his word, 2026-10-25: "line break before crew").
     private var detail: String {
         let level = cloud.effectiveLevel
         var parts: [String] = []
         if let band = cloud.accessTable.band(for: level)?.name, band != tier.roleName { parts.append(band) }
         parts.append("Level \(level)")
-        if crewNumber > 0 { parts.append("Crew member \(CrewCloud.numberText(crewNumber))") }
-        return parts.joined(separator: " · ")
+        let first = parts.joined(separator: " · ")
+        return crewNumber > 0 ? first + "\nCrew member \(CrewCloud.numberText(crewNumber))" : first
     }
 }
 
