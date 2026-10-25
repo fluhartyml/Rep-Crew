@@ -218,6 +218,27 @@ extension CrewCloud {
         .sorted { $0.sent > $1.sent }
     }
 
+    /// Everyone's user number, BBS style: the head coach is 1, then everyone in the order their application first
+    /// reached iCloud (creationDate, which a later save doesn't change). Empty when iCloud didn't answer.
+    /// REM: his word, 2026-10-25, seeing "Crew member 2" on his own card: "i should have been number one".
+    /// The old number came from the invite chain (inviter + 1, kept per phone), so it wasn't anyone's real place.
+    func userNumbers() async -> [String: Int] {
+        await connect()
+        let query = CKQuery(recordType: "CrewApplication", predicate: NSPredicate(value: true))
+        guard let (results, _) = try? await db.records(matching: query, resultsLimit: 400) else { return [:] }
+        let joined = results.compactMap { try? $0.1.get() }
+            .compactMap { record -> (id: String, at: Date)? in
+                guard let id = record["memberID"] as? String, writer(of: record) == id else { return nil }
+                return (id, record.creationDate ?? .distantFuture)
+            }
+            .filter { !GodMode.ids.contains($0.id) }
+            .sorted { $0.at < $1.at }
+        var numbers: [String: Int] = [:]
+        for id in GodMode.ids { numbers[id] = 1 }
+        for (index, member) in joined.enumerated() { numbers[member.id] = index + 2 }
+        return numbers
+    }
+
     /// Coach's phone: a notification for each new crew member. Settings → Notifications → New crew members.
     func subscribeToNewMembers() async {
         await connect()

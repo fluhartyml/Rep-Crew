@@ -307,6 +307,8 @@ struct ContentView: View {
         }
         activity = seen
         await loadMyEvents()
+        // Your real user number (Application.swift → userNumbers), replacing the invite-chain one.
+        if let myID = cloud.myID, let number = await cloud.userNumbers()[myID] { crewNumber = number }
         let inboxCrewIDs = challenges.map(\.crewID).filter { !$0.isEmpty }
         let inboxLed = challenges.filter { $0.leaderID.isEmpty && !$0.crewID.isEmpty }.map(\.crewID)
         InboxBadge.remember(crewIDs: inboxCrewIDs, led: inboxLed)
