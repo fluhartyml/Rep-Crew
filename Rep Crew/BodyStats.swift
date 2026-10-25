@@ -134,12 +134,12 @@ enum BodyStatsReader {
         }
     }
 
-    /// Newest first, up to a year of daily readings. Empty when Health has none or access wasn't given.
-    static func history(_ stat: BodyStat) async -> [BodyReading] {
+    /// Newest first, up to `limit` readings (nil = every reading). Empty when Health has none or access wasn't given.
+    static func history(_ stat: BodyStat, limit: Int? = 366) async -> [BodyReading] {
         guard HKHealthStore.isHealthDataAvailable() else { return [] }
         let descriptor = HKSampleQueryDescriptor(predicates: [.quantitySample(type: stat.type)],
                                                  sortDescriptors: [SortDescriptor(\.endDate, order: .reverse)],
-                                                 limit: 366)
+                                                 limit: limit)
         guard let samples = try? await descriptor.result(for: HealthSets.store) else { return [] }
         return samples.map { BodyReading(id: $0.uuid, date: $0.endDate, value: $0.quantity.doubleValue(for: stat.healthUnit)) }
     }
@@ -192,7 +192,13 @@ struct BodyStatsView: View {
             } else {
                 Section {
                     ForEach(BodyStat.allCases) { stat in
-                        NavigationLink { BodyStatHistoryView(stat: stat, readings: readings[stat] ?? []) } label: {
+                        NavigationLink {
+                            if stat == .weight {
+                                WeightTrendView()
+                            } else {
+                                BodyStatHistoryView(stat: stat, readings: readings[stat] ?? [])
+                            }
+                        } label: {
                             BodyStatRow(stat: stat, latest: readings[stat]?.first, loaded: loaded)
                         }
                     }
@@ -292,6 +298,213 @@ struct BodyStatHistoryView: View {
         }
         .navigationTitle(stat.title)
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// The D / W / M / Y / All picker above the weight chart.
+enum WeightRange: String, CaseIterable, Identifiable {
+    case day = "D", week = "W", month = "M", year = "Y", all = "All"
+
+    var id: String { rawValue }
+
+    /// Where the range starts, counting back from now. nil = from the first reading.
+    func start(from now: Date) -> Date? {
+        let calendar = Calendar.current
+        switch self {
+        case .day: return calendar.date(byAdding: .day, value: -1, to: now)
+        case .week: return calendar.date(byAdding: .weekOfYear, value: -1, to: now)
+        case .month: return calendar.date(byAdding: .month, value: -1, to: now)
+        case .year: return calendar.date(byAdding: .year, value: -1, to: now)
+        case .all: return nil
+        }
+    }
+
+    var axisFormat: Date.FormatStyle {
+        switch self {
+        case .day: .dateTime.hour()
+        case .week: .dateTime.weekday(.abbreviated)
+        case .month: .dateTime.month(.abbreviated).day()
+        case .year: .dateTime.month(.abbreviated)
+        case .all: .dateTime.month(.abbreviated).year(.twoDigits)
+        }
+    }
+
+    var spokenName: String {
+        switch self {
+        case .day: "the last day"
+        case .week: "the last week"
+        case .month: "the last month"
+        case .year: "the last year"
+        case .all: "all time"
+        }
+    }
+}
+
+/// Weight over time against where you started.
+//  REM: his word, 2026-10-25: "can it show a D W M Y all time line graph to show weight trend with a line
+//  denoting start weight maybe a pink shade for the weights that log above starting weight and blue shade
+//  below starting weight?" → "yes build it and i want to enter current wight and have it track in the
+//  health app".
+//  REM: start weight = your FIRST reading in Health, and it stays put whichever range is picked (his yes to
+//  that plan). So every reading is read here (no 366 cap), or a long history would move the start.
+//  REM: the shade is drawn between the line and the start line. Where the line crosses the start between two
+//  readings, a point is added at the exact crossing, so pink stops and blue begins right there instead of
+//  one color bleeding past the line.
+struct WeightTrendView: View {
+    private let stat = BodyStat.weight
+
+    @AppStorage("weightTrendRange") private var range: WeightRange = .month
+    @State private var readings: [BodyReading] = []   // newest first
+    @State private var loaded = false
+    @State private var loggingWeight = false
+
+    private struct ShadePoint: Identifiable {
+        let id = UUID()
+        let date: Date
+        let value: Double
+    }
+
+    /// Oldest reading in Health, in your unit (lb or kg).
+    private var startValue: Double? { readings.last.map { stat.chartValue($0.value) } }
+
+    /// Readings in the picked range, oldest first, in your unit.
+    private var visible: [(date: Date, value: Double)] {
+        let from = range.start(from: .now)
+        return readings.reversed()
+            .filter { from == nil || $0.date >= from! }
+            .map { ($0.date, stat.chartValue($0.value)) }
+    }
+
+    /// The visible readings plus a point wherever the line crosses the start line.
+    private func shadePoints(start: Double) -> [ShadePoint] {
+        var points: [ShadePoint] = []
+        let readings = visible
+        for (index, reading) in readings.enumerated() {
+            if index > 0 {
+                let previous = readings[index - 1]
+                let before = previous.value - start, after = reading.value - start
+                if before * after < 0 {
+                    let fraction = before / (before - after)
+                    let seconds = reading.date.timeIntervalSince(previous.date) * fraction
+                    points.append(ShadePoint(date: previous.date.addingTimeInterval(seconds), value: start))
+                }
+            }
+            points.append(ShadePoint(date: reading.date, value: reading.value))
+        }
+        return points
+    }
+
+    private func yDomain(start: Double) -> ClosedRange<Double> {
+        let values = visible.map(\.value) + [start]
+        let low = values.min() ?? start, high = values.max() ?? start
+        let pad = max((high - low) * 0.1, 1)
+        return (low - pad)...(high + pad)
+    }
+
+    var body: some View {
+        List {
+            Section {
+                Picker("Range", selection: $range) {
+                    ForEach(WeightRange.allCases) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityLabel("Time range")
+
+                if let start = startValue {
+                    chart(start: start)
+                } else {
+                    Text(loaded ? "No weight readings in Health yet. Tap Log Weight to add one." : "Reading Health…")
+                        .font(AppFont.body)
+                }
+            } footer: {
+                if let first = readings.last {
+                    Text("Dashed line: your starting weight, \(stat.text(first.value)) on \(first.date.formatted(date: .abbreviated, time: .omitted)). Pink is above it, blue is below it.")
+                        .font(AppFont.body)
+                }
+            }
+
+            Section {
+                Button { loggingWeight = true } label: {
+                    Label("Log Weight", systemImage: "scalemass.fill").font(AppFont.bodyBold)
+                }
+            } footer: {
+                Text("Saved to Health, so only you see it.").font(AppFont.body)
+            }
+
+            Section {
+                ForEach(readings) { reading in
+                    HStack {
+                        Text(reading.date.formatted(date: .abbreviated, time: .omitted)).font(AppFont.body)
+                        Spacer()
+                        Text(stat.text(reading.value)).font(AppFont.bodyBold).monospacedDigit()
+                    }
+                }
+            } header: {
+                Text("Readings").font(AppFont.bodyBold).textCase(nil)
+            }
+        }
+        .navigationTitle("Weight")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await load() }
+        .refreshable { await load() }
+        .sheet(isPresented: $loggingWeight, onDismiss: { Task { await load() } }) { LogWeightView() }
+    }
+
+    @ViewBuilder
+    private func chart(start: Double) -> some View {
+        let points = visible
+        if points.isEmpty {
+            Text("No weight readings in \(range.spokenName).").font(AppFont.body)
+        } else {
+            Chart {
+                ForEach(shadePoints(start: start)) { point in
+                    AreaMark(x: .value("Date", point.date),
+                             yStart: .value(stat.chartUnit, start),
+                             yEnd: .value(stat.chartUnit, max(point.value, start)))
+                        .foregroundStyle(by: .value("Side", "Above"))
+                    AreaMark(x: .value("Date", point.date),
+                             yStart: .value(stat.chartUnit, start),
+                             yEnd: .value(stat.chartUnit, min(point.value, start)))
+                        .foregroundStyle(by: .value("Side", "Below"))
+                }
+                RuleMark(y: .value("Start", start))
+                    .lineStyle(StrokeStyle(lineWidth: 2, dash: [6, 4]))
+                    .foregroundStyle(.secondary)
+                ForEach(Array(points.enumerated()), id: \.offset) { _, point in
+                    LineMark(x: .value("Date", point.date), y: .value(stat.chartUnit, point.value))
+                        .lineStyle(StrokeStyle(lineWidth: 2))
+                        .foregroundStyle(Color.primary)
+                    PointMark(x: .value("Date", point.date), y: .value(stat.chartUnit, point.value))
+                        .symbolSize(64)
+                        .foregroundStyle(Color.primary)
+                }
+            }
+            .chartForegroundStyleScale(["Above": Color.pink.opacity(0.4), "Below": Color.blue.opacity(0.4)])
+            .chartLegend(.hidden)
+            .chartYScale(domain: yDomain(start: start))
+            .chartXScale(domain: (range.start(from: .now) ?? points[0].date)...Date.now)
+            .chartXAxis {
+                AxisMarks(values: .automatic(desiredCount: 4)) { _ in
+                    AxisGridLine()
+                    AxisValueLabel(format: range.axisFormat).font(AppFont.body)
+                }
+            }
+            .chartYAxis {
+                AxisMarks { _ in
+                    AxisGridLine()
+                    AxisValueLabel().font(AppFont.body)
+                }
+            }
+            .chartYAxisLabel(stat.chartUnit)
+            .frame(height: 260)
+            .padding(.vertical, 8)
+            .accessibilityLabel("Weight over \(range.spokenName), against your starting weight")
+        }
+    }
+
+    private func load() async {
+        readings = await BodyStatsReader.history(stat, limit: nil)
+        loaded = true
     }
 }
 
