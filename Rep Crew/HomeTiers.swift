@@ -237,7 +237,7 @@ struct WelcomeCardSection: View {
                 }
             }
             .sheet(isPresented: $applying) {
-                ApplicationView()
+                ApplicationView(canCancel: true)
                     .task { await CrewCloud.shared.refreshMyAccess() }
             }
         }

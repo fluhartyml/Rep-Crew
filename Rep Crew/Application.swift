@@ -33,6 +33,9 @@ extension CrewSettings {
     static let applicationEmailGiven = "applicationEmailGiven"
     /// Answers waiting to reach the coaches (no coach key loaded yet, or offline). Empty once sent.
     static let applicationWaiting = "applicationWaiting"
+    /// Your answers as you last sent them, kept on this phone, so the application opens filled in.
+    /// Only coaches can open the copy in iCloud (it's sealed to them).
+    static let applicationLast = "applicationLast"
     /// Coach's phone: the welcome letter, and the members it was sent to.
     static let welcomeLetter = "welcomeLetter"
     static let welcomed = "welcomedMemberIDs"
@@ -50,6 +53,10 @@ struct CrewApplication: Codable {
 struct ApplicationView: View {
     /// Closes it when it was opened from Home's welcome card (HomeTiers.swift); after sign-in it does nothing.
     @Environment(\.dismiss) private var dismiss
+    /// Opened from Home: Cancel closes it without sending anything. After sign-in there's no Cancel.
+    /// REM: his word, 2026-10-25: "yes add a cancel button it should show my application info as it was the first
+    /// time i filled it out". Send and Not Now both save, so Home needed a way out that saves nothing.
+    var canCancel = false
     @AppStorage(CrewSettings.appleEmail) private var appleEmail = ""
     @AppStorage(CrewSettings.applicationDone) private var done = false
     @AppStorage(CrewSettings.applicationWaiting) private var waiting = ""
@@ -99,6 +106,11 @@ struct ApplicationView: View {
                     Button { tapped(send: false) } label: {
                         Text("Not Now").font(AppFont.body).frame(maxWidth: .infinity)
                     }
+                    if canCancel {
+                        Button(role: .cancel) { dismiss() } label: {
+                            Text("Cancel").font(AppFont.body).frame(maxWidth: .infinity)
+                        }
+                    }
                 }
             }
             // REM: his word 2026-10-24, "welcome to the... should take two lines if needed". A navigation
@@ -114,7 +126,20 @@ struct ApplicationView: View {
             } message: {
                 Text("Without an email you stay a new user: you can look around but not join or start challenges, and the head coach can only welcome you in your Inbox.")
             }
-            .onAppear { if answers.email.isEmpty { answers.email = appleEmail } }
+            .onAppear {
+                // What you sent last time, then Apple's email if there's still none.
+                if let text = UserDefaults.standard.string(forKey: CrewSettings.applicationLast),
+                   let last = try? JSONDecoder().decode(CrewApplication.self, from: Data(text.utf8)) { answers = last }
+                if answers.email.isEmpty { answers.email = appleEmail }
+            }
+            // A coach can open their own sealed copy in iCloud, for an application sent before this phone kept one.
+            .task {
+                guard GodMode.isOn || GodMode.isRealOwner, answers.why.isEmpty && answers.goals.isEmpty && answers.suggestions.isEmpty,
+                      let myID = CrewCloud.shared.myID,
+                      let mine = await CrewCloud.shared.applications().first(where: { $0.id == myID })?.answers else { return }
+                answers = mine
+                if answers.email.isEmpty { answers.email = appleEmail }
+            }
             // REM: the profile came back from iCloud only when Settings opened, so on his reinstalled 16e
             // this screen showed "No photo" while his 11 showed it (build 72). Fetch it here first.
             .task { await MyProfile.restoreIfNeeded() }
@@ -157,6 +182,7 @@ struct ApplicationView: View {
                                       goals: send ? answers.goals.trimmingCharacters(in: .whitespacesAndNewlines) : "",
                                       suggestions: send ? answers.suggestions.trimmingCharacters(in: .whitespacesAndNewlines) : "")
         waiting = String(data: (try? JSONEncoder().encode(trimmed)) ?? Data(), encoding: .utf8) ?? ""
+        if send { UserDefaults.standard.set(waiting, forKey: CrewSettings.applicationLast) }
         done = true
         UserDefaults.standard.set(false, forKey: CrewSettings.startingOver)
         if !trimmed.email.isEmpty { UserDefaults.standard.set(true, forKey: CrewSettings.applicationEmailGiven) }
