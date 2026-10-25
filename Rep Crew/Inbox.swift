@@ -175,10 +175,22 @@ struct InboxView: View {
     /// Unread when this visit began; their blue dots stay for the visit.
     @State private var unread: Set<String> = []
     @State private var profileOf: ProfileTarget?
+    /// The first load ran past `slowAfter` seconds: say so instead of a blank page.
+    @State private var slow = false
+    private static let slowAfter: Duration = .seconds(15)
 
     var body: some View {
         List {
-            if loaded && items.isEmpty {
+            // REM: tester's screenshot, 2026-10-25: "when I click inbox nothing ever shows up". Her page was blank, not
+            // "Nothing here yet", so it was still loading: there was no spinner, and a slow iCloud looked like an empty inbox.
+            if !loaded {
+                HStack(spacing: 12) {
+                    ProgressView()
+                    Text(slow ? "Still waiting on iCloud. Check your connection, then pull down to try again."
+                              : "Loading your inbox…")
+                        .font(AppFont.body).foregroundStyle(.secondary)
+                }
+            } else if items.isEmpty {
                 Text("Nothing here yet. Replies, announcements, invites and join requests land here.")
                     .font(AppFont.body).foregroundStyle(.secondary)
             }
@@ -192,6 +204,10 @@ struct InboxView: View {
         .navigationTitle("Inbox")
         .refreshable { await load() }
         .task { await load() }
+        .task {
+            try? await Task.sleep(for: Self.slowAfter)
+            if !loaded { slow = true }
+        }
         .sheet(item: $profileOf) { ProfileView(target: $0, canMessage: true) }
     }
 
