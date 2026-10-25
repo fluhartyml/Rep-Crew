@@ -509,7 +509,7 @@ struct WeightTrendView: View {
 }
 
 /// Type a weight, pick when, Save. It goes to Health; nothing goes to iCloud or the crew.
-private struct LogWeightView: View {
+struct LogWeightView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var weight: Double?
     @State private var date = Date.now

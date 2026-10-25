@@ -125,6 +125,7 @@ struct ProfileCardSection: View {
     @AppStorage(CrewSettings.name) private var name = ""
     @AppStorage(CrewSettings.profilePhotoID) private var photoID = ""
     @AppStorage(CrewSettings.crewNumber) private var crewNumber = 0
+    @State private var loggingWeight = false
     private var cloud = CrewCloud.shared
 
     init(tier: HomeTier) { self.tier = tier }
@@ -150,7 +151,13 @@ struct ProfileCardSection: View {
             NavigationLink { EditProfileView() } label: {
                 Label("Edit Profile", systemImage: "person.crop.circle").font(AppFont.bodyBold)
             }
+            // REM: his word, 2026-10-25: "log weight is okay where it is but it should also appear in a more obvious
+            // location so the user doesnt have to go tapping through so many sheets". One tap from Home.
+            Button { loggingWeight = true } label: {
+                Label("Log Weight", systemImage: "scalemass.fill").font(AppFont.bodyBold)
+            }
         }
+        .sheet(isPresented: $loggingWeight) { LogWeightView() }
     }
 
     /// "Member · Level 16", then "Crew member 04" on its own line (his word, 2026-10-25: "line break before crew").
