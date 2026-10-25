@@ -325,7 +325,8 @@ enum WeightRange: String, CaseIterable, Identifiable {
         case .week: .dateTime.weekday(.abbreviated)
         case .month: .dateTime.month(.abbreviated).day()
         case .year: .dateTime.month(.abbreviated)
-        case .all: .dateTime.month(.abbreviated).year(.twoDigits)
+        // Years only: "Jan 18" read as a day, and four of them ran together on his 11 (build 130).
+        case .all: .dateTime.year()
         }
     }
 
