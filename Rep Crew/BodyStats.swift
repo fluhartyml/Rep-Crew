@@ -379,10 +379,26 @@ struct WeightTrendView: View {
             .map { ($0.date, stat.chartValue($0.value)) }
     }
 
-    /// The visible readings plus a point wherever the line crosses the start line.
+    /// Where the line enters the range: your weight at the range's first moment, worked out between the last reading
+    /// before it and the first inside it (or the last one before it, held flat). nil for All, or with nothing earlier.
+    /// REM: his Y view, 2026-10-25: one reading this year showed as a lone dot with no line or shade (build 131).
+    private var entry: (date: Date, value: Double)? {
+        guard let from = range.start(from: .now),
+              let before = readings.first(where: { $0.date < from }) else { return nil }   // newest first
+        let earlier = (before.date, stat.chartValue(before.value))
+        guard let first = visible.first else { return (from, earlier.1) }
+        let span = first.date.timeIntervalSince(earlier.0)
+        let fraction = span > 0 ? from.timeIntervalSince(earlier.0) / span : 0
+        return (from, earlier.1 + (first.value - earlier.1) * fraction)
+    }
+
+    /// The line's points: the entry point, then the readings in the range.
+    private var linePoints: [(date: Date, value: Double)] { (entry.map { [$0] } ?? []) + visible }
+
+    /// The line's points plus a point wherever the line crosses the start line.
     private func shadePoints(start: Double) -> [ShadePoint] {
         var points: [ShadePoint] = []
-        let readings = visible
+        let readings = linePoints
         for (index, reading) in readings.enumerated() {
             if index > 0 {
                 let previous = readings[index - 1]
@@ -399,7 +415,7 @@ struct WeightTrendView: View {
     }
 
     private func yDomain(start: Double) -> ClosedRange<Double> {
-        let values = visible.map(\.value) + [start]
+        let values = linePoints.map(\.value) + [start]
         let low = values.min() ?? start, high = values.max() ?? start
         let pad = max((high - low) * 0.1, 1)
         return (low - pad)...(high + pad)
@@ -486,10 +502,13 @@ struct WeightTrendView: View {
                 RuleMark(y: .value("Start", start))
                     .lineStyle(StrokeStyle(lineWidth: 2, dash: [6, 4]))
                     .foregroundStyle(.secondary)
-                ForEach(Array(points.enumerated()), id: \.offset) { _, point in
+                ForEach(Array(linePoints.enumerated()), id: \.offset) { _, point in
                     LineMark(x: .value("Date", point.date), y: .value(stat.chartUnit, point.value))
                         .lineStyle(StrokeStyle(lineWidth: 2))
                         .foregroundStyle(Color.primary)
+                }
+                // Dots only for real readings, not the entry point.
+                ForEach(Array(points.enumerated()), id: \.offset) { _, point in
                     PointMark(x: .value("Date", point.date), y: .value(stat.chartUnit, point.value))
                         .symbolSize(64)
                         .foregroundStyle(Color.primary)
@@ -498,7 +517,7 @@ struct WeightTrendView: View {
             .chartForegroundStyleScale(["Above": Color.pink.opacity(0.4), "Below": Color.blue.opacity(0.4)])
             .chartLegend(.hidden)
             .chartYScale(domain: yDomain(start: start))
-            .chartXScale(domain: (range.start(from: .now) ?? points[0].date)...Date.now)
+            .chartXScale(domain: (range.start(from: .now) ?? linePoints[0].date)...Date.now)
             .chartXAxis {
                 AxisMarks(values: .automatic(desiredCount: 4)) { _ in
                     AxisGridLine()
