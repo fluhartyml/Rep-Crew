@@ -12,9 +12,11 @@
 //    2  Verified new user               → "Join Your First Challenge" over the challenge list
 //    3  Member                          → the standard Home
 //    4  Message base member             → Crew Boards: a quick link to each challenge's message board
-//    5  Moderator (the crew leader)     → Crews You Lead: who logged today, Message Crew, Close Challenge
-//    6  Coach                           → Coach Tools: New Crew Members, User List, Crew Directory
-//    7  Head Coach                      → Head Coach Tools: Must-Read, Coaches, Crew Name, Access Levels
+//    5  Moderator (the crew leader)     → Crew Leader: who logged today, Message Crew, Close Challenge
+//    6  Coach                           → Coach: New Crew Members, User List, Crew Directory
+//    7  Head Coach                      → Head Coach: Must-Read, Coaches, Crew Name, Access Levels
+//  REM: 2026-10-25, his "yes build it" to the profile plan: the sections are headed by role (Head Coach, Coach,
+//  Crew Leader, Crew Member) under a profile card at the top, with My Events for events you posted.
 //  REM: the screen follows the RANGE a level falls in (by its place in the access table, low to high), so it
 //  keeps working when he edits the ranges or renames them. Coach and Head Coach come from Coach Mode
 //  (GodMode.isOn / isOwner), as everywhere else. A ninth range he adds below 250 shows the Moderator screen.
@@ -99,6 +101,117 @@ struct ViewAsBanner: View {
     }
 }
 
+// MARK: - Your profile, at the top of Home
+
+/// The name of your role, as Home's sections are headed.
+//  REM: his word, 2026-10-25: Home "should say Head Coach, Coach, Crew Leader, Crew Member", then "how about
+//  integrating the home screen with the user profile? it would show their picture detail information they can
+//  edit if needed and access relevant sub menus like moderate their challenge or team for team leaders modify
+//  their events they started" · "yes build it".
+extension HomeTier {
+    var roleName: String {
+        switch self {
+        case .headCoach: "Head Coach"
+        case .coach: "Coach"
+        case .moderator: "Crew Leader"
+        case .member, .messageBase: "Crew Member"
+        case .newUser, .applied, .verified: "New Crew Member"
+        }
+    }
+}
+
+struct ProfileCardSection: View {
+    let tier: HomeTier
+    @AppStorage(CrewSettings.name) private var name = ""
+    @AppStorage(CrewSettings.profilePhotoID) private var photoID = ""
+    @AppStorage(CrewSettings.crewNumber) private var crewNumber = 0
+    private var cloud = CrewCloud.shared
+
+    init(tier: HomeTier) { self.tier = tier }
+
+    var body: some View {
+        Section {
+            HStack(spacing: 16) {
+                ProfilePhoto(image: photoID.isEmpty ? nil : MyProfile.photo, size: 72, seed: cloud.myID ?? "")
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(name.trimmingCharacters(in: .whitespaces).isEmpty ? "You" : name).font(AppFont.heading)
+                    Text(tier.roleName).font(AppFont.bodyBold).foregroundStyle(.tint)
+                    Text(detail).font(AppFont.body).foregroundStyle(.secondary)
+                }
+            }
+            .padding(.vertical, 4)
+            .accessibilityElement(children: .combine)
+            NavigationLink { EditProfileView() } label: {
+                Label("Edit Profile", systemImage: "person.crop.circle").font(AppFont.bodyBold)
+            }
+        }
+    }
+
+    /// "Member · Level 16 · Crew member 4".
+    private var detail: String {
+        let level = cloud.effectiveLevel
+        var parts: [String] = []
+        if let band = cloud.accessTable.band(for: level)?.name, band != tier.roleName { parts.append(band) }
+        parts.append("Level \(level)")
+        if crewNumber > 0 { parts.append("Crew member \(crewNumber)") }
+        return parts.joined(separator: " · ")
+    }
+}
+
+/// Your name, profile and body stats on one page, the same parts Settings has. Saved when you leave it.
+struct EditProfileView: View {
+    @AppStorage(CrewSettings.name) private var name = ""
+
+    var body: some View {
+        Form {
+            Section {
+                TextField("Your first name", text: $name)
+                    .font(AppFont.body)
+                    .textContentType(.givenName)
+            } header: {
+                Text("Name").font(AppFont.bodyBold).textCase(nil)
+            } footer: {
+                Text("Your crew sees this name on your invites, boards and leaderboards.").font(AppFont.body)
+            }
+            MyProfileSection()
+            BodyStatsSection()
+        }
+        .navigationTitle("Edit Profile")
+        .navigationBarTitleDisplayMode(.inline)
+        .onDisappear { Task { await MyProfile.saveIfChanged() } }
+    }
+}
+
+// MARK: - My Events
+
+/// Events you posted that haven't ended, each opening its page with Edit Event and Delete Event.
+/// Home loads them (ContentView.syncCrew): an empty section never appears, so it can't load itself.
+struct MyEventsSection: View {
+    let events: [CrewEvent]
+    let reload: () -> Void
+
+    var body: some View {
+        if !events.isEmpty {
+            Section {
+                ForEach(events) { event in
+                    NavigationLink {
+                        EventDetailView(event: event, onRemove: reload)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(event.details.title).font(AppFont.bodyBold)
+                            Text(event.whenText).font(AppFont.body).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            } header: {
+                Text("My Events").font(AppFont.bodyBold).textCase(nil)
+            } footer: {
+                Text("Tap one to edit or delete it.").font(AppFont.body)
+            }
+        }
+    }
+}
+
 // MARK: - 0 and 1: the welcome card
 
 struct WelcomeCardSection: View {
@@ -163,7 +276,7 @@ struct CrewBoardsSection: View {
     }
 }
 
-// MARK: - 5: Crews You Lead
+// MARK: - 5: Crew Leader
 
 struct CrewsYouLeadSection: View {
     /// Running challenges you started (leaderID empty means this phone leads it).
@@ -198,7 +311,7 @@ struct CrewsYouLeadSection: View {
                     Text("That didn't go through. Check that you're signed in to iCloud, then try again.").font(AppFont.body)
                 }
             } header: {
-                Text("Crews You Lead").font(AppFont.bodyBold).textCase(nil)
+                Text("Crew Leader").font(AppFont.bodyBold).textCase(nil)
             }
             .task(id: challenges.map(\.crewID)) { await load() }
             .confirmationDialog("Close \(closing?.title ?? "this challenge")?",
@@ -239,7 +352,7 @@ struct CrewsYouLeadSection: View {
     }
 }
 
-// MARK: - 6: Coach Tools
+// MARK: - 6: Coach
 
 struct CoachToolsSection: View {
     @AppStorage(CrewSettings.welcomed) private var welcomed = ""
@@ -268,7 +381,7 @@ struct CoachToolsSection: View {
                 Label("Crew Directory", systemImage: "person.text.rectangle.fill").font(AppFont.bodyBold)
             }
         } header: {
-            Text("Coach Tools").font(AppFont.bodyBold).textCase(nil)
+            Text("Coach").font(AppFont.bodyBold).textCase(nil)
         } footer: {
             Text("The number on New Crew Members counts applications that haven't had a welcome letter.").font(AppFont.body)
         }
@@ -279,7 +392,7 @@ struct CoachToolsSection: View {
     }
 }
 
-// MARK: - 7: Head Coach Tools
+// MARK: - 7: Head Coach
 
 struct HeadCoachToolsSection: View {
     var body: some View {
@@ -298,7 +411,7 @@ struct HeadCoachToolsSection: View {
             }
             ViewAsMenu { Label("View Home As…", systemImage: "eye.fill").font(AppFont.bodyBold) }
         } header: {
-            Text("Head Coach Tools").font(AppFont.bodyBold).textCase(nil)
+            Text("Head Coach").font(AppFont.bodyBold).textCase(nil)
         } footer: {
             Text("View Home As lets you use the app as any level, to try it the way a new user or crew leader sees it. It ends when you tap Stop or quit the app.")
                 .font(AppFont.body)

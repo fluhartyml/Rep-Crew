@@ -16,6 +16,7 @@
 //  delete it. Someone else's: coaches and he can remove it (a MessageRemoval, as for messages).
 //
 
+import CloudKit
 import EventKit
 import EventKitUI
 import PhotosUI
@@ -71,6 +72,22 @@ extension CrewCloud {
     func postEvent(_ details: CrewEventDetails, senderName: String) async -> Bool {
         guard let data = try? JSONEncoder().encode(details), let text = String(data: data, encoding: .utf8) else { return false }
         return await send(text, crewID: Self.eventsBoard, kind: .event, senderName: senderName)
+    }
+
+    /// Edit Event: your own event's record gets the new details. Same record, so its place on the board stays.
+    func updateEvent(_ event: CrewEvent, to details: CrewEventDetails) async -> Bool {
+        await connect()
+        guard event.message.senderID == myID,
+              let data = try? JSONEncoder().encode(details), let text = String(data: data, encoding: .utf8) else { return false }
+        do {
+            let record = try await db.record(for: CKRecord.ID(recordName: event.message.id))
+            record["text"] = text
+            _ = try await db.modifyRecords(saving: [record], deleting: [], savePolicy: .changedKeys)
+            return true
+        } catch {
+            status = "Couldn't save your event: \(error.localizedDescription)"
+            return false
+        }
     }
 }
 
@@ -154,13 +171,14 @@ struct EventsView: View {
 
 // MARK: - One event
 
-private struct EventDetailView: View {
+struct EventDetailView: View {
     @Environment(\.dismiss) private var dismiss
     let event: CrewEvent
     let onRemove: () -> Void
     @State private var addingToCalendar = false
     @State private var note: String?
     @State private var confirmingRemove = false
+    @State private var editing = false
 
     private var isMine: Bool { event.message.senderID == CrewCloud.shared.myID }
 
@@ -200,6 +218,12 @@ private struct EventDetailView: View {
             }
             if isMine || GodMode.isOn {
                 Section {
+                    // REM: his word, 2026-10-25: crew leaders can "modify their events the started". Yours only.
+                    if isMine {
+                        Button { editing = true } label: {
+                            Label("Edit Event", systemImage: "pencil").font(AppFont.bodyBold)
+                        }
+                    }
                     Button(role: .destructive) { confirmingRemove = true } label: {
                         Label(isMine ? "Delete Event" : "Remove Event", systemImage: "trash").font(AppFont.bodyBold)
                     }
@@ -208,6 +232,13 @@ private struct EventDetailView: View {
         }
         .navigationTitle("Event")
         .navigationBarTitleDisplayMode(.inline)
+        // Saved changes show after the list reloads, so the page closes back to it.
+        .sheet(isPresented: $editing) {
+            PostEventView(editing: event) {
+                onRemove()
+                dismiss()
+            }
+        }
         .sheet(isPresented: $addingToCalendar) {
             CalendarEventEditor(details: event.details) { added in
                 addingToCalendar = false
@@ -306,6 +337,10 @@ private struct CalendarEventEditor: UIViewControllerRepresentable {
 private struct PostEventView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage(CrewSettings.name) private var myName = ""
+    /// Your own event to change (Edit Event), or nil to post a new one.
+    var editing: CrewEvent? = nil
+    /// Called after an edit saves.
+    var saved: () -> Void = {}
     @State private var details = CrewEventDetails(title: "", startsAt: PostEventView.nextHour, endsAt: PostEventView.nextHour.addingTimeInterval(3600))
     @State private var posting = false
     @State private var failed = false
@@ -332,7 +367,8 @@ private struct PostEventView: View {
                     TextField("Where", text: $details.location).font(AppFont.body)
                 }
                 Section {
-                    DatePicker("Starts", selection: $details.startsAt, in: Date.now..., displayedComponents: [.date, .hourAndMinute])
+                    DatePicker("Starts", selection: $details.startsAt, in: min(Date.now, editing?.details.startsAt ?? .now)...,
+                               displayedComponents: [.date, .hourAndMinute])
                         .font(AppFont.body)
                     DatePicker("Ends", selection: $details.endsAt, in: details.startsAt..., displayedComponents: [.date, .hourAndMinute])
                         .font(AppFont.body)
@@ -354,10 +390,16 @@ private struct PostEventView: View {
                             .frame(maxWidth: .infinity, maxHeight: 240)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                             .accessibilityHidden(true)
+                    } else if details.posterID != nil {
+                        // The poster already on the event you're editing.
+                        EventPicture(details: details, fit: true)
+                            .frame(maxWidth: .infinity, maxHeight: 240)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                     // One button per row (two buttons in one List row both fire).
                     ChooseFromMediaButton { item, _ in
                         details.media = item.name
+                        details.posterID = nil
                         poster = nil
                         pictureNote = nil
                     }
@@ -369,9 +411,10 @@ private struct PostEventView: View {
                             Label("Take Photo", systemImage: "camera.fill").font(AppFont.bodyBold)
                         }
                     }
-                    if details.media != nil || poster != nil {
+                    if details.media != nil || poster != nil || details.posterID != nil {
                         Button(role: .destructive) {
                             details.media = nil
+                            details.posterID = nil
                             poster = nil
                         } label: {
                             Label("Remove Picture", systemImage: "trash").font(AppFont.bodyBold)
@@ -396,14 +439,15 @@ private struct PostEventView: View {
                     Text("That didn't go through. Check Settings → iCloud and try again.").font(AppFont.body)
                 }
             }
-            .navigationTitle("Post an Event")
+            .navigationTitle(editing == nil ? "Post an Event" : "Edit Event")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear { if let editing, details.title.isEmpty { details = editing.details } }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }.font(AppFont.bodyBold)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Post") { Task { await post() } }
+                    Button(editing == nil ? "Post" : "Save") { Task { await post() } }
                         .font(AppFont.bodyBold)
                         .disabled(!canPost || posting)
                 }
@@ -433,7 +477,19 @@ private struct PostEventView: View {
             trimmed.posterID = id
             trimmed.media = nil
         }
-        if await CrewCloud.shared.postEvent(trimmed, senderName: me.isEmpty ? "A crew member" : me) {
+        if let editing {
+            if await CrewCloud.shared.updateEvent(editing, to: trimmed) {
+                // A poster you replaced or removed goes, as on Delete Event.
+                if let old = editing.details.posterID, old != trimmed.posterID, let myID = CrewCloud.shared.myID {
+                    _ = await CrewCloud.shared.removePhoto(CrewPhoto(id: old, crewID: CrewCloud.eventsBoard, senderID: myID,
+                                                                     senderName: "", takenAt: .now, thumb: nil))
+                }
+                dismiss()
+                saved()
+            } else {
+                failed = true
+            }
+        } else if await CrewCloud.shared.postEvent(trimmed, senderName: me.isEmpty ? "A crew member" : me) {
             dismiss()
         } else {
             failed = true

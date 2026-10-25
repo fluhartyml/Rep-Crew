@@ -39,6 +39,8 @@ struct ContentView: View {
     @State private var path = NavigationPath()
     /// Head coach announcements not yet accepted on this phone (MustRead.swift).
     @State private var mustRead: [CrewMessage] = []
+    /// Events you posted that haven't ended (HomeTiers.swift → My Events).
+    @State private var myEvents: [CrewEvent] = []
 
     private var active: [Challenge] { _ = closedChallenges; return challenges.filter(\.isActive) }
     /// Changes whenever today's numbers do, so the Watch gets a fresh copy.
@@ -54,33 +56,40 @@ struct ContentView: View {
                 let tier = HomeTier.current
                     List {
                         ViewAsBanner()
+                        // REM: his word, 2026-10-25: Home "integrated with the user profile", headed by role.
+                        ProfileCardSection(tier: tier)
                         WelcomeCardSection(tier: tier)
-                        // A row, not a toolbar button: a fifth toolbar button pushed others into an overflow menu (build 61).
-                        NavigationLink(value: CrewScreen.inbox) {
-                            HStack {
-                                Label("Inbox", systemImage: "tray.full.fill").font(AppFont.bodyBold)
-                                Spacer()
-                                if inboxUnread > 0 {
-                                    Text("\(inboxUnread)")
-                                        .font(AppFont.bodyBold).foregroundStyle(.white)
-                                        .padding(.horizontal, 10).padding(.vertical, 2)
-                                        .background(Capsule().fill(.red))
-                                        .accessibilityLabel("\(inboxUnread) unread")
-                                }
-                            }
-                        }
-                        // REM: his idea 2026-10-24, the Events board (Events.swift).
-                        NavigationLink(value: CrewScreen.events) {
-                            Label("Events", systemImage: "pin.fill").font(AppFont.bodyBold)
-                        }
-                        // REM: his word, 2026-10-25: "on the head coach home page to be quick links to user list
-                        // editor". User List now sits in Coach Tools, with New Crew Members and the Directory.
-                        if tier >= .coach { CoachToolsSection() }
                         if tier == .headCoach { HeadCoachToolsSection() }
-                        invitations
+                        // REM: his word, 2026-10-25: "on the head coach home page to be quick links to user list
+                        // editor". User List now sits in the Coach section, with New Crew Members and the Directory.
+                        if tier >= .coach { CoachToolsSection() }
                         if tier >= .moderator {
                             CrewsYouLeadSection(challenges: active.filter { $0.leaderID.isEmpty && !$0.crewID.isEmpty })
                         }
+                        MyEventsSection(events: myEvents) { Task { await loadMyEvents() } }
+                        Section {
+                            // A row, not a toolbar button: a fifth toolbar button pushed others into an overflow menu (build 61).
+                            NavigationLink(value: CrewScreen.inbox) {
+                                HStack {
+                                    Label("Inbox", systemImage: "tray.full.fill").font(AppFont.bodyBold)
+                                    Spacer()
+                                    if inboxUnread > 0 {
+                                        Text("\(inboxUnread)")
+                                            .font(AppFont.bodyBold).foregroundStyle(.white)
+                                            .padding(.horizontal, 10).padding(.vertical, 2)
+                                            .background(Capsule().fill(.red))
+                                            .accessibilityLabel("\(inboxUnread) unread")
+                                    }
+                                }
+                            }
+                            // REM: his idea 2026-10-24, the Events board (Events.swift).
+                            NavigationLink(value: CrewScreen.events) {
+                                Label("Events", systemImage: "pin.fill").font(AppFont.bodyBold)
+                            }
+                        } header: {
+                            Text("Crew Member").font(AppFont.bodyBold).textCase(nil)
+                        }
+                        invitations
                         section("Your challenges", active + upcoming.reversed())
                         if tier >= .messageBase { CrewBoardsSection(challenges: active) }
                         crewChallenges(title: tier == .verified && challenges.isEmpty ? "Join Your First Challenge" : "Other challenges")
@@ -297,6 +306,7 @@ struct ContentView: View {
             if let date = await cloud.lastActivity(crewID: crewID) { seen[crewID] = date }
         }
         activity = seen
+        await loadMyEvents()
         let inbox = await cloud.inbox(crewIDs: challenges.map(\.crewID).filter { !$0.isEmpty },
                                       led: challenges.filter { $0.leaderID.isEmpty && !$0.crewID.isEmpty }.map(\.crewID))
         await InboxBadge.set(InboxBadge.unread(inbox, since: inboxOpened))
@@ -311,6 +321,11 @@ struct ContentView: View {
         await MyProfile.saveIfChanged()
         // After the coach keys load (publishCoachKey above), so the answers can be sealed to them.
         await cloud.sendWaitingApplication()
+    }
+
+    private func loadMyEvents() async {
+        let me = cloud.myID
+        myEvents = await cloud.events().filter { $0.message.senderID == me && !$0.isPast }
     }
 
     /// Shown as a section when you have no challenges and may start one.
