@@ -34,7 +34,7 @@ enum CrewMedia {
     /// Alphabetical, the same order as his folder in Finder.
     private static let names = [
         "Bathroom Challenge", "Dumbbells", "Exercise", "Female", "Jumping Jacks", "Kettlebells",
-        "Male", "Open Water Swim", "Pull Ups", "Running", "Running Man", "Weight Lifting",
+        "Male", "Male 2", "Open Water Swim", "Pull Ups", "Running", "Running Man", "Weight Lifting",
     ]
 
     static let all: [CrewMediaItem] = names.map(CrewMediaItem.init(name:)).filter { $0.image != nil }
