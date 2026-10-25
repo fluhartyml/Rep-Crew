@@ -65,6 +65,10 @@ struct ContentView: View {
                                 }
                             }
                         }
+                        // REM: his idea 2026-10-24, the Events board (Events.swift).
+                        NavigationLink(value: CrewScreen.events) {
+                            Label("Events", systemImage: "pin.fill").font(AppFont.bodyBold)
+                        }
                         invitations
                         section("Your challenges", active + upcoming.reversed())
                         crewChallenges
@@ -98,6 +102,7 @@ struct ContentView: View {
                 case .directory: CrewDirectoryView()
                 case .newMembers: ApplicationsView()
                 case .inbox: InboxView(challenges: challenges) { joining = $0 }
+                case .events: EventsView()
                 }
             }
             .toolbar {

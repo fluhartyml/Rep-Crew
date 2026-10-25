@@ -261,21 +261,26 @@ private struct CoachesView: View {
                 if cloud.coaches.isEmpty {
                     Text("No coaches yet.").font(AppFont.body)
                 }
+                // REM: his word 2026-10-25, the account page is called up "where needed like new crew members or
+                // user list or coaches" (UserAccountView.swift). Remove moved to a swipe, since a button inside
+                // a row that opens a page doesn't get its own tap.
                 ForEach(cloud.coaches.sorted { $0.value < $1.value }, id: \.key) { coach in
-                    HStack {
+                    NavigationLink {
+                        UserAccountView(memberID: coach.key)
+                    } label: {
                         Text(coach.value).font(AppFont.bodyBold)
-                        Spacer()
-                        Button("Remove") {
+                    }
+                    .swipeActions {
+                        Button("Remove", role: .destructive) {
                             Task { failed = !(await cloud.setCoach(coach.key, name: coach.value, on: false)) }
                         }
-                        .buttonStyle(.bordered).font(AppFont.body)
                     }
                 }
                 if failed {
                     Text("That didn't go through. Check iCloud in Settings and try again.").font(AppFont.body)
                 }
             } footer: {
-                Text("Coaches can moderate every challenge. To add one, long-press their name on any leaderboard and tap Make Coach.")
+                Text("Coaches can moderate every challenge. Tap a coach to open their account. Swipe left to remove one. To add one, set their level to 250 or higher, or long-press their name on any leaderboard and tap Make Coach.")
                     .font(AppFont.body)
             }
         }

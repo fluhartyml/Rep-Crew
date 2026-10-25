@@ -227,7 +227,7 @@ struct ApplicationsView: View {
                 }
                 ForEach(entries) { entry in
                     NavigationLink {
-                        ApplicationDetailView(entry: entry)
+                        UserAccountView(memberID: entry.id, application: entry)
                     } label: {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(entry.name).font(AppFont.bodyBold)
@@ -246,25 +246,6 @@ struct ApplicationsView: View {
         .task {
             entries = await CrewCloud.shared.applications()
             loaded = true
-        }
-    }
-}
-
-/// The same card as Coach Mode → User List (UserDetailView), which carries the welcome letter.
-/// REM: his word 2026-10-25: "new crew members should list the same card for the user as user list does".
-private struct ApplicationDetailView: View {
-    let entry: ApplicationEntry
-    @State private var user: CrewUser?
-
-    var body: some View {
-        Group {
-            if let user { UserDetailView(user: user) } else { ProgressView() }
-        }
-        .task {
-            let cloud = CrewCloud.shared
-            var profile: CrewProfile?
-            if case .found(let found) = await cloud.fetchProfile(entry.id) { profile = found }
-            user = CrewUser(id: entry.id, profile: profile, access: await cloud.memberAccess(entry.id), application: entry)
         }
     }
 }

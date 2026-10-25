@@ -14,19 +14,6 @@
 import CloudKit
 import SwiftUI
 
-struct CrewUser: Identifiable {
-    let id: String
-    var profile: CrewProfile?
-    var access: MemberAccess
-    var application: ApplicationEntry?
-
-    var name: String {
-        let saved = profile?.name.trimmingCharacters(in: .whitespaces) ?? ""
-        if !saved.isEmpty { return saved }
-        return application?.name ?? "A crew member"
-    }
-}
-
 extension CrewCloud {
     /// Every member iCloud knows about, sorted by level (highest first), then name.
     func allUsers() async -> [CrewUser] {
@@ -65,7 +52,7 @@ struct UserListView: View {
             if !loaded { ProgressView() }
             ForEach(users) { user in
                 NavigationLink {
-                    UserDetailView(user: user)
+                    UserAccountView(user: user)
                 } label: {
                     HStack(spacing: 12) {
                         ProfilePhoto(image: user.profile?.photo, size: 44, seed: user.id)
@@ -91,62 +78,5 @@ struct UserListView: View {
         if !user.access.title.isEmpty { parts.append(user.access.title) }
         if !user.access.flags.isEmpty { parts.append("Flags \(user.access.flags)") }
         return parts.joined(separator: " · ")
-    }
-}
-
-struct UserDetailView: View {
-    let user: CrewUser
-
-    var body: some View {
-        List {
-            Section {
-                HStack {
-                    Spacer()
-                    ProfilePhoto(image: user.profile?.photo, size: 120, seed: user.id)
-                    Spacer()
-                }
-                .listRowBackground(Color.clear)
-            }
-            MemberAccessSection(memberID: user.id, name: user.name)
-            Section {
-                field("Phone", user.profile?.phone, privately: user.profile?.privateFields.contains("phone") ?? false)
-                field("Email", user.profile?.email, privately: user.profile?.privateFields.contains("email") ?? false)
-                field("FaceTime", user.profile?.facetime, privately: user.profile?.privateFields.contains("facetime") ?? false)
-            } header: {
-                Text("Contact").font(AppFont.bodyBold).textCase(nil)
-            }
-            Section {
-                if let answers = user.application?.answers {
-                    field("Email given to the coach", answers.email, privately: true)
-                    field("Why they joined", answers.why, privately: true)
-                    field("Fitness goals", answers.goals, privately: true)
-                    field("Ideas for getting started", answers.suggestions, privately: true)
-                } else {
-                    Text(user.application == nil ? "No application sent." : "Their application wasn't sealed to your phone's key.")
-                        .font(AppFont.body).foregroundStyle(.secondary)
-                }
-            } header: {
-                Text("Application").font(AppFont.bodyBold).textCase(nil)
-            }
-            if let application = user.application, GodMode.isOn { WelcomeLetterSection(entry: application) }
-            Section {
-                Text(user.id).font(AppFont.body).foregroundStyle(.secondary).textSelection(.enabled)
-            } header: {
-                Text("iCloud ID").font(AppFont.bodyBold).textCase(nil)
-            }
-        }
-        .navigationTitle(user.name)
-    }
-
-    private func field(_ title: String, _ value: String?, privately: Bool) -> some View {
-        let text = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return VStack(alignment: .leading, spacing: 4) {
-            Text(title + (privately && !text.isEmpty ? " · Coaches only" : "")).font(AppFont.bodyBold)
-            Text(text.isEmpty ? "Not given" : text)
-                .font(AppFont.body)
-                .foregroundStyle(text.isEmpty ? .secondary : .primary)
-                .textSelection(.enabled)
-        }
-        .padding(.vertical, 2)
     }
 }

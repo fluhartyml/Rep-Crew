@@ -20,7 +20,8 @@ struct CrewMessage: Identifiable {
     /// Reply / Reply All. Builds before it read the unknown kind as .message.
     /// direct: one person to one person, outside any challenge (see `direct(to:)`).
     /// closed: the crew leader or a coach closed the challenge (ChallengeClose.swift).
-    enum Kind: String { case announcement, announcementOneWay, message, reply, welcome, finished, direct, closed }
+    /// event: a notice on the Events board (Events.swift); only the board reads them.
+    enum Kind: String { case announcement, announcementOneWay, message, reply, welcome, finished, direct, closed, event }
 
     let id: String
     let crewID: String
@@ -71,6 +72,7 @@ extension CrewCloud {
         case .finished: record["title"] = "🏁 \(senderName)"
         case .direct: record["title"] = "✉️ \(senderName)"
         case .closed: record["title"] = "🔒 \(senderName)"
+        case .event: record["title"] = "📌 \(senderName)"
         }
         do {
             _ = try await db.modifyRecords(saving: [record], deleting: [], savePolicy: .allKeys)
@@ -137,6 +139,18 @@ extension CrewCloud {
             status = "Couldn't remove the message: \(error.localizedDescription)"
             return false
         }
+    }
+
+    /// A board that belongs to no challenge (the Events board): everything posted to it, minus blocked or
+    /// banned people and posts a coach removed. No leader, so only coaches and he can remove someone else's.
+    func boardMessages(crewID: String) async -> [CrewMessage] {
+        await connect()
+        let query = CKQuery(recordType: "CrewMessage", predicate: NSPredicate(format: "crewID == %@", crewID))
+        guard let (results, _) = try? await db.records(matching: query, resultsLimit: 200) else { return [] }
+        let hide = await hidden(crewID: crewID)
+        let removed = await removedMessages(crewID: crewID, leaderID: nil)
+        return results.compactMap { try? $0.1.get() }.compactMap(Self.message(from:))
+            .filter { !hide.contains($0.senderID) && !removed.contains($0.id) }
     }
 
     private func removedMessages(crewID: String, leaderID: String?) async -> Set<String> {
@@ -453,6 +467,7 @@ struct CrewMessagesSection: View {
         case .finished: return "🏁 \(from)"
         case .direct: return "✉️ \(from)"
         case .closed: return "🔒 \(from)"
+        case .event: return "📌 \(from)"
         }
     }
 
