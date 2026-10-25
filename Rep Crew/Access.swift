@@ -27,9 +27,10 @@
 //  someone's title never freezes them. To hold someone back, give them a flag that blocks the command
 //  (Access Levels → command keys). Only records the member wrote themselves count toward what they earned;
 //  forging one is the same as doing the thing, so it buys nothing.
-//  REM: Claude's default abilities, not his: new and unverified members (0–10) can still keep and
-//  join challenges, so nobody already testing loses that, but they can't post crew messages until
-//  they reach 11. He can change every line.
+//  REM: his word, 2026-10-25: "0-10 is read only and you can really only do things like write to your
+//  application and user profile or settings". So 0–10 can't join, start, post or add photos: they look,
+//  and fill in their application, profile and settings (those aren't abilities, so nothing here blocks
+//  them). This replaces Claude's earlier default that let 0–10 join and start. He can change every line.
 //  ⚠️ The phone checks the abilities before showing a button. CloudKit's public database can't
 //  enforce them on its own, so this keeps honest people on the right side, like the rest of the app.
 //
@@ -84,8 +85,8 @@ struct AccessTable: Codable, Equatable {
     var keys: [String: AccessKeys]? = nil
 
     static let starter = AccessTable(bands: [
-        AccessBand(low: 0, high: 5, name: "New user, no application", abilities: [.join, .start, .photos]),
-        AccessBand(low: 6, high: 10, name: "New user, application not verified", abilities: [.join, .start, .photos]),
+        AccessBand(low: 0, high: 5, name: "New user, no application", abilities: []),
+        AccessBand(low: 6, high: 10, name: "New user, application not verified", abilities: []),
         AccessBand(low: 11, high: 15, name: "Verified new user", abilities: [.join, .start, .post, .photos]),
         AccessBand(low: 16, high: 49, name: "Member", abilities: [.join, .start, .post, .photos]),
         AccessBand(low: 50, high: 54, name: "Message base member", abilities: [.join, .start, .post, .photos]),
@@ -200,11 +201,17 @@ extension CrewCloud {
         }
     }
 
+    /// The level the app acts on: his View Home As level while he's using it, else this member's own.
+    var effectiveLevel: Int {
+        if GodMode.isRealOwner, let level = viewAsLevel { return level }
+        return myAccess.level
+    }
+
     /// True when this phone's member may do it.
     func can(_ ability: AccessAbility) -> Bool {
         if GodMode.isOwner { return true }
         let table = accessTable
-        guard table.band(for: myAccess.level)?.abilities.contains(ability) ?? false else { return false }
+        guard table.band(for: effectiveLevel)?.abilities.contains(ability) ?? false else { return false }
         let mine = Set(myAccess.flags.uppercased())
         let keys = table.keys?[ability.rawValue] ?? AccessKeys()
         return Set(keys.requires.uppercased()).isSubset(of: mine) && Set(keys.blockedBy.uppercased()).isDisjoint(with: mine)

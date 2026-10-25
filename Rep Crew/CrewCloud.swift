@@ -43,6 +43,9 @@ final class CrewCloud {
     var openNewMembers = false
     /// This phone's member's level, flags and title (Access.swift). Loaded on connect.
     var myAccess = MemberAccess(level: 0, flags: "", title: "")
+    /// Head coach only: a level he is trying the app at (HomeTiers.swift → View Home As). nil = himself.
+    /// Kept in memory only, so quitting the app always brings him back.
+    var viewAsLevel: Int?
     /// Photos the head coach set for people, by iCloud ID (Profile.swift). Loaded on connect.
     var avatarOverrides: [String: UIImage] = [:]
 

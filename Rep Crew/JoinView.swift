@@ -52,6 +52,12 @@ struct JoinView: View {
                     Section {
                         Text("You've already joined this challenge.").font(AppFont.body)
                     }
+                } else if !CrewCloud.shared.can(.join) {
+                    // His rule 2026-10-25: levels 0–10 are read only (Access.swift).
+                    Section {
+                        Text("You can join once you're a verified crew member. Send your application with your email from Home.")
+                            .font(AppFont.body)
+                    }
                 }
             }
             .navigationTitle("Invitation")
@@ -62,6 +68,7 @@ struct JoinView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Accept") { accept() }.font(AppFont.bodyBold)
+                        .disabled(!alreadyHave && !CrewCloud.shared.can(.join))
                 }
             }
         }

@@ -48,6 +48,8 @@ struct CrewApplication: Codable {
 
 /// Shown once after sign-in: a few words to the head coach, and the profile the crew will see.
 struct ApplicationView: View {
+    /// Closes it when it was opened from Home's welcome card (HomeTiers.swift); after sign-in it does nothing.
+    @Environment(\.dismiss) private var dismiss
     @AppStorage(CrewSettings.appleEmail) private var appleEmail = ""
     @AppStorage(CrewSettings.applicationDone) private var done = false
     @AppStorage(CrewSettings.applicationWaiting) private var waiting = ""
@@ -124,6 +126,7 @@ struct ApplicationView: View {
         if !trimmed.email.isEmpty { UserDefaults.standard.set(true, forKey: CrewSettings.applicationEmailGiven) }
         Task { await CrewCloud.shared.sendWaitingApplication(); await CrewCloud.shared.refreshMyAccess() }
         Task { await MyProfile.saveIfChanged() }
+        dismiss()
     }
 }
 

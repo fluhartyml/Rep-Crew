@@ -28,13 +28,19 @@ enum GodMode {
     static let ids: Set<String> = ["_9c345d5e0487de171f04792dc4b88366"]
 
     /// True when this phone is a coach (or him).
+    /// REM: while he is viewing the app as another level (View Home As), he is a coach only if that
+    /// level is 250+. Pretending only ever takes powers away, so nothing can be gained by it.
     @MainActor static var isOn: Bool {
         guard let me = CrewCloud.shared.myID else { return false }
+        if ids.contains(me), let level = CrewCloud.shared.viewAsLevel { return level >= MemberAccessSection.coachLevel }
         return ids.contains(me) || CrewCloud.shared.coaches[me] != nil
     }
 
-    /// True when this phone is him: the only one who grants and revokes coaches.
-    @MainActor static var isOwner: Bool { CrewCloud.shared.myID.map(ids.contains) ?? false }
+    /// True when this phone is him: the only one who grants and revokes coaches. False while he views as another level.
+    @MainActor static var isOwner: Bool { isRealOwner && CrewCloud.shared.viewAsLevel == nil }
+
+    /// True when this phone is him, even while viewing as another level. Only View Home As uses it.
+    @MainActor static var isRealOwner: Bool { CrewCloud.shared.myID.map(ids.contains) ?? false }
 }
 
 extension CrewCloud {
@@ -256,7 +262,7 @@ private struct GodModeView: View {
 }
 
 /// His coaches, each with Remove. New coaches come from a leaderboard row's long-press → Make Coach.
-private struct CoachesView: View {
+struct CoachesView: View {
     private var cloud = CrewCloud.shared
     @State private var failed = false
 

@@ -49,10 +49,12 @@ struct ContentView: View {
     var body: some View {
         NavigationStack(path: $path) {
             Group {
-                if challenges.isEmpty && cloud.pending.isEmpty && others.isEmpty {
-                    emptyState
-                } else {
+                // REM: one Home per access range (HomeTiers.swift). Always the list now, so Inbox, Events and
+                // the welcome card show even before the first challenge; "No challenges yet" became a section.
+                let tier = HomeTier.current
                     List {
+                        ViewAsBanner()
+                        WelcomeCardSection(tier: tier)
                         // A row, not a toolbar button: a fifth toolbar button pushed others into an overflow menu (build 61).
                         NavigationLink(value: CrewScreen.inbox) {
                             HStack {
@@ -72,20 +74,21 @@ struct ContentView: View {
                             Label("Events", systemImage: "pin.fill").font(AppFont.bodyBold)
                         }
                         // REM: his word, 2026-10-25: "on the head coach home page to be quick links to user list
-                        // editor". Head coach only; coaches still reach it from Settings → Coach Mode.
-                        if GodMode.isOwner {
-                            NavigationLink(value: CrewScreen.userList) {
-                                Label("User List", systemImage: "person.3.sequence.fill").font(AppFont.bodyBold)
-                            }
-                        }
+                        // editor". User List now sits in Coach Tools, with New Crew Members and the Directory.
+                        if tier >= .coach { CoachToolsSection() }
+                        if tier == .headCoach { HeadCoachToolsSection() }
                         invitations
+                        if tier >= .moderator {
+                            CrewsYouLeadSection(challenges: active.filter { $0.leaderID.isEmpty && !$0.crewID.isEmpty })
+                        }
                         section("Your challenges", active + upcoming.reversed())
-                        crewChallenges
+                        if tier >= .messageBase { CrewBoardsSection(challenges: active) }
+                        crewChallenges(title: tier == .verified && challenges.isEmpty ? "Join Your First Challenge" : "Other challenges")
+                        if challenges.isEmpty && cloud.pending.isEmpty && others.isEmpty && cloud.can(.start) { emptyState }
                         section("Finished", finished)
                         pastChallenges
                     }
                     .refreshable { await syncCrew() }
-                }
             }
             .task { await syncCrew() }
             // Matched Health workouts check off days on Home too; asks for nothing until something is paired.
@@ -242,7 +245,7 @@ struct ContentView: View {
     }
 
     @ViewBuilder
-    private var crewChallenges: some View {
+    private func crewChallenges(title: String) -> some View {
         if !others.isEmpty {
             Section {
                 ForEach(others) { listing in
@@ -257,7 +260,7 @@ struct ContentView: View {
                     }
                 }
             } header: {
-                Text("Other challenges").font(AppFont.bodyBold).textCase(nil)
+                Text(title).font(AppFont.bodyBold).textCase(nil)
             }
         }
     }
@@ -310,7 +313,9 @@ struct ContentView: View {
         await cloud.sendWaitingApplication()
     }
 
+    /// Shown as a section when you have no challenges and may start one.
     private var emptyState: some View {
+        Section {
         VStack(spacing: 20) {
             Image(systemName: "figure.strengthtraining.functional")
                 .font(.system(size: 64))
@@ -325,7 +330,9 @@ struct ContentView: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
         }
-        .padding(32)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+        }
     }
 }
 
