@@ -27,6 +27,7 @@
 //  memory only, so quitting the app always ends it, and the bar at the top of Home ends it with one tap.
 //
 
+import SwiftData
 import SwiftUI
 
 enum HomeTier: Int, Comparable {
@@ -310,12 +311,37 @@ struct WelcomeCardSection: View {
 
 // MARK: - 4: Crew Boards
 
+/// Who started a challenge and when, and when it closed. His word, 2026-10-25: "it should [show] who is sponsoring
+/// or created the challenge and the date started and date closed if closed".
+struct ChallengeByline: View {
+    let challenge: Challenge
+    @Query private var crew: [CrewMember]
+
+    private var leader: String {
+        if challenge.leaderID.isEmpty || challenge.leaderID == CrewCloud.shared.myID { return "you" }
+        return crew.first { $0.cloudID == challenge.leaderID }?.name ?? "a crew leader"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("Started by \(leader) · \(challenge.startDate.formatted(.dateTime.month(.abbreviated).day()))")
+            if challenge.isClosed {
+                Text("Closed " + (ChallengeClosure.closedAt(challenge.crewID)?.formatted(.dateTime.month(.abbreviated).day()) ?? ""))
+            }
+        }
+        .font(AppFont.body).foregroundStyle(.secondary)
+    }
+}
+
 /// One challenge's message board on its own page.
 struct CrewBoardView: View {
     let challenge: Challenge
 
     var body: some View {
-        List { CrewMessagesSection(challenge: challenge) }
+        List {
+            Section { ChallengeByline(challenge: challenge) }
+            CrewMessagesSection(challenge: challenge)
+        }
             .navigationTitle(challenge.title)
             .navigationBarTitleDisplayMode(.inline)
     }
@@ -331,7 +357,10 @@ struct CrewBoardsSection: View {
                 ForEach(boards) { challenge in
                     NavigationLink { CrewBoardView(challenge: challenge) } label: {
                         Label {
-                            Text(challenge.title)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(challenge.title)
+                                ChallengeByline(challenge: challenge)
+                            }
                         } icon: {
                             Image(systemName: "bubble.left.and.bubble.right.fill").foregroundStyle(.blue)
                         }

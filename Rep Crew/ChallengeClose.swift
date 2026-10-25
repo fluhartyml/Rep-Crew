@@ -23,6 +23,8 @@ import Foundation
 extension CrewSettings {
     /// crewID → the closing notice, newline-separated "crewID\tnotice" lines.
     static let closedChallenges = "closedChallenges"
+    /// crewID → when it was closed, "crewID\tseconds since 1970" lines (for "Closed Oct 25" on the boards).
+    static let closedDates = "closedChallengeDates"
 }
 
 /// The challenges this phone knows were closed, and by whom.
@@ -45,6 +47,22 @@ enum ChallengeClosure {
     }
 
     static func recordName(_ crewID: String) -> String { "closed.\(crewID)" }
+
+    /// When it was closed, if this phone knows.
+    static func closedAt(_ crewID: String) -> Date? {
+        for line in (UserDefaults.standard.string(forKey: CrewSettings.closedDates) ?? "").split(separator: "\n") {
+            let parts = line.split(separator: "\t").map(String.init)
+            if parts.count == 2, parts[0] == crewID, let seconds = Double(parts[1]) { return Date(timeIntervalSince1970: seconds) }
+        }
+        return nil
+    }
+
+    static func setClosedAt(_ date: Date, for crewID: String) {
+        var lines = (UserDefaults.standard.string(forKey: CrewSettings.closedDates) ?? "").split(separator: "\n").map(String.init)
+            .filter { !$0.hasPrefix(crewID + "\t") }
+        lines.append("\(crewID)\t\(date.timeIntervalSince1970)")
+        UserDefaults.standard.set(lines.joined(separator: "\n"), forKey: CrewSettings.closedDates)
+    }
 
     /// What the crew reads. His rule: your own challenge → Crew Leader; someone else's → Coach.
     static func notice(byLeader: Bool, name: String) -> String {
@@ -84,6 +102,7 @@ extension CrewCloud {
         var closed = ChallengeClosure.all
         closed[crewID] = notice
         ChallengeClosure.save(closed)
+        ChallengeClosure.setClosedAt(.now, for: crewID)
         return true
     }
 
@@ -100,7 +119,10 @@ extension CrewCloud {
                   let notice = record["text"] as? String,
                   ChallengeClosure.recordName(crewID) == id.recordName else { continue }
             let leader = challenges[crewID].flatMap { $0.isEmpty ? myID : $0 }
-            if isModerator(writer(of: record), leaderID: leader) { closed[crewID] = notice }
+            if isModerator(writer(of: record), leaderID: leader) {
+                closed[crewID] = notice
+                if let date = record.creationDate { ChallengeClosure.setClosedAt(date, for: crewID) }
+            }
         }
         ChallengeClosure.save(closed)
     }
