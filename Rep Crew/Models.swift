@@ -85,6 +85,23 @@ final class Challenge {
         return count
     }
 
+    /// The last time you logged reps on any of its exercises.
+    var lastLogged: Date? { allGoals.flatMap(\.allEntries).map(\.loggedAt).max() }
+
+    /// "Oct 25 – Nov 7", so a new challenge and an old one look different on the list.
+    var dateRange: String { Challenge.dateRange(from: startDate, to: lastDay) }
+
+    static func dateRange(from start: Date, to end: Date) -> String {
+        let style = Date.FormatStyle.dateTime.month(.abbreviated).day()
+        return "\(start.formatted(style)) – \(end.formatted(style))"
+    }
+
+    /// "active 2 hours ago", or "no reps yet".
+    static func activityText(_ date: Date?) -> String {
+        guard let date else { return "no reps yet" }
+        return "active \(date.formatted(.relative(presentation: .named)))"
+    }
+
     /// Each day of the challenge, first to last.
     var allDays: [Date] {
         (0..<days).compactMap { Calendar.current.date(byAdding: .day, value: $0, to: startDate) }

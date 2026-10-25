@@ -43,9 +43,36 @@ enum HealthSets {
 }
 
 struct SetTimerView: View {
-    @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     let goal: ExerciseGoal
+    /// The clock is running; swiping the sheet away would lose the set.
+    @State private var timing = true
+
+    var body: some View {
+        NavigationStack {
+            SetTimerPanel(goal: goal, continueTitle: "Done", timing: $timing) { dismiss() }
+                .navigationTitle("Set")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { dismiss() }.font(AppFont.bodyBold)
+                    }
+                }
+        }
+        .interactiveDismissDisabled(timing)
+    }
+}
+
+/// One timed set: the clock runs, Finish Set asks how many, Save Set logs them and saves the workout.
+/// Shared by Start Set and Start Routine (Routine.swift).
+struct SetTimerPanel: View {
+    @Environment(\.modelContext) private var context
+    let goal: ExerciseGoal
+    /// The button shown when Health said no, to move on anyway.
+    let continueTitle: String
+    @Binding var timing: Bool
+    /// The reps are logged.
+    let onSaved: () -> Void
 
     @State private var start = Date.now
     @State private var end: Date?
@@ -57,50 +84,47 @@ struct SetTimerView: View {
     @FocusState private var repsFocused: Bool
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 24) {
-                Text(goal.name).font(AppFont.heading)
-                if let end {
-                    Text(Self.duration(end.timeIntervalSince(start))).font(AppFont.bigNumber).monospacedDigit()
-                    TextField("Reps in this set", text: $reps)
-                        .keyboardType(.numberPad)
-                        .font(AppFont.heading)
-                        .multilineTextAlignment(.center)
-                        .textFieldStyle(.roundedBorder)
-                        .focused($repsFocused)
-                    Button {
-                        Task { await save(end: end) }
-                    } label: {
-                        Text("Save Set").font(AppFont.bodyBold).frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(saving || logged || (Int(reps) ?? 0) <= 0)
-                    if let healthNote { Text(healthNote).font(AppFont.body).multilineTextAlignment(.center) }
-                } else {
-                    TimelineView(.periodic(from: start, by: 1)) { context in
-                        Text(Self.duration(context.date.timeIntervalSince(start))).font(AppFont.bigNumber).monospacedDigit()
-                    }
-                    Button {
-                        end = .now
-                        reps = goal.remaining(on: .now) > 0 ? "\(goal.remaining(on: .now))" : ""
-                        repsFocused = true
-                    } label: {
-                        Text("Finish Set").font(AppFont.bodyBold).frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
+        VStack(spacing: 24) {
+            Text(goal.name).font(AppFont.heading)
+            if let end {
+                Text(Self.duration(end.timeIntervalSince(start))).font(AppFont.bigNumber).monospacedDigit()
+                TextField("Reps in this set", text: $reps)
+                    .keyboardType(.numberPad)
+                    .font(AppFont.heading)
+                    .multilineTextAlignment(.center)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($repsFocused)
+                Button {
+                    Task { await save(end: end) }
+                } label: {
+                    Text("Save Set").font(AppFont.bodyBold).frame(maxWidth: .infinity)
                 }
-                Spacer()
-            }
-            .padding()
-            .navigationTitle("Set")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(logged ? "Done" : "Cancel") { dismiss() }.font(AppFont.bodyBold)
+                .buttonStyle(.borderedProminent)
+                .disabled(saving || logged || (Int(reps) ?? 0) <= 0)
+                if let healthNote {
+                    Text(healthNote).font(AppFont.body).multilineTextAlignment(.center)
+                    Button { onSaved() } label: {
+                        Text(continueTitle).font(AppFont.bodyBold).frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
                 }
+            } else {
+                TimelineView(.periodic(from: start, by: 1)) { context in
+                    Text(Self.duration(context.date.timeIntervalSince(start))).font(AppFont.bigNumber).monospacedDigit()
+                }
+                Button {
+                    end = .now
+                    timing = false
+                    reps = goal.remaining(on: .now) > 0 ? "\(goal.remaining(on: .now))" : ""
+                    repsFocused = true
+                } label: {
+                    Text("Finish Set").font(AppFont.bodyBold).frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
             }
+            Spacer()
         }
-        .interactiveDismissDisabled(end == nil)
+        .padding()
     }
 
     private func save(end: Date) async {
@@ -111,7 +135,7 @@ struct SetTimerView: View {
         context.insert(entry)
         try? context.save()
         if await HealthSets.save(start: start, end: end, exercise: goal.name, reps: count) {
-            dismiss()
+            onSaved()
         } else {
             // REM: shakedown bug 4 (2026-10-23). The Health prompt did show; the tester said no, and iOS
             // never asks twice. So name the exact place to turn it back on.

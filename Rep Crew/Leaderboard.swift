@@ -55,6 +55,11 @@ struct CrewListing: Identifiable, Hashable {
         return "Starts \(startDate.formatted(date: .abbreviated, time: .omitted))"
     }
 
+    /// "Oct 25 – Nov 7".
+    var dateRange: String {
+        Challenge.dateRange(from: startDate, to: Calendar.current.date(byAdding: .day, value: info.days - 1, to: startDate) ?? startDate)
+    }
+
     var goalsText: String {
         info.goals.map { "\($0.target) \($0.name.lowercased())" }.joined(separator: " and ") + " a day for \(info.days) days"
     }
@@ -63,6 +68,17 @@ struct CrewListing: Identifiable, Hashable {
 // MARK: - iCloud
 
 extension CrewCloud {
+    /// When anyone in the crew last saved progress, for "active 2 hours ago" on the home list.
+    /// His word, 2026-10-25: "i dont see if a challenge is new or if stale". Nil when there's none
+    /// or iCloud didn't answer.
+    func lastActivity(crewID: String) async -> Date? {
+        await connect()
+        guard myID != nil, !crewID.isEmpty else { return nil }
+        let query = CKQuery(recordType: "Progress", predicate: NSPredicate(format: "crewID == %@", crewID))
+        guard let (results, _) = try? await db.records(matching: query, desiredKeys: [], resultsLimit: 400) else { return nil }
+        return results.compactMap { try? $0.1.get().modificationDate }.max()
+    }
+
     /// Saves your total for `dayNumber`. Saving the same name again replaces it.
     func postProgress(crewID: String, dayNumber: Int, name: String, reps: Int, complete: Bool, streak: Int,
                       minutes: Int = 0, calories: Int = 0) async {

@@ -26,6 +26,8 @@ struct ContentView: View {
     @AppStorage(CrewSettings.closedChallenges) private var closedChallenges = ""
     @State private var listings: [CrewListing] = []
     @State private var past: [CrewListing] = []
+    /// crewID → when anyone in the crew last saved progress (lastActivity).
+    @State private var activity: [String: Date] = [:]
     /// A past challenge to run again (NewChallengeView(again:)).
     @State private var again: Invite.ChallengeInfo?
     private var cloud = CrewCloud.shared
@@ -145,7 +147,7 @@ struct ContentView: View {
         if !items.isEmpty {
             Section {
                 ForEach(items) { challenge in
-                    NavigationLink(value: challenge) { ChallengeRow(challenge: challenge) }
+                    NavigationLink(value: challenge) { ChallengeRow(challenge: challenge, crewActivity: activity[challenge.crewID]) }
                     // Its own row: two buttons in one List row both fire on a tap (PhotoBoard REM).
                     if challenge.isFinished && cloud.can(.start) {
                         Button { again = Invite.ChallengeInfo(challenge) } label: {
@@ -224,6 +226,8 @@ struct ContentView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(listing.info.title).font(AppFont.bodyBold)
                             Text("\(listing.leaderName) · \(listing.status)").font(AppFont.body)
+                            Text("\(listing.dateRange) · \(Challenge.activityText(activity[listing.id]))")
+                                .font(AppFont.body).foregroundStyle(.secondary)
                         }
                         .padding(.vertical, 4)
                     }
@@ -261,6 +265,11 @@ struct ContentView: View {
         await cloud.refreshClosures(Dictionary(found.map { ($0.id, $0.leaderID) }, uniquingKeysWith: { first, _ in first }))
         listings = found
         past = await cloud.pastChallenges()
+        var seen: [String: Date] = [:]
+        for crewID in Set(challenges.filter { !$0.isFinished }.map(\.crewID) + found.map(\.id)) where !crewID.isEmpty {
+            if let date = await cloud.lastActivity(crewID: crewID) { seen[crewID] = date }
+        }
+        activity = seen
         let inbox = await cloud.inbox(crewIDs: challenges.map(\.crewID).filter { !$0.isEmpty },
                                       led: challenges.filter { $0.leaderID.isEmpty && !$0.crewID.isEmpty }.map(\.crewID))
         await InboxBadge.set(InboxBadge.unread(inbox, since: inboxOpened))
@@ -298,6 +307,10 @@ struct ContentView: View {
 
 struct ChallengeRow: View {
     let challenge: Challenge
+    /// When anyone in the crew last saved progress; your own reps on this phone count too.
+    var crewActivity: Date? = nil
+
+    private var lastActive: Date? { [crewActivity, challenge.lastLogged].compactMap { $0 }.max() }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -312,6 +325,8 @@ struct ChallengeRow: View {
                 }
             }
             Text(status).font(AppFont.body)
+            Text("\(challenge.dateRange) · \(Challenge.activityText(lastActive))")
+                .font(AppFont.body).foregroundStyle(.secondary)
         }
         .padding(.vertical, 4)
     }

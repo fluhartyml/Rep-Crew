@@ -17,6 +17,7 @@ struct ChallengeDetailView: View {
     @State private var setGoal: ExerciseGoal?
     @State private var confirmingDelete = false
     @State private var confirmingClose = false
+    @State private var runningRoutine = false
     @State private var closeFailed: String?
     /// Read so this screen redraws the moment a closing arrives (ChallengeClose.swift).
     @AppStorage(CrewSettings.closedChallenges) private var closedChallenges = ""
@@ -41,6 +42,12 @@ struct ChallengeDetailView: View {
 
             if challenge.isActive {
                 Section {
+                    // Every exercise in order, one timed set at a time (Routine.swift).
+                    if challenge.allGoals.count > 1 {
+                        Button { runningRoutine = true } label: {
+                            Label("Start Routine", systemImage: "list.bullet.clipboard").font(AppFont.bodyBold)
+                        }
+                    }
                     ForEach(challenge.sortedGoals) { goal in
                         GoalRow(goal: goal, onCustom: { customGoal = goal }, onStartSet: { setGoal = goal })
                     }
@@ -116,6 +123,7 @@ struct ChallengeDetailView: View {
         .crewNavGlyphs()
         .sheet(item: $customGoal) { goal in CustomRepsView(goal: goal) }
         .sheet(item: $setGoal) { goal in SetTimerView(goal: goal) }
+        .sheet(isPresented: $runningRoutine) { RoutineView(challenge: challenge) }
         .onAppear { assignCrewID() }
         // Only once something is paired, so opening a challenge never asks for Health access by itself.
         .task { if challenge.countsHealth { await HealthLibrary.shared.refresh() } }
