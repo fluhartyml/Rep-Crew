@@ -94,6 +94,7 @@ struct UserAccountView: View {
                 Text("Application").font(AppFont.bodyBold).textCase(nil)
             }
             if let application = user.application, GodMode.isOn { WelcomeLetterSection(entry: application) }
+            if user.application != nil, GodMode.isOn { ApproveSection(memberID: user.id) }
             Section {
                 Text(user.id).font(AppFont.body).foregroundStyle(.secondary).textSelection(.enabled)
             } header: {

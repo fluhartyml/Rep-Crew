@@ -386,8 +386,10 @@ struct CoachToolsSection: View {
             Text("The number on New Crew Members counts applications that haven't had a welcome letter.").font(AppFont.body)
         }
         .task(id: welcomed) {
-            let sent = Set(welcomed.split(separator: "\n").map(String.init))
-            waiting = await CrewCloud.shared.applications().filter { !sent.contains($0.id) }.count
+            await CrewCloud.shared.syncWelcomed()
+            let sent = Set((UserDefaults.standard.string(forKey: CrewSettings.welcomed) ?? "").split(separator: "\n").map(String.init))
+            let approved = await CrewCloud.shared.approvedIDs()
+            waiting = await CrewCloud.shared.applications().filter { !sent.contains($0.id) && !approved.contains($0.id) }.count
         }
     }
 }

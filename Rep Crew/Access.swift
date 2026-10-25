@@ -83,6 +83,8 @@ struct AccessTable: Codable, Equatable {
     var flags: [AccessFlag]
     /// Per command (AccessAbility raw value). Missing = no keys needed. Optional so older saved tables still read.
     var keys: [String: AccessKeys]? = nil
+    /// His "Allow coaches to approve new crew applications" switch (Approvals.swift). nil = off.
+    var coachesApprove: Bool? = nil
 
     static let starter = AccessTable(bands: [
         AccessBand(low: 0, high: 5, name: "New user, no application", abilities: []),
@@ -151,6 +153,7 @@ extension CrewCloud {
                                   title: record["title"] as? String ?? "")
         }
         access.level = max(access.level, await earnedLevel(id))
+        if access.level < Self.approvedLevel, await isApproved(id) { access.level = Self.approvedLevel }
         if coaches[id] != nil { access.level = max(access.level, 250) }
         if GodMode.ids.contains(id) { access.level = 255 }
         return access

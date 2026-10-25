@@ -297,9 +297,12 @@ struct ApplicationsView: View {
     @AppStorage(CrewSettings.welcomed) private var welcomed = ""
     @State private var entries: [ApplicationEntry] = []
     @State private var loaded = false
+    /// Approved by him or a coach (Approvals.swift); approved counts as processed too.
+    @State private var approved: Set<String> = []
 
     var body: some View {
         List {
+            CoachesApproveToggle()
             Section {
                 NavigationLink {
                     WelcomeLetterView()
@@ -313,6 +316,7 @@ struct ApplicationsView: View {
                 }
                 ForEach(entries) { entry in
                     let isWelcomed = welcomed.split(separator: "\n").contains(Substring(entry.id))
+                    let isApproved = approved.contains(entry.id)
                     NavigationLink {
                         UserAccountView(memberID: entry.id, application: entry)
                     } label: {
@@ -320,11 +324,11 @@ struct ApplicationsView: View {
                             // REM: his word, 2026-10-25: "it should have a blue dot or something till i have processed or
                             // sent a welcome letter". Blue until the welcome letter goes, like Inbox.
                             Circle().fill(.blue).frame(width: 10, height: 10).padding(.top, 8)
-                                .opacity(isWelcomed ? 0 : 1)
-                                .accessibilityLabel(isWelcomed ? "" : "Not welcomed yet")
+                                .opacity(isWelcomed || isApproved ? 0 : 1)
+                                .accessibilityLabel(isWelcomed || isApproved ? "" : "Not processed yet")
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(entry.name).font(AppFont.bodyBold)
-                                Text(entry.sent.formatted(date: .abbreviated, time: .shortened) + (isWelcomed ? " · Welcomed" : ""))
+                                Text(entry.sent.formatted(date: .abbreviated, time: .shortened) + (isWelcomed ? " · Welcomed" : "") + (isApproved ? " · Approved" : ""))
                                     .font(AppFont.body).foregroundStyle(.secondary)
                                 if entry.answers.map({ $0.email.isEmpty }) ?? false {
                                     Text("No email given").font(AppFont.body).foregroundStyle(.orange)
@@ -339,11 +343,15 @@ struct ApplicationsView: View {
             }
         }
         .navigationTitle("New Crew Members")
-        .refreshable { entries = await CrewCloud.shared.applications() }
-        .task {
-            entries = await CrewCloud.shared.applications()
-            loaded = true
-        }
+        .refreshable { await load() }
+        .task { await load() }
+    }
+
+    private func load() async {
+        entries = await CrewCloud.shared.applications()
+        loaded = true
+        await CrewCloud.shared.syncWelcomed()
+        approved = await CrewCloud.shared.approvedIDs()
     }
 }
 
@@ -413,6 +421,8 @@ struct WelcomeLetterSection: View {
         if !isWelcomed {
             welcomed = (welcomed.split(separator: "\n").map(String.init) + [entry.id]).joined(separator: "\n")
         }
+        // Shared, so every coach sees it as processed (Approvals.swift).
+        Task { await CrewCloud.shared.markWelcomed(entry.id) }
     }
 }
 
