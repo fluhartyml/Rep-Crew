@@ -77,7 +77,7 @@ struct NotificationSettingsView: View {
             }
 
             Section {
-                Toggle(isOn: offBinding(NotificationSettings.replies)) { Text("Replies to you").font(AppFont.body) }
+                Toggle(isOn: offBinding(NotificationSettings.replies)) { Text("Replies and messages to you").font(AppFont.body) }
                 Toggle(isOn: offBinding(NotificationSettings.invites)) { Text("Challenge invites").font(AppFont.body) }
                 Toggle(isOn: offBinding(NotificationSettings.allCrews)) { Text("Coach announcements").font(AppFont.body) }
                 if leadsOne {

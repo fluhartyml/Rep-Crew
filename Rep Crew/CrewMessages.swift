@@ -18,7 +18,8 @@ import UserNotifications
 struct CrewMessage: Identifiable {
     /// announcementOneWay: an announcement sent with Allow replies off. Shown exactly like one, minus
     /// Reply / Reply All. Builds before it read the unknown kind as .message.
-    enum Kind: String { case announcement, announcementOneWay, message, reply, welcome, finished }
+    /// direct: one person to one person, outside any challenge (see `direct(to:)`).
+    enum Kind: String { case announcement, announcementOneWay, message, reply, welcome, finished, direct }
 
     let id: String
     let crewID: String
@@ -36,6 +37,14 @@ struct CrewMessage: Identifiable {
     static let allCrews = "all-crews"
 
     var isToAllCrews: Bool { crewID == Self.allCrews }
+
+    /// His word, 2026-10-24: "as a coach go into a crew directory and tap into a user card and have a
+    /// button to send a message to the crew members inbox" — for people who shared no contact info.
+    /// REM: a direct message is a CrewMessage whose crewID is the RECIPIENT's own box, dm.<their ID>, so
+    /// the inbox finds it with the crewID index every phone already queries by (no schema change), and
+    /// the "Replies to you" subscription (toID == me) already turns it into a notification.
+    static func direct(to memberID: String) -> String { "dm.\(memberID)" }
+    static func isDirect(_ crewID: String) -> Bool { crewID.hasPrefix("dm.") }
 }
 
 // MARK: - iCloud
@@ -59,6 +68,7 @@ extension CrewCloud {
         case .reply: record["title"] = "\(senderName) replied"
         case .welcome: record["title"] = "✅ \(senderName)"
         case .finished: record["title"] = "🏁 \(senderName)"
+        case .direct: record["title"] = "✉️ \(senderName)"
         }
         do {
             _ = try await db.modifyRecords(saving: [record], deleting: [], savePolicy: .allKeys)
@@ -285,8 +295,14 @@ final class CrewNotifications: NSObject, UIApplicationDelegate, UNUserNotificati
               let note = CKQueryNotification(fromRemoteNotificationDictionary: response.notification.request.content.userInfo),
               let crewID = note.recordFields?["crewID"] as? String,
               let senderID = note.recordFields?["senderID"] as? String else { return }
-        let toID = response.actionIdentifier == Self.reply ? senderID : CrewMessage.everyone
         let name = UserDefaults.standard.string(forKey: CrewSettings.name)?.trimmingCharacters(in: .whitespaces) ?? ""
+        // A direct message has no crew to Reply All to, so either button answers the sender, in THEIR box.
+        if CrewMessage.isDirect(crewID) {
+            _ = await CrewCloud.shared.send(text, crewID: CrewMessage.direct(to: senderID), kind: .direct, to: senderID,
+                                            senderName: name.isEmpty ? "A crew member" : name)
+            return
+        }
+        let toID = response.actionIdentifier == Self.reply ? senderID : CrewMessage.everyone
         _ = await CrewCloud.shared.send(text, crewID: crewID, kind: .reply, to: toID,
                                         senderName: name.isEmpty ? "A crew member" : name)
     }
@@ -433,6 +449,7 @@ struct CrewMessagesSection: View {
         case .reply: return message.toID == CrewMessage.everyone ? "\(from), to everyone" : "\(from), reply"
         case .welcome: return "✅ \(from)"
         case .finished: return "🏁 \(from)"
+        case .direct: return "✉️ \(from)"
         }
     }
 

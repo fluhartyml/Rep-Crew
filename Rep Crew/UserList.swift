@@ -68,7 +68,7 @@ struct UserListView: View {
                     UserDetailView(user: user)
                 } label: {
                     HStack(spacing: 12) {
-                        ProfilePhoto(image: user.profile?.photo, size: 44)
+                        ProfilePhoto(image: user.profile?.photo, size: 44, seed: user.id)
                         VStack(alignment: .leading, spacing: 4) {
                             Text(user.name).font(AppFont.bodyBold)
                             Text(summary(user)).font(AppFont.body).foregroundStyle(.secondary)
@@ -102,7 +102,7 @@ private struct UserDetailView: View {
             Section {
                 HStack {
                     Spacer()
-                    ProfilePhoto(image: user.profile?.photo, size: 120)
+                    ProfilePhoto(image: user.profile?.photo, size: 120, seed: user.id)
                     Spacer()
                 }
                 .listRowBackground(Color.clear)

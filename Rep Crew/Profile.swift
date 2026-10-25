@@ -296,7 +296,7 @@ struct MyProfileSection: View {
     var body: some View {
         Section {
             HStack(spacing: 16) {
-                ProfilePhoto(image: photoID.isEmpty ? nil : MyProfile.photo, size: 72)
+                ProfilePhoto(image: photoID.isEmpty ? nil : MyProfile.photo, size: 72, seed: CrewCloud.shared.myID ?? "")
                     .id(photoID)
                 Text(photoID.isEmpty ? "No photo" : "Your photo").font(AppFont.body)
             }
@@ -381,22 +381,32 @@ struct MyProfileSection: View {
 
 // MARK: - Someone's profile
 
-/// A round photo, or a person glyph when there's none.
+/// A round photo, or a dumbbell when there's none.
+/// REM: his word, 2026-10-24: "can blank profiles be default? maybe with random avatar ... or a piece of
+/// gym equipment like a dumbbell or kettlebell". Apple's symbols have a dumbbell but no kettlebell. The
+/// color comes from their ID (`seed`), so one person always gets the same one on every phone.
 struct ProfilePhoto: View {
     let image: UIImage?
     let size: CGFloat
+    var seed: String = ""
+
+    private static let colors: [Color] = [.blue, .orange, .green, .purple, .red, .teal, .indigo, .pink]
+    /// Summed scalars, not hashValue: Swift seeds hashValue fresh on every launch.
+    private var color: Color {
+        seed.isEmpty ? .secondary : Self.colors[seed.unicodeScalars.reduce(0) { $0 + Int($1.value) } % Self.colors.count]
+    }
 
     var body: some View {
         Group {
             if let image {
                 Image(uiImage: image).resizable().scaledToFill()
             } else {
-                Image(systemName: "person.fill").resizable().scaledToFit().padding(size * 0.22)
-                    .foregroundStyle(.secondary)
+                Image(systemName: "dumbbell.fill").resizable().scaledToFit().padding(size * 0.2)
+                    .foregroundStyle(color)
             }
         }
         .frame(width: size, height: size)
-        .background(Color.secondary.opacity(0.15))
+        .background(color.opacity(0.15))
         .clipShape(Circle())
         .accessibilityHidden(true)
     }
@@ -417,6 +427,12 @@ enum ProfileAction: String, Identifiable {
 struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
     let target: ProfileTarget
+    /// Message shows for coaches, and for anyone answering a direct message (the Inbox passes true).
+    var canMessage = false
+    @AppStorage(CrewSettings.name) private var myName = ""
+    @State private var draft = ""
+    @State private var sending = false
+    @State private var sentNote: String?
 
     @State private var profile: CrewProfile?
     @State private var loaded = false
@@ -438,7 +454,7 @@ struct ProfileView: View {
                 MemberAccessSection(memberID: target.id)
                 Section {
                     VStack(spacing: 12) {
-                        ProfilePhoto(image: profile?.photo, size: 140)
+                        ProfilePhoto(image: profile?.photo, size: 140, seed: target.id)
                         Text(name).font(AppFont.title).multilineTextAlignment(.center)
                         if let profile, let method = ContactMethod.preferred(profile) {
                             Label("Prefers \(method.title)", systemImage: method.systemImage)
@@ -471,6 +487,24 @@ struct ProfileView: View {
                     }
                 } header: {
                     Text("Contact").font(AppFont.bodyBold).textCase(nil)
+                }
+                // REM: his word, 2026-10-24: "as a coach go into a crew directory and tap into a user card and
+                // have a button to send a message to the crew members inbox" — reaches people who shared nothing.
+                if !isMine && (canMessage || GodMode.isOn) {
+                    Section {
+                        TextField("Message to \(savedName)", text: $draft, axis: .vertical)
+                            .font(AppFont.body).lineLimit(1...6)
+                        Button { Task { await sendMessage() } } label: {
+                            Label("Send to Their Inbox", systemImage: "paperplane.fill").font(AppFont.bodyBold)
+                        }
+                        .disabled(sending || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        if let sentNote { Text(sentNote).font(AppFont.body).foregroundStyle(.secondary) }
+                    } header: {
+                        Text("Message").font(AppFont.bodyBold).textCase(nil)
+                    } footer: {
+                        Text("Goes to their Rep Crew Inbox, and as a notification if they allow it. No contact info needed.")
+                            .font(AppFont.body)
+                    }
                 }
                 if note != nil || failed {
                     Section {
@@ -520,6 +554,22 @@ struct ProfileView: View {
     }
 
     // MARK: Buttons
+
+    private func sendMessage() async {
+        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        sending = true
+        failed = false
+        let me = myName.trimmingCharacters(in: .whitespaces)
+        if await CrewCloud.shared.send(text, crewID: CrewMessage.direct(to: target.id), kind: .direct, to: target.id,
+                                       senderName: me.isEmpty ? "A crew member" : me) {
+            draft = ""
+            sentNote = "Sent to \(savedName)'s Inbox."
+        } else {
+            failed = true
+        }
+        sending = false
+    }
 
     /// One per way they filled in; a blank field shows nothing.
     @ViewBuilder private var contactButtons: some View {

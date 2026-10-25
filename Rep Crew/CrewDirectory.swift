@@ -96,6 +96,14 @@ extension CrewCloud {
             let hide = await hidden(crewID: crewID, leaderID: leaderID)
             for (id, name) in found where id != myID && !hide.contains(id) { people[id] = people[id] ?? name }
         }
+        // REM: his finding, 2026-10-24: "hanna and brendan have accessed but dont have profiles in the crew
+        // REM: directory". The list was only people who share a challenge with you, so a coach couldn't reach
+        // REM: a new member to message them. A coach now sees everyone the User List knows (UserList.swift).
+        if GodMode.isOn {
+            for user in await allUsers() where user.id != myID && people[user.id] == nil && !Blocklist.ids.contains(user.id) {
+                people[user.id] = user.name
+            }
+        }
         let heads = GodMode.ids.filter { !Blocklist.ids.contains($0) }
         let others = people.filter { !heads.contains($0.key) }.map { ProfileTarget(id: $0.key, name: $0.value) }
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
@@ -200,7 +208,7 @@ struct CrewDirectoryView: View {
         return VStack(alignment: .leading, spacing: 12) {
             Button { profileOf = person } label: {
                 HStack(spacing: 14) {
-                    ProfilePhoto(image: profile?.photo, size: 56)
+                    ProfilePhoto(image: profile?.photo, size: 56, seed: person.id)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(saved.isEmpty ? person.name : saved).font(AppFont.bodyBold)
                         if GodMode.ids.contains(person.id) {

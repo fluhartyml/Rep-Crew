@@ -11,6 +11,12 @@
 //  requests on challenges you lead, and (coaches) new member applications. Tapping opens where it came
 //  from. "New" = arrived since you last opened the inbox (kept on this phone).
 //
+//  REM: his finding, 2026-10-24: "the old read messages sometimes appear as new and arnt able to be
+//  deleted". Two causes in the code: an undated item (invite, join request) stayed new until answered,
+//  and a reinstall (Debug ⇄ TestFlight on his 11) reset "last opened" to never, so everything read as new.
+//  Now each item is read once the inbox has shown it (by ID), a fresh install starts with what's already
+//  there read, and a swipe deletes an item from this phone's inbox (InboxState).
+//
 
 import SwiftUI
 import UserNotifications
@@ -18,14 +24,44 @@ import UserNotifications
 extension CrewSettings {
     static let inboxOpened = "inboxOpenedAt"
     static let inboxUnread = "inboxUnread"
+    static let inboxSeen = "inboxSeenIDs"
+    static let inboxDeleted = "inboxDeletedIDs"
 }
 
-/// Unread = arrived since the inbox was last opened, plus invites and join requests still waiting on you.
+/// Which inbox items this phone has shown and which it deleted, by item ID, newline-joined.
+enum InboxState {
+    /// Kept to the newest few hundred, so the lists don't grow forever.
+    private static let limit = 500
+
+    static var seen: [String] { ids(CrewSettings.inboxSeen) }
+    static var deleted: Set<String> { Set(ids(CrewSettings.inboxDeleted)) }
+
+    /// `opened`: when the inbox was last opened; 0 = never on this install, so nothing already there is news.
+    static func isUnread(_ item: InboxItem, since opened: Double, seen: Set<String>) -> Bool {
+        guard opened > 0, !seen.contains(item.id) else { return false }
+        return (item.date ?? .distantFuture) > Date(timeIntervalSince1970: opened)
+    }
+
+    static func markSeen(_ items: [InboxItem]) { add(items.map(\.id), to: CrewSettings.inboxSeen) }
+    static func delete(_ item: InboxItem) { add([item.id], to: CrewSettings.inboxDeleted) }
+
+    private static func ids(_ key: String) -> [String] {
+        (UserDefaults.standard.string(forKey: key) ?? "").split(separator: "\n").map(String.init)
+    }
+
+    private static func add(_ new: [String], to key: String) {
+        var list = ids(key).filter { !new.contains($0) } + new
+        if list.count > limit { list.removeFirst(list.count - limit) }
+        UserDefaults.standard.set(list.joined(separator: "\n"), forKey: key)
+    }
+}
+
+/// Unread = not yet shown in the inbox and arrived since it was last opened (InboxState).
 /// His word 2026-10-24: "yes build it with the app icon badge" — red count, unread only (Apple's badge rule).
 enum InboxBadge {
     static func unread(_ items: [InboxItem], since opened: Double) -> Int {
-        let last = Date(timeIntervalSince1970: opened)
-        return items.filter { ($0.date ?? .distantFuture) > last }.count
+        let seen = Set(InboxState.seen)
+        return items.filter { InboxState.isUnread($0, since: opened, seen: seen) }.count
     }
     static var current: Int { UserDefaults.standard.integer(forKey: CrewSettings.inboxUnread) }
     /// Home's count and the app icon's, kept the same.
@@ -40,6 +76,7 @@ struct InboxItem: Identifiable {
         case challenge(String)   // crewID
         case invite(Invite)
         case newMembers
+        case person(ProfileTarget)   // a direct message: opens the sender's profile, where Message answers
     }
     let id: String
     let date: Date?
@@ -48,7 +85,7 @@ struct InboxItem: Identifiable {
     let detail: String
     let destination: Destination
     /// Shown under the item without changing its place. A join request keeps date nil so it stays
-    /// first and unread until answered, but still shows when it was asked (his word 2026-10-24,
+    /// first until answered, but still shows when it was asked (his word 2026-10-24,
     /// "add the date to the asked to join item").
     var shownDate: Date? = nil
 }
@@ -73,6 +110,11 @@ extension CrewCloud {
                 }
             }
         }
+        for message in await messages(crewID: CrewMessage.direct(to: myID)) where message.senderID != myID && message.toID == myID {
+            items.append(InboxItem(id: message.id, date: message.sentAt, icon: "envelope.fill",
+                                   title: "✉️ \(message.senderName)", detail: message.text,
+                                   destination: .person(ProfileTarget(id: message.senderID, name: message.senderName))))
+        }
         for message in await allCrewsMessages() where message.senderID != myID {
             items.append(InboxItem(id: message.id, date: message.sentAt, icon: "megaphone.fill",
                                    title: "📣 \(message.senderName) to all crews", detail: message.text, destination: .challenge(CrewMessage.allCrews)))
@@ -95,7 +137,8 @@ extension CrewCloud {
             }
         }
         // Undated items (invites, join requests) wait on you, so they go first.
-        return items.sorted { ($0.date ?? .distantFuture) > ($1.date ?? .distantFuture) }
+        let deleted = InboxState.deleted
+        return items.filter { !deleted.contains($0.id) }.sorted { ($0.date ?? .distantFuture) > ($1.date ?? .distantFuture) }
     }
 }
 
@@ -105,7 +148,9 @@ struct InboxView: View {
     @AppStorage(CrewSettings.inboxOpened) private var openedAt = 0.0
     @State private var items: [InboxItem] = []
     @State private var loaded = false
-    @State private var lastVisit = Date.distantPast
+    /// Unread when this visit began; their blue dots stay for the visit.
+    @State private var unread: Set<String> = []
+    @State private var profileOf: ProfileTarget?
 
     var body: some View {
         List {
@@ -115,16 +160,20 @@ struct InboxView: View {
             }
             ForEach(items) { item in
                 row(item)
+                    .swipeActions {
+                        Button(role: .destructive) { delete(item) } label: { Label("Delete", systemImage: "trash") }
+                    }
             }
         }
         .navigationTitle("Inbox")
         .refreshable { await load() }
-        .task {
-            lastVisit = Date(timeIntervalSince1970: openedAt)
-            await load()
-            openedAt = Date.now.timeIntervalSince1970
-            await InboxBadge.set(InboxBadge.unread(items, since: openedAt))
-        }
+        .task { await load() }
+        .sheet(item: $profileOf) { ProfileView(target: $0, canMessage: true) }
+    }
+
+    private func delete(_ item: InboxItem) {
+        InboxState.delete(item)
+        items.removeAll { $0.id == item.id }
     }
 
     @ViewBuilder
@@ -132,8 +181,8 @@ struct InboxView: View {
         let label = HStack(alignment: .top, spacing: 12) {
             // Blue dot = unread, like Mail.
             Circle().fill(.blue).frame(width: 10, height: 10).padding(.top, 8)
-                .opacity((item.date ?? .distantFuture) > lastVisit ? 1 : 0)
-                .accessibilityLabel((item.date ?? .distantFuture) > lastVisit ? "Unread" : "")
+                .opacity(unread.contains(item.id) ? 1 : 0)
+                .accessibilityLabel(unread.contains(item.id) ? "Unread" : "")
             Image(systemName: item.icon).font(AppFont.heading).foregroundStyle(.tint).frame(width: 32)
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.title).font(AppFont.bodyBold).foregroundStyle(.primary)
@@ -156,12 +205,19 @@ struct InboxView: View {
             Button { openInvite(invite) } label: { label }
         case .newMembers:
             NavigationLink(value: CrewScreen.newMembers) { label }
+        case .person(let sender):
+            Button { profileOf = sender } label: { label }
         }
     }
 
     private func load() async {
         items = await CrewCloud.shared.inbox(crewIDs: challenges.map(\.crewID).filter { !$0.isEmpty },
                                              led: challenges.filter { $0.leaderID.isEmpty && !$0.crewID.isEmpty }.map(\.crewID))
+        let seen = Set(InboxState.seen)
+        unread.formUnion(items.filter { InboxState.isUnread($0, since: openedAt, seen: seen) }.map(\.id))
+        InboxState.markSeen(items)
+        openedAt = Date.now.timeIntervalSince1970
+        await InboxBadge.set(0)
         loaded = true
     }
 }
