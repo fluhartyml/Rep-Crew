@@ -237,6 +237,7 @@ struct CrewDirectoryView: View {
             }
         }
         .padding(.vertical, 6)
+        .contextMenu { AccessLevelMenu(memberID: person.id, name: saved.isEmpty ? person.name : saved) }
     }
 
     /// Names first, then each profile as it arrives.

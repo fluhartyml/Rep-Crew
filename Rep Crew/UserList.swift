@@ -62,6 +62,7 @@ struct UserListView: View {
                         }
                     }
                 }
+                .contextMenu { AccessLevelMenu(memberID: user.id, name: user.name) }
             }
         }
         .navigationTitle("User List")

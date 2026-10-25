@@ -252,6 +252,7 @@ struct BoardBlock<Link: Hashable>: View {
                             }
                             // His word: "i should be able to grant and ungrant coach permissions
                             // to worthy individuals". Only he sees this.
+                            AccessLevelMenu(memberID: row.id, name: row.name)
                             if GodMode.isOwner && !GodMode.ids.contains(row.id) {
                                 let isCoach = CrewCloud.shared.coaches[row.id] != nil
                                 Button {

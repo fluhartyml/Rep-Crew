@@ -236,6 +236,7 @@ struct ApplicationsView: View {
                                 .font(AppFont.body).foregroundStyle(.secondary)
                         }
                     }
+                    .contextMenu { AccessLevelMenu(memberID: entry.id, name: entry.name) }
                 }
             } header: {
                 Text("Applications").font(AppFont.bodyBold).textCase(nil)

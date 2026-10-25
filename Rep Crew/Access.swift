@@ -414,12 +414,9 @@ struct MemberAccessSection: View {
         }
         let isCoach = cloud.coaches[memberID] != nil
         let wantsCoach = access.level >= Self.coachLevel
-        if wantsCoach != isCoach {
-            let label = access.title.trimmingCharacters(in: .whitespaces)
-            guard await cloud.setCoach(memberID, name: name.isEmpty ? (label.isEmpty ? "Coach" : label) : name, on: wantsCoach) else {
-                note = "Level saved, but the coach change didn't go through. Check Settings → iCloud."
-                return
-            }
+        guard await cloud.syncCoach(memberID, level: access.level, name: name.isEmpty ? access.title : name) else {
+            note = "Level saved, but the coach change didn't go through. Check Settings → iCloud."
+            return
         }
         access = await cloud.memberAccess(memberID)
         note = wantsCoach && !isCoach ? "Saved. They're a coach now." : (!wantsCoach && isCoach ? "Saved. They're no longer a coach." : "Saved.")
@@ -436,5 +433,50 @@ struct MemberAccessSection: View {
 
     static func previousStart(below level: Int, in table: AccessTable) -> Int {
         starts(table).last { $0 < level } ?? 0
+    }
+}
+
+extension CrewCloud {
+    /// REM: coach powers come from the CoachGrant list (GodMode.swift), so a level of 250+ grants it and a
+    /// lower one takes it back. Otherwise "Coach" would show with no powers.
+    func syncCoach(_ id: String, level: Int, name: String) async -> Bool {
+        let wantsCoach = level >= MemberAccessSection.coachLevel
+        guard wantsCoach != (coaches[id] != nil) else { return true }
+        let label = name.trimmingCharacters(in: .whitespaces)
+        return await setCoach(id, name: label.isEmpty ? "Coach" : label, on: wantsCoach)
+    }
+
+    /// Head coach: put someone at a level, keeping their title and flags.
+    func setLevel(_ level: Int, for id: String, name: String) async -> Bool {
+        var access = await memberAccess(id)
+        access.level = level
+        guard await saveMemberAccess(access, for: id) else { return false }
+        return await syncCoach(id, level: level, name: name)
+    }
+}
+
+/// Long-press → Set Access Level: the start of every range in the access table, Head Coach aside.
+/// REM: his word 2026-10-25: "i thought i was supposed to be able to long press on a crew member and give
+/// them coach access (or any other predefined acs level)". Head coach only; goes in any .contextMenu.
+struct AccessLevelMenu: View {
+    let memberID: String
+    let name: String
+
+    var body: some View {
+        if GodMode.isOwner && !GodMode.ids.contains(memberID) {
+            let bands = CrewCloud.shared.accessTable.bands
+                .filter { min($0.low, $0.high) <= MemberAccessSection.highest }
+                .sorted { min($0.low, $0.high) > min($1.low, $1.high) }
+            Menu {
+                ForEach(bands) { band in
+                    let level = min(band.low, band.high)
+                    Button("\(band.name) · \(level)") {
+                        Task { _ = await CrewCloud.shared.setLevel(level, for: memberID, name: name) }
+                    }
+                }
+            } label: {
+                Label("Set Access Level", systemImage: "list.number")
+            }
+        }
     }
 }
