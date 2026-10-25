@@ -2,7 +2,8 @@
 //  SetTimer.swift
 //  Rep Crew
 //
-//  "Start Set": time a set, log its reps, and save it to Health as a real strength workout.
+//  "Start Set": time a set, log its reps, and save it to Health as a real workout of its kind
+//  (walking for a walk, strength training for push-ups; HealthSets.activityType).
 //  His plan, 2026-10-22 ~20:00 — the rings close because real workouts land in Health, and
 //  the app never says so: "we would never say 'close your rings' or any trade marks".
 //
@@ -22,16 +23,52 @@ enum HealthSets {
     static let readTypes: Set<HKObjectType> = [HKObjectType.workoutType(), HKQuantityType(.activeEnergyBurned),
                                                HKQuantityType(.heartRate)]
 
-    /// Saves one set as a strength workout with its real start and end. False when Health is
-    /// unavailable or you said no; your reps are logged either way.
+    /// The Health workout type for an exercise, by its name. Anything not named here stays strength training.
+    /// REM: tester feedback he passed on, 2026-10-25: "When I did a walk (I clicked start set in the Rep Crew app) it
+    /// logged it in my fitness app as Traditional Strength Training." Names are free text, so match words in them.
+    static func activityType(for exercise: String) -> HKWorkoutActivityType {
+        let name = exercise.lowercased()
+        let kinds: [(words: [String], type: HKWorkoutActivityType)] = [
+            (["walk", "steps"], .walking), (["run", "jog", "sprint"], .running), (["hike"], .hiking),
+            (["swim"], .swimming), (["bike", "cycl", "spin"], .cycling), (["rowing", "erg"], .rowing),
+            (["yoga"], .yoga), (["jump rope", "skip"], .jumpRope), (["stair", "step up"], .stairClimbing),
+            (["stretch", "mobility"], .flexibility), (["dance"], .cardioDance),
+        ]
+        // Whole words by their start ("walking" matches walk; "bent-over rows" is NOT rowing), phrases as written.
+        let words = name.split { !$0.isLetter }.map(String.init)
+        func has(_ key: String) -> Bool { key.contains(" ") ? name.contains(key) : words.contains { $0.hasPrefix(key) } }
+        return kinds.first { $0.words.contains(where: has) }?.type ?? .traditionalStrengthTraining
+    }
+
+    /// True when another app's workout (the Apple Watch's Workout app, Strava…) already covers most of this set.
+    /// REM: same feedback: "when my dad did it, he was also tracking it on his Apple Watch, so it duplicated the
+    /// workout." Then Rep Crew saves no second workout; the reps are still logged. Health hides workouts it
+    /// wasn't allowed to read, so with read access off this finds nothing and saves as before.
+    static func anotherAppRecorded(start: Date, end: Date) async -> Bool {
+        let mine = Bundle.main.bundleIdentifier ?? "com.accountability.dailyrepcrew"
+        let window = HKQuery.predicateForSamples(withStart: start.addingTimeInterval(-60), end: end.addingTimeInterval(60))
+        let descriptor = HKSampleQueryDescriptor(predicates: [.workout(window)], sortDescriptors: [], limit: 20)
+        guard let workouts = try? await descriptor.result(for: store) else { return false }
+        let length = max(end.timeIntervalSince(start), 1)
+        return workouts.contains { workout in
+            guard !workout.sourceRevision.source.bundleIdentifier.hasPrefix(mine) else { return false }
+            let overlap = min(end, workout.endDate).timeIntervalSince(max(start, workout.startDate))
+            return overlap >= length * 0.5
+        }
+    }
+
+    /// Saves one set as a workout of its kind with its real start and end. False when Health is
+    /// unavailable or you said no; your reps are logged either way. True without saving when another
+    /// app already recorded it (`anotherAppRecorded`).
     static func save(start: Date, end: Date, exercise: String, reps: Int) async -> Bool {
         guard HKHealthStore.isHealthDataAvailable() else { return false }
         let workout = HKObjectType.workoutType()
         do {
             try await store.requestAuthorization(toShare: shareTypes, read: readTypes)
             guard store.authorizationStatus(for: workout) == .sharingAuthorized else { return false }
+            if await anotherAppRecorded(start: start, end: end) { return true }
             let configuration = HKWorkoutConfiguration()
-            configuration.activityType = .traditionalStrengthTraining
+            configuration.activityType = activityType(for: exercise)
             let builder = HKWorkoutBuilder(healthStore: store, configuration: configuration, device: .local())
             try await builder.beginCollection(at: start)
             try await builder.addMetadata([HKMetadataKeyWorkoutBrandName: "Rep Crew", "Exercise": exercise, "Reps": reps])

@@ -47,13 +47,30 @@ final class SetSession: NSObject, HKLiveWorkoutBuilderDelegate, HKWorkoutSession
     private(set) var calories: Double = 0
     var problem: String?
 
-    func begin() async {
+    /// The Health workout type for an exercise, by its name. Anything not named here stays strength training.
+    /// REM: tester feedback he passed on, 2026-10-25: "When I did a walk (I clicked start set in the Rep Crew app) it
+    /// logged it in my fitness app as Traditional Strength Training." Names are free text, so match words in them.
+    private static func activityType(for exercise: String) -> HKWorkoutActivityType {
+        let name = exercise.lowercased()
+        let kinds: [(words: [String], type: HKWorkoutActivityType)] = [
+            (["walk", "steps"], .walking), (["run", "jog", "sprint"], .running), (["hike"], .hiking),
+            (["swim"], .swimming), (["bike", "cycl", "spin"], .cycling), (["rowing", "erg"], .rowing),
+            (["yoga"], .yoga), (["jump rope", "skip"], .jumpRope), (["stair", "step up"], .stairClimbing),
+            (["stretch", "mobility"], .flexibility), (["dance"], .cardioDance),
+        ]
+        // Whole words by their start ("walking" matches walk; "bent-over rows" is NOT rowing), phrases as written.
+        let words = name.split { !$0.isLetter }.map(String.init)
+        func has(_ key: String) -> Bool { key.contains(" ") ? name.contains(key) : words.contains { $0.hasPrefix(key) } }
+        return kinds.first { $0.words.contains(where: has) }?.type ?? .traditionalStrengthTraining
+    }
+
+    func begin(exercise: String) async {
         let energy = HKQuantityType(.activeEnergyBurned)
         do {
             try await store.requestAuthorization(toShare: [HKObjectType.workoutType(), energy], read: [energy])
             let configuration = HKWorkoutConfiguration()
-            configuration.activityType = .traditionalStrengthTraining
-            configuration.locationType = .indoor
+            configuration.activityType = Self.activityType(for: exercise)
+            configuration.locationType = [.walking, .running, .hiking, .cycling].contains(configuration.activityType) ? .outdoor : .indoor
             let session = try HKWorkoutSession(healthStore: store, configuration: configuration)
             let builder = session.associatedWorkoutBuilder()
             builder.dataSource = HKLiveWorkoutDataSource(healthStore: store, workoutConfiguration: configuration)
@@ -146,7 +163,7 @@ struct SetView: View {
                 if let note { Text(note).font(WatchFont.body) }
             }
         }
-        .task { await set.begin() }
+        .task { await set.begin(exercise: goal.name) }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") { set.discard(); dismiss() }
