@@ -92,8 +92,11 @@ extension CrewCloud {
         record["reps"] = reps
         record["complete"] = complete ? 1 : 0
         record["streak"] = streak
-        record["minutes"] = minutes
-        record["calories"] = calories
+        // REM: his word 2026-10-25: "they have to opt into sharing any health related metrix". Off unless
+        // switched on in Settings → Health; then the crew sees only reps.
+        let share = UserDefaults.standard.bool(forKey: CrewSettings.shareHealth)
+        record["minutes"] = share ? minutes : 0
+        record["calories"] = share ? calories : 0
         do {
             _ = try await db.modifyRecords(saving: [record], deleting: [], savePolicy: .allKeys)
         } catch {

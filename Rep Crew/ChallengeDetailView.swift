@@ -81,7 +81,12 @@ struct ChallengeDetailView: View {
 
             Section {
                 ForEach(challenge.allDays, id: \.self) { day in
-                    DayRow(challenge: challenge, day: day)
+                    // Each set that day, with its time and heart rate (DailyStats.swift).
+                    if day <= Calendar.current.startOfDay(for: .now) {
+                        NavigationLink { DaySetsView(challenge: challenge, day: day) } label: { DayRow(challenge: challenge, day: day) }
+                    } else {
+                        DayRow(challenge: challenge, day: day)
+                    }
                 }
             } header: {
                 Text("Every day").font(AppFont.bodyBold).textCase(nil)

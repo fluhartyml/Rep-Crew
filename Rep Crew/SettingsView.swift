@@ -13,6 +13,8 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \CrewMember.addedAt) private var crew: [CrewMember]
 
+    /// Off by default: the crew sees minutes and calories only when you switch this on (Leaderboard.swift).
+    @AppStorage(CrewSettings.shareHealth) private var shareHealth = false
     @AppStorage(CrewSettings.name) private var name = ""
     @AppStorage(CrewSettings.testFlight) private var testFlight = ""
     @AppStorage(CrewSettings.crewNumber) private var crewNumber = 0
@@ -47,10 +49,13 @@ struct SettingsView: View {
                     NavigationLink { HealthMatchView() } label: {
                         Text("Match Health Workouts").font(AppFont.bodyBold)
                     }
+                    Toggle(isOn: $shareHealth) {
+                        Text("Share Minutes and Calories with Your Crew").font(AppFont.bodyBold)
+                    }
                 } header: {
                     header("Health")
                 } footer: {
-                    Text("Pair workouts other apps saved to Health with your Rep Crew exercises, and pick how they count.")
+                    Text("Pair workouts other apps saved to Health with your Rep Crew exercises, and pick how they count. Your Health numbers stay on this phone unless you share them; your crew always sees your reps. Heart rate is never shared.")
                         .font(AppFont.body)
                 }
 

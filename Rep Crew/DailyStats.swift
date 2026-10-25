@@ -144,3 +144,89 @@ struct ActivitySection: View {
         return text
     }
 }
+
+extension CrewSettings {
+    /// Off by default: minutes and calories reach the crew's board only when switched on (Settings → Health).
+    static let shareHealth = "shareHealthWithCrew"
+}
+
+// MARK: - Heart rate per set
+
+/// His word, 2026-10-25: "yes add heart rate per set". Read from Health for the set's own start and end,
+/// so it exists only when a Watch was worn. Shown on this phone only; never sent to the crew.
+enum SetHeartRate {
+    /// Average and peak beats per minute during the set, or nil when Health has none.
+    static func read(start: Date, end: Date) async -> (average: Int, peak: Int)? {
+        guard HKHealthStore.isHealthDataAvailable(), end > start else { return nil }
+        let samples = HKQuery.predicateForSamples(withStart: start, end: end)
+        let descriptor = HKStatisticsQueryDescriptor(predicate: .quantitySample(type: HKQuantityType(.heartRate), predicate: samples),
+                                                     options: [.discreteAverage, .discreteMax])
+        let bpm = HKUnit.count().unitDivided(by: .minute())
+        guard let stats = try? await descriptor.result(for: HealthSets.store),
+              let average = stats.averageQuantity()?.doubleValue(for: bpm),
+              let peak = stats.maximumQuantity()?.doubleValue(for: bpm) else { return nil }
+        return (Int(average.rounded()), Int(peak.rounded()))
+    }
+}
+
+/// One day's sets, each with its time, length and heart rate (DayRow → this).
+struct DaySetsView: View {
+    let challenge: Challenge
+    let day: Date
+
+    private var entries: [RepEntry] { challenge.entries(on: day).sorted { $0.loggedAt < $1.loggedAt } }
+
+    var body: some View {
+        List {
+            if let stats = challenge.statsText(on: day) {
+                Section { Text(stats).font(AppFont.bodyBold) }
+            }
+            Section {
+                if entries.isEmpty {
+                    Text("Nothing logged this day.").font(AppFont.body)
+                }
+                ForEach(entries) { entry in SetRow(entry: entry) }
+            } header: {
+                Text("Sets").font(AppFont.bodyBold).textCase(nil)
+            } footer: {
+                Text("Heart rate shows for sets timed with Start Set or Start Routine while wearing Apple Watch. It stays on this iPhone.")
+                    .font(AppFont.body)
+            }
+        }
+        .navigationTitle(Calendar.current.isDateInToday(day) ? "Today" : day.formatted(.dateTime.weekday(.wide).month().day()))
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await DailyStats.refreshHealthIfAllowed() }
+    }
+}
+
+private struct SetRow: View {
+    let entry: RepEntry
+    @State private var heart: (average: Int, peak: Int)?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(entry.goal?.name ?? "Exercise").font(AppFont.bodyBold)
+                Spacer()
+                Text("\(entry.count) reps").font(AppFont.bodyBold).monospacedDigit()
+            }
+            Text(detail).font(AppFont.body).foregroundStyle(.secondary)
+            if let heart {
+                Label("Average \(heart.average) bpm · peak \(heart.peak) bpm", systemImage: "heart.fill")
+                    .font(AppFont.body)
+            }
+        }
+        .padding(.vertical, 2)
+        .task(id: entry.persistentModelID) {
+            guard let seconds = entry.timedSeconds, seconds > 0 else { return }
+            heart = await SetHeartRate.read(start: entry.loggedAt.addingTimeInterval(-seconds), end: entry.loggedAt)
+        }
+    }
+
+    /// "9:41 AM · 4 min", or "9:41 AM · added" for reps without a timer.
+    private var detail: String {
+        let time = entry.loggedAt.formatted(date: .omitted, time: .shortened)
+        guard let seconds = entry.timedSeconds else { return "\(time) · added" }
+        return "\(time) · \(DailyStats.duration(seconds))"
+    }
+}

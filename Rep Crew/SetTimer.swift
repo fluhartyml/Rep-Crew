@@ -19,7 +19,8 @@ enum HealthSets {
     static let store = HKHealthStore()
     static let shareTypes: Set<HKSampleType> = [HKObjectType.workoutType()]
     /// Read for Match Health Workouts only. Asked in the same prompt as saving, so it's one question.
-    static let readTypes: Set<HKObjectType> = [HKObjectType.workoutType(), HKQuantityType(.activeEnergyBurned)]
+    static let readTypes: Set<HKObjectType> = [HKObjectType.workoutType(), HKQuantityType(.activeEnergyBurned),
+                                               HKQuantityType(.heartRate)]
 
     /// Saves one set as a strength workout with its real start and end. False when Health is
     /// unavailable or you said no; your reps are logged either way.
