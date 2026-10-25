@@ -371,6 +371,8 @@ struct ChallengeRow: View {
                 if challenge.isActive { DaySeal(challenge: challenge, day: .now) }
             }
             Text(status).font(AppFont.body)
+            // His "yes add it there too", 2026-10-25: who started it and when, and when it closed (HomeTiers.swift).
+            ChallengeByline(challenge: challenge)
             Text("\(challenge.dateRange) · \(Challenge.activityText(lastActive))")
                 .font(AppFont.body).foregroundStyle(.secondary)
         }
