@@ -149,6 +149,11 @@ struct GodModeSection: View {
                         Label("Access Levels", systemImage: "list.number").font(AppFont.bodyBold)
                     }
                     NavigationLink {
+                        MustReadAdminView()
+                    } label: {
+                        Label("Must-Read Announcements", systemImage: "exclamationmark.bubble.fill").font(AppFont.bodyBold)
+                    }
+                    NavigationLink {
                         CrewNameView()
                     } label: {
                         Label("Crew Name", systemImage: "character.cursor.ibeam").font(AppFont.bodyBold)

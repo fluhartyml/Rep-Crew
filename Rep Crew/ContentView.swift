@@ -37,6 +37,8 @@ struct ContentView: View {
     @State private var showingSettings = false
     @State private var joining: Invite?
     @State private var path = NavigationPath()
+    /// Head coach announcements not yet accepted on this phone (MustRead.swift).
+    @State private var mustRead: [CrewMessage] = []
 
     private var active: [Challenge] { _ = closedChallenges; return challenges.filter(\.isActive) }
     /// Changes whenever today's numbers do, so the Watch gets a fresh copy.
@@ -99,6 +101,15 @@ struct ContentView: View {
             }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { Task { await syncCrew() } }
+            }
+            .task(id: scenePhase) {
+                if scenePhase == .active { mustRead = await cloud.unacceptedMustReads() }
+            }
+            .fullScreenCover(item: Binding(get: { mustRead.first }, set: { _ in })) { message in
+                MustReadView(message: message) {
+                    MustRead.accept(message.id)
+                    mustRead.removeAll { $0.id == message.id }
+                }
             }
             .navigationTitle(CrewCloud.displayName(crewName))   // the head coach's name for the crew (CrewName.swift)
             .navigationDestination(for: Challenge.self) { ChallengeDetailView(challenge: $0) }

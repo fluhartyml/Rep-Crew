@@ -247,7 +247,7 @@ extension CrewCloud {
         return subscription
     }
 
-    private static func message(from record: CKRecord) -> CrewMessage? {
+    static func message(from record: CKRecord) -> CrewMessage? {
         guard let crewID = record["crewID"] as? String, let text = record["text"] as? String,
               let senderID = record["senderID"] as? String else { return nil }
         return CrewMessage(id: record.recordID.recordName, crewID: crewID, text: text, senderID: senderID,
