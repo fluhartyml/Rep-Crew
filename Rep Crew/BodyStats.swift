@@ -352,6 +352,9 @@ enum WeightRange: String, CaseIterable, Identifiable {
 //  one color bleeding past the line.
 struct WeightTrendView: View {
     private let stat = BodyStat.weight
+    /// In the Log Weight sheet: only the picker and chart, as one Form section (no page, no list of readings).
+    /// REM: his word, 2026-10-25, on the Log Weight sheet: "it should show the stats at the bottom of the sheet".
+    var inSheet = false
 
     @AppStorage("weightTrendRange") private var range: WeightRange = .month
     @State private var readings: [BodyReading] = []   // newest first
@@ -402,7 +405,14 @@ struct WeightTrendView: View {
     }
 
     var body: some View {
-        List {
+        if inSheet {
+            chartSection.task { await load() }
+        } else {
+            page
+        }
+    }
+
+    private var chartSection: some View {
             Section {
                 Picker("Range", selection: $range) {
                     ForEach(WeightRange.allCases) { Text($0.rawValue).tag($0) }
@@ -422,6 +432,11 @@ struct WeightTrendView: View {
                         .font(AppFont.body)
                 }
             }
+    }
+
+    private var page: some View {
+        List {
+            chartSection
 
             Section {
                 Button { loggingWeight = true } label: {
@@ -538,6 +553,7 @@ struct LogWeightView: View {
                     Text("It wasn't saved. Allow Rep Crew to save Weight in the Health app: Sharing → Apps → Rep Crew.")
                         .font(AppFont.body)
                 }
+                WeightTrendView(inSheet: true)
             }
             .navigationTitle("Log Weight")
             .navigationBarTitleDisplayMode(.inline)
