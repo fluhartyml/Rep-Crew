@@ -52,8 +52,10 @@ enum HomeTier: Int, Comparable {
     }
 }
 
-/// A row label like a NavigationLink's: white (primary) text, the icon in the app's tint. Buttons and menus
+/// A row label like a NavigationLink's: white (primary) text, the icon in the app's accent green. Buttons and menus
 /// otherwise tint their text too, which made Log Weight and View Home As look unlike the rows around them.
+/// REM: build 122 set the text to .primary and it stayed green on his 11: a Button or Menu in a List paints its
+/// whole label with the tint. So the row's tint is set to .primary (`rowTint()`) and the icon names the accent itself.
 struct RowLabel: View {
     let title: String
     let systemImage: String
@@ -65,10 +67,15 @@ struct RowLabel: View {
         Label {
             Text(title).foregroundStyle(.primary)
         } icon: {
-            Image(systemName: systemImage).foregroundStyle(.tint)
+            Image(systemName: systemImage).foregroundStyle(Color.accentColor)
         }
         .font(AppFont.bodyBold)
     }
+}
+
+extension View {
+    /// For a Button or Menu row whose label is a RowLabel: text stays white like a NavigationLink row.
+    func rowTint() -> some View { tint(.primary) }
 }
 
 // MARK: - View Home As (head coach)
@@ -93,6 +100,7 @@ private struct ViewAsMenu<Label: View>: View {
                 Button("Stop, Back to Head Coach", role: .destructive) { CrewCloud.shared.viewAsLevel = nil }
             }
         } label: { label() }
+        .rowTint()
     }
 }
 
@@ -114,6 +122,7 @@ struct ViewAsBanner: View {
                 Button { cloud.viewAsLevel = nil } label: {
                     RowLabel("Stop, Back to Head Coach", systemImage: "xmark.circle.fill")
                 }
+                .rowTint()
             }
             .listRowBackground(Color.orange.opacity(0.25))
         }
@@ -185,6 +194,7 @@ struct ProfileCardSection: View {
                     }
                 }
             }
+            .rowTint()
         }
         .sheet(isPresented: $loggingWeight, onDismiss: { Task { await loadWeight() } }) { LogWeightView() }
         .task { await loadWeight() }
