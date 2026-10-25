@@ -18,7 +18,7 @@
 	<key>NSContactsUsageDescription</key>
 	<string>Save a crew member’s contact card to your contacts. Rep Crew never reads your address book.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Rep Crew reads your workouts and their active energy so you can match them to your challenges. It uses Health’s own times and calories and never changes them.</string>
+	<string>Rep Crew reads your workouts, their active energy and heart rate so you can match them to your challenges, and your body stats when you ask to see them. Everything Rep Crew reads stays on this iPhone unless you choose to share it, and Rep Crew never changes it.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Save each timed set to Health as a strength workout.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>

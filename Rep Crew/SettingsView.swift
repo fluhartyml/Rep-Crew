@@ -45,6 +45,9 @@ struct SettingsView: View {
 
                 MyProfileSection()
 
+                // REM: his word 2026-10-25, body stats "in their profile privately by default" (BodyStats.swift).
+                BodyStatsSection()
+
                 Section {
                     NavigationLink { HealthMatchView() } label: {
                         Text("Match Health Workouts").font(AppFont.bodyBold)
