@@ -51,6 +51,12 @@ struct AboutView: View {
                 }
 
                 Section {
+                    NavigationLink { AgreementReadView() } label: {
+                        Label("User Agreement", systemImage: "doc.text").font(AppFont.bodyBold)
+                    }
+                }
+
+                Section {
                     Text("Rep Crew is a way to keep track of your own exercise. It is not medical advice. Check with a doctor before starting a new exercise routine, and stop if something hurts.")
                         .font(AppFont.body)
                 } header: {

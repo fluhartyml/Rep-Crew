@@ -37,10 +37,14 @@ struct RootView: View {
     /// The iCloud lookup was tried; if iCloud didn't answer, the name is asked as before.
     @State private var lookedUp = false
     @State private var openedURL: URL?
+    /// Read so the screen changes the moment I Agree is tapped (UserAgreement.swift).
+    @AppStorage(CrewSettings.agreementVersion) private var agreementVersion = 0
 
     var body: some View {
         Group {
-            if appleUser.isEmpty {
+            if agreementVersion < UserAgreement.version {
+                UserAgreementView()
+            } else if appleUser.isEmpty {
                 SignInView()
             } else if !accountChecked && !lookedUp && !applicationDone {
                 // Until iCloud answers, so a returning member isn't asked their name or the application again.
