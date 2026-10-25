@@ -77,6 +77,8 @@ struct ChallengeDetailView: View {
                 PhotoBoardSection(crewID: challenge.crewID, leaderID: challenge.leaderID, canAdd: true)
             }
 
+            ActivitySection(challenge: challenge)
+
             Section {
                 ForEach(challenge.allDays, id: \.self) { day in
                     DayRow(challenge: challenge, day: day)
@@ -126,7 +128,7 @@ struct ChallengeDetailView: View {
         .sheet(isPresented: $runningRoutine) { RoutineView(challenge: challenge) }
         .onAppear { assignCrewID() }
         // Only once something is paired, so opening a challenge never asks for Health access by itself.
-        .task { if challenge.countsHealth { await HealthLibrary.shared.refresh() } }
+        .task { if challenge.countsHealth { await HealthLibrary.shared.refresh() } else { await DailyStats.refreshHealthIfAllowed() } }
         .task(id: challenge.crewID) { joinRequests = await JoinRequestsSection.load(challenge) }
         .task(id: challenge.crewID) {
             guard !challenge.leaderID.isEmpty, let me = CrewCloud.shared.myID else { return }
@@ -218,6 +220,9 @@ struct ChallengeDetailView: View {
                     Label("Today's challenge complete", systemImage: "checkmark.seal.fill")
                         .font(AppFont.bodyBold)
                         .foregroundStyle(.green)
+                }
+                if let stats = challenge.statsText(on: .now) {
+                    Text("Today: \(stats)").font(AppFont.bodyBold)
                 }
             } else if !challenge.hasStarted {
                 Text("Starts \(challenge.startDate.formatted(date: .complete, time: .omitted))").font(AppFont.heading)
@@ -326,6 +331,9 @@ private struct DayRow: View {
                 if !isFuture {
                     Text(challenge.sortedGoals.map { "\($0.name) \($0.total(on: day))" }.joined(separator: " · "))
                         .font(AppFont.body)
+                    if let stats = challenge.statsText(on: day) {
+                        Text(stats).font(AppFont.body).foregroundStyle(.secondary)
+                    }
                 }
             }
             Spacer()

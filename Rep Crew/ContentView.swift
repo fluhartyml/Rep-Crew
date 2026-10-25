@@ -317,12 +317,8 @@ struct ChallengeRow: View {
             HStack {
                 Text(challenge.title).font(AppFont.bodyBold)
                 Spacer()
-                if challenge.isActive && challenge.isComplete(on: .now) {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(AppFont.heading)
-                        .foregroundStyle(.green)
-                        .accessibilityLabel("Done for today")
-                }
+                // Green when today is done, and today's sets (DailyStats.swift).
+                if challenge.isActive { DaySeal(challenge: challenge, day: .now) }
             }
             Text(status).font(AppFont.body)
             Text("\(challenge.dateRange) · \(Challenge.activityText(lastActive))")

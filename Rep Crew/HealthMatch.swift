@@ -90,6 +90,8 @@ final class HealthLibrary {
     /// Workouts by the day they started, so a day's lookup stays quick on long challenges.
     private var byDay: [Date: [HealthWorkout]] = [:]
     private(set) var hasLoaded = false
+    /// Rep Crew's own timed sets as Health holds them, for sets timed before RepEntry kept a start (DailyStats.swift).
+    private(set) var ownSets: [(end: Date, exercise: String, seconds: Double)] = []
     @ObservationIgnored private var lastLoad: Date?
 
     /// Column A, most recently used first.
@@ -131,6 +133,9 @@ final class HealthLibrary {
                               kilocalories: workout.statistics(for: energy)?.sumQuantity()?.doubleValue(for: .kilocalorie()) ?? 0)
             }
             all = workouts
+            ownSets = found.filter(Self.isRepCrews).map { workout in
+                (workout.endDate, workout.metadata?["Exercise"] as? String ?? "", workout.duration)
+            }
             byDay = Dictionary(grouping: workouts) { Calendar.current.startOfDay(for: $0.start) }
         } catch {
             // Health said no or isn't set up; leave what was read before.

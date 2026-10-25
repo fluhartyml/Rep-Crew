@@ -131,6 +131,7 @@ struct SetTimerPanel: View {
         guard let count = Int(reps), count > 0 else { return }
         saving = true
         let entry = RepEntry(count: count, loggedAt: end)
+        entry.startedAt = start
         entry.goal = goal
         context.insert(entry)
         try? context.save()

@@ -150,6 +150,9 @@ final class ExerciseGoal {
 final class RepEntry {
     var count: Int = 0
     var loggedAt: Date = Date.now
+    /// When a timed set started (Start Set or Start Routine). Nil for reps added with the + buttons,
+    /// and for sets timed before build 92; their time is read back from Health (DailyStats.swift).
+    var startedAt: Date? = nil
     var goal: ExerciseGoal?
 
     init(count: Int, loggedAt: Date = .now) {
