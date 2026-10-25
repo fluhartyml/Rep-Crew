@@ -134,7 +134,13 @@ struct ProfileCardSection: View {
             HStack(spacing: 16) {
                 ProfilePhoto(image: photoID.isEmpty ? nil : MyProfile.photo, size: 72, seed: cloud.myID ?? "")
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(name.trimmingCharacters(in: .whitespaces).isEmpty ? "You" : name).font(AppFont.heading)
+                    HStack(spacing: 6) {
+                        Text(name.trimmingCharacters(in: .whitespaces).isEmpty ? "You" : name).font(AppFont.heading)
+                        if cloud.effectiveLevel >= CrewCloud.approvedLevel {
+                            Image(systemName: "checkmark.seal.fill").font(.system(size: 22)).foregroundStyle(Color.oliveDrab)
+                                .accessibilityLabel("Verified")
+                        }
+                    }
                     Text(tier.roleName).font(AppFont.bodyBold).foregroundStyle(.tint)
                     Text(detail).font(AppFont.body).foregroundStyle(.secondary)
                 }

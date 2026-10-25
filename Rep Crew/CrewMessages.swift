@@ -398,7 +398,10 @@ struct CrewMessagesSection: View {
             }
             ForEach(messages.prefix(10)) { message in
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(heading(message)).font(AppFont.bodyBold)
+                    HStack(spacing: 6) {
+                        Text(heading(message)).font(AppFont.bodyBold)
+                        VerifiedSeal(memberID: message.senderID)
+                    }
                     Text(message.text).font(AppFont.body)
                     Text(message.sentAt.formatted(date: .abbreviated, time: .shortened))
                         .font(AppFont.body).foregroundStyle(.secondary)

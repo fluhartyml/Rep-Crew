@@ -210,7 +210,10 @@ struct CrewDirectoryView: View {
                 HStack(spacing: 14) {
                     ProfilePhoto(image: profile?.photo, size: 56, seed: person.id)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(saved.isEmpty ? person.name : saved).font(AppFont.bodyBold)
+                        HStack(spacing: 6) {
+                            Text(saved.isEmpty ? person.name : saved).font(AppFont.bodyBold)
+                            VerifiedSeal(memberID: person.id)
+                        }
                         if GodMode.ids.contains(person.id) {
                             Label(person.id == CrewCloud.shared.myID ? "You · Head Coach" : "Head Coach", systemImage: "star.fill")
                                 .font(AppFont.body).foregroundStyle(.tint)

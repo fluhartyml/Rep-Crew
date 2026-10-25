@@ -78,7 +78,10 @@ struct UserListView: View {
                 HStack(spacing: 12) {
                     ProfilePhoto(image: user.profile?.photo, size: 56, seed: user.id)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(user.name).font(AppFont.bodyBold)
+                        HStack(spacing: 6) {
+                            Text(user.name).font(AppFont.bodyBold)
+                            VerifiedSeal(memberID: user.id)
+                        }
                         Text(summary(user)).font(AppFont.body).foregroundStyle(.secondary)
                     }
                     Spacer()

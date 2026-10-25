@@ -46,6 +46,8 @@ final class CrewCloud {
     /// Head coach only: a level he is trying the app at (HomeTiers.swift → View Home As). nil = himself.
     /// Kept in memory only, so quitting the app always brings him back.
     var viewAsLevel: Int?
+    /// Other members' levels as last read, by iCloud ID, for the verified seal (VerifiedSeal.swift).
+    var knownLevels: [String: Int] = [:]
     /// Photos the head coach set for people, by iCloud ID (Profile.swift). Loaded on connect.
     var avatarOverrides: [String: UIImage] = [:]
 

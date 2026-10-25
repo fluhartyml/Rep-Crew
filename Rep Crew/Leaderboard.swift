@@ -379,7 +379,10 @@ private struct StandingRow: View {
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(row.name).font(isMe ? AppFont.bodyBold : AppFont.body).lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(row.name).font(isMe ? AppFont.bodyBold : AppFont.body).lineLimit(1)
+                    VerifiedSeal(memberID: row.id)
+                }
                 // Only when nonzero. Plain numbers from Health — no ring words.
                 if !healthLine.isEmpty {
                     Text(healthLine).font(AppFont.body).foregroundStyle(.secondary).monospacedDigit()
