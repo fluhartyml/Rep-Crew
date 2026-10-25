@@ -99,6 +99,7 @@ extension CrewCloud {
 struct ApproveSection: View {
     let memberID: String
     @State private var approved: Bool?
+    @State private var alreadyVerified = false
     @State private var working = false
     @State private var failed = false
     private var cloud = CrewCloud.shared
@@ -107,7 +108,11 @@ struct ApproveSection: View {
 
     var body: some View {
         Section {
-            if approved == true {
+            // REM: his word, 2026-10-25 ("yes build it"): someone already at level 11 or up, or a coach, shows
+            // Already verified instead of Approve — approve() refuses coaches, and the failure blamed iCloud.
+            if alreadyVerified {
+                Label("Already verified", systemImage: "checkmark.seal.fill").font(AppFont.bodyBold).foregroundStyle(Color.oliveDrab)
+            } else if approved == true {
                 Label("Approved", systemImage: "checkmark.seal.fill").font(AppFont.bodyBold).foregroundStyle(.green)
             } else if cloud.canApprove {
                 Button {
@@ -131,7 +136,11 @@ struct ApproveSection: View {
             Text("Approving makes them a verified crew member (level \(CrewCloud.approvedLevel)), so they can join and start challenges.")
                 .font(AppFont.body)
         }
-        .task { approved = await cloud.isApproved(memberID) }
+        .task {
+            let level = await cloud.knownLevel(of: memberID)
+            alreadyVerified = GodMode.ids.contains(memberID) || level >= CrewCloud.approvedLevel
+            approved = await cloud.isApproved(memberID)
+        }
     }
 }
 
