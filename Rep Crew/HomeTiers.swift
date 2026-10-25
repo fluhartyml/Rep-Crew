@@ -52,6 +52,25 @@ enum HomeTier: Int, Comparable {
     }
 }
 
+/// A row label like a NavigationLink's: white (primary) text, the icon in the app's tint. Buttons and menus
+/// otherwise tint their text too, which made Log Weight and View Home As look unlike the rows around them.
+struct RowLabel: View {
+    let title: String
+    let systemImage: String
+    init(_ title: String, systemImage: String) {
+        self.title = title
+        self.systemImage = systemImage
+    }
+    var body: some View {
+        Label {
+            Text(title).foregroundStyle(.primary)
+        } icon: {
+            Image(systemName: systemImage).foregroundStyle(.tint)
+        }
+        .font(AppFont.bodyBold)
+    }
+}
+
 // MARK: - View Home As (head coach)
 
 /// Every range he can try, by the name in his table, with the level it starts at. Head Coach itself is left out.
@@ -91,9 +110,9 @@ struct ViewAsBanner: View {
                         .font(AppFont.body).foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 2)
-                ViewAsMenu { Label("Change Level", systemImage: "arrow.up.arrow.down").font(AppFont.bodyBold) }
+                ViewAsMenu { RowLabel("Change Level", systemImage: "arrow.up.arrow.down") }
                 Button { cloud.viewAsLevel = nil } label: {
-                    Label("Stop, Back to Head Coach", systemImage: "xmark.circle.fill").font(AppFont.bodyBold)
+                    RowLabel("Stop, Back to Head Coach", systemImage: "xmark.circle.fill")
                 }
             }
             .listRowBackground(Color.orange.opacity(0.25))
@@ -154,7 +173,7 @@ struct ProfileCardSection: View {
             // REM: his word, 2026-10-25: "log weight is okay where it is but it should also appear in a more obvious
             // location so the user doesnt have to go tapping through so many sheets". One tap from Home.
             Button { loggingWeight = true } label: {
-                Label("Log Weight", systemImage: "scalemass.fill").font(AppFont.bodyBold)
+                RowLabel("Log Weight", systemImage: "scalemass.fill")
             }
         }
         .sheet(isPresented: $loggingWeight) { LogWeightView() }
@@ -424,7 +443,7 @@ struct HeadCoachToolsSection: View {
             NavigationLink { AccessTableView() } label: {
                 Label("Access Levels", systemImage: "list.number").font(AppFont.bodyBold)
             }
-            ViewAsMenu { Label("View Home As…", systemImage: "eye.fill").font(AppFont.bodyBold) }
+            ViewAsMenu { RowLabel("View Home As…", systemImage: "eye.fill") }
         } header: {
             Text("Head Coach").font(AppFont.bodyBold).textCase(nil)
         } footer: {
