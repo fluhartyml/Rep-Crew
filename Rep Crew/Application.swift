@@ -364,6 +364,8 @@ struct WelcomeLetterSection: View {
     @Environment(\.openURL) private var openURL
     @State private var sending = false
     @State private var note: String?
+    /// The letter for this one person, open for changes before it goes to their Inbox.
+    @State private var draft: String?
 
     private var email: String { entry.answers?.email.trimmingCharacters(in: .whitespacesAndNewlines) ?? "" }
 
@@ -371,7 +373,9 @@ struct WelcomeLetterSection: View {
         // REM: his word 2026-10-25: "if no email address is given i want the fallback to be within the apps inbox".
         Section {
             if email.isEmpty {
-                Button { Task { await sendToInbox() } } label: {
+                // REM: his word 2026-10-25: "i wasnt able to see it so i could personalize it if needed before sending".
+                // Opens this person's copy to edit; the saved form letter stays as it is.
+                Button { draft = "Hi \(entry.name),\n\n" + letter } label: {
                     Label("Send Welcome Letter to Inbox", systemImage: "tray.and.arrow.down.fill").font(AppFont.bodyBold)
                 }
                 .disabled(sending)
@@ -384,18 +388,47 @@ struct WelcomeLetterSection: View {
         } header: {
             Text("Welcome Letter").font(AppFont.bodyBold).textCase(nil)
         } footer: {
-            Text(email.isEmpty ? "No email was given, so the letter goes to their Rep Crew Inbox."
+            Text(email.isEmpty ? "No email was given, so the letter goes to their Rep Crew Inbox. You can change it before it goes."
                                : (isWelcomed ? "Already welcomed." : "Opens Mail with your welcome letter."))
                 .font(AppFont.body)
+        }
+        .sheet(isPresented: Binding(get: { draft != nil }, set: { if !$0 { draft = nil } })) {
+            NavigationStack {
+                Form {
+                    Section {
+                        TextEditor(text: Binding(get: { draft ?? "" }, set: { draft = $0 }))
+                            .font(AppFont.body)
+                            .frame(minHeight: 360)
+                    } footer: {
+                        Text("Only \(entry.name) gets these changes. Your saved welcome letter stays the same.").font(AppFont.body)
+                    }
+                }
+                .navigationTitle("Letter to \(entry.name)")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { draft = nil }.font(AppFont.body)
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Send") {
+                            let text = draft ?? letter
+                            draft = nil
+                            Task { await sendToInbox(text) }
+                        }
+                        .font(AppFont.bodyBold)
+                        .disabled(sending || (draft ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                }
+            }
         }
     }
 
     private var isWelcomed: Bool { welcomed.split(separator: "\n").contains(Substring(entry.id)) }
 
-    private func sendToInbox() async {
+    private func sendToInbox(_ text: String) async {
         sending = true
         let me = myName.trimmingCharacters(in: .whitespaces)
-        if await CrewCloud.shared.send(letter, crewID: CrewMessage.direct(to: entry.id), kind: .direct, to: entry.id,
+        if await CrewCloud.shared.send(text, crewID: CrewMessage.direct(to: entry.id), kind: .direct, to: entry.id,
                                        senderName: me.isEmpty ? "Head Coach" : me) {
             note = "Sent to \(entry.name)'s Inbox."
             markWelcomed()
