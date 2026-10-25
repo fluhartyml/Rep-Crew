@@ -116,8 +116,18 @@ extension CrewCloud {
         await connect()
         guard let myID else { return [] }
         var items: [InboxItem] = []
+        // REM: 2026-10-25, a tester's Inbox (and his 16e's) stayed blank. Each challenge's messages were fetched one
+        // after another, so the wait grew with every challenge. Now every board is asked at once, then sorted out.
+        let boards = await withTaskGroup(of: (String, [CrewMessage]).self) { group in
+            for crewID in Set(crewIDs) { group.addTask { (crewID, await self.messages(crewID: crewID)) } }
+            group.addTask { ("dm", await self.messages(crewID: CrewMessage.direct(to: myID))) }
+            group.addTask { ("all", await self.allCrewsMessages()) }
+            var found: [String: [CrewMessage]] = [:]
+            for await (key, messages) in group { found[key] = messages }
+            return found
+        }
         for crewID in Set(crewIDs) {
-            for message in await messages(crewID: crewID) where message.senderID != myID {
+            for message in boards[crewID] ?? [] where message.senderID != myID {
                 switch message.kind {
                 case .reply where message.toID == myID:
                     items.append(InboxItem(id: message.id, date: message.sentAt, icon: "arrowshape.turn.up.left.fill",
@@ -134,12 +144,12 @@ extension CrewCloud {
                 }
             }
         }
-        for message in await messages(crewID: CrewMessage.direct(to: myID)) where message.senderID != myID && message.toID == myID {
+        for message in boards["dm"] ?? [] where message.senderID != myID && message.toID == myID {
             items.append(InboxItem(id: message.id, date: message.sentAt, icon: "envelope.fill",
                                    title: "✉️ \(message.senderName)", detail: message.text,
                                    destination: .person(ProfileTarget(id: message.senderID, name: message.senderName))))
         }
-        for message in await allCrewsMessages() where message.senderID != myID {
+        for message in boards["all"] ?? [] where message.senderID != myID {
             items.append(InboxItem(id: message.id, date: message.sentAt, icon: "megaphone.fill",
                                    title: "📣 \(message.senderName) to all crews", detail: message.text, destination: .challenge(CrewMessage.allCrews)))
         }
