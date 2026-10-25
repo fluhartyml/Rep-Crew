@@ -53,7 +53,7 @@ struct CrewApplication: Codable {
 struct ApplicationView: View {
     /// Closes it when it was opened from Home's welcome card (HomeTiers.swift); after sign-in it does nothing.
     @Environment(\.dismiss) private var dismiss
-    /// Opened from Home: Cancel closes it without sending anything. After sign-in there's no Cancel.
+    /// Opened from Home: Not Now closes it without sending anything. After sign-in, Not Now saves as before.
     /// REM: his word, 2026-10-25: "yes add a cancel button it should show my application info as it was the first
     /// time i filled it out". Send and Not Now both save, so Home needed a way out that saves nothing.
     var canCancel = false
@@ -103,13 +103,10 @@ struct ApplicationView: View {
                         Text("Send to the Head Coach").font(AppFont.bodyBold).frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
-                    Button { tapped(send: false) } label: {
+                    // REM: his word, 2026-10-25: "it said (not now) that is a cancel". From Home, Not Now just closes;
+                    // after sign-in it still tells the coaches someone new arrived (finish).
+                    Button { if canCancel { dismiss() } else { tapped(send: false) } } label: {
                         Text("Not Now").font(AppFont.body).frame(maxWidth: .infinity)
-                    }
-                    if canCancel {
-                        Button(role: .cancel) { dismiss() } label: {
-                            Text("Cancel").font(AppFont.body).frame(maxWidth: .infinity)
-                        }
                     }
                 }
             }
