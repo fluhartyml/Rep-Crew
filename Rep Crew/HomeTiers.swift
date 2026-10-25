@@ -184,17 +184,17 @@ struct ProfileCardSection: View {
             // REM: his word, 2026-10-25: "log weight is okay where it is but it should also appear in a more obvious
             // location so the user doesnt have to go tapping through so many sheets". One tap from Home.
             // REM: his "yes add it", 2026-10-25: the row shows your current weight, like "182 lb · Today".
+            // REM: his word, 2026-10-25: "log weight can stay olive green but the actual weight should be green".
             Button { loggingWeight = true } label: {
                 HStack {
-                    RowLabel("Log Weight", systemImage: "scalemass.fill")
+                    Label("Log Weight", systemImage: "scalemass.fill").font(AppFont.bodyBold)
                     Spacer()
                     if let latestWeight {
                         Text(BodyStat.weight.text(latestWeight.value) + " · " + Self.dayText(latestWeight.date))
-                            .font(AppFont.body).foregroundStyle(.secondary).monospacedDigit()
+                            .font(AppFont.bodyBold).foregroundStyle(.green).monospacedDigit()
                     }
                 }
             }
-            .rowTint()
         }
         .sheet(isPresented: $loggingWeight, onDismiss: { Task { await loadWeight() } }) { LogWeightView() }
         .task { await loadWeight() }
