@@ -145,6 +145,8 @@ struct ProfileCardSection: View {
     @AppStorage(CrewSettings.profilePhotoID) private var photoID = ""
     @AppStorage(CrewSettings.crewNumber) private var crewNumber = 0
     @State private var loggingWeight = false
+    /// Your newest weight in Health, if Rep Crew may read it. Never asks; nil hides it.
+    @State private var latestWeight: BodyReading?
     private var cloud = CrewCloud.shared
 
     init(tier: HomeTier) { self.tier = tier }
@@ -172,11 +174,31 @@ struct ProfileCardSection: View {
             }
             // REM: his word, 2026-10-25: "log weight is okay where it is but it should also appear in a more obvious
             // location so the user doesnt have to go tapping through so many sheets". One tap from Home.
+            // REM: his "yes add it", 2026-10-25: the row shows your current weight, like "182 lb · Today".
             Button { loggingWeight = true } label: {
-                RowLabel("Log Weight", systemImage: "scalemass.fill")
+                HStack {
+                    RowLabel("Log Weight", systemImage: "scalemass.fill")
+                    Spacer()
+                    if let latestWeight {
+                        Text(BodyStat.weight.text(latestWeight.value) + " · " + Self.dayText(latestWeight.date))
+                            .font(AppFont.body).foregroundStyle(.secondary).monospacedDigit()
+                    }
+                }
             }
         }
-        .sheet(isPresented: $loggingWeight) { LogWeightView() }
+        .sheet(isPresented: $loggingWeight, onDismiss: { Task { await loadWeight() } }) { LogWeightView() }
+        .task { await loadWeight() }
+    }
+
+    private func loadWeight() async {
+        latestWeight = await BodyStatsReader.history(.weight, limit: 1).first
+    }
+
+    /// "Today", "Yesterday", else "Oct 21".
+    private static func dayText(_ date: Date) -> String {
+        if Calendar.current.isDateInToday(date) { return "Today" }
+        if Calendar.current.isDateInYesterday(date) { return "Yesterday" }
+        return date.formatted(.dateTime.month(.abbreviated).day())
     }
 
     /// "Member · Level 16", then "Crew member 04" on its own line (his word, 2026-10-25: "line break before crew").
