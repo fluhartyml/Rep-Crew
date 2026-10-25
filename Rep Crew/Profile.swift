@@ -55,6 +55,9 @@ extension CrewSettings {
     static let profilePhonePrivate = "profilePhonePrivate"
     static let profileEmailPrivate = "profileEmailPrivate"
     static let profileFaceTimePrivate = "profileFaceTimePrivate"
+    /// Off: phone, email and FaceTime go to coaches only, and other members get no contact buttons.
+    /// Unset counts as on, so profiles saved before the switch existed keep working as they did.
+    static let profileAllowMemberContact = "profileAllowMemberContact"
     /// "profile.<your ID>.<UUID>" for the photo on this phone; empty for none.
     static let profilePhotoID = "profilePhotoID"
     /// What iCloud last got, so an unchanged profile isn't saved again.
@@ -80,11 +83,14 @@ enum MyProfile {
 
     private static func isPrivate(_ key: String) -> Bool { defaults.bool(forKey: key) }
 
+    static var allowsMemberContact: Bool { defaults.object(forKey: CrewSettings.profileAllowMemberContact) as? Bool ?? true }
+
     @MainActor static var signature: String {
         ([CrewSettings.name, CrewSettings.profilePhone, CrewSettings.profileEmail,
           CrewSettings.profileFaceTime, CrewSettings.profilePhotoID, CrewSettings.profilePreferred].map(value)
          + [CrewSettings.profilePhonePrivate, CrewSettings.profileEmailPrivate, CrewSettings.profileFaceTimePrivate]
             .map { isPrivate($0) ? "1" : "0" }
+         + [allowsMemberContact ? "1" : "0"]
          + [CrewCloud.shared.coachKeysSignature]).joined(separator: "\u{1F}")
     }
 
@@ -122,12 +128,16 @@ enum MyProfile {
         profile.photoID = value(CrewSettings.profilePhotoID)
         profile.preferred = value(CrewSettings.profilePreferred)
         // Coaches only: the plain field goes up blank and the value goes into the seal.
+        // REM: his word, 2026-10-25: "what if they dont want other members to contact them. add a toggle
+        // 'alow other crew members to contact you'". Off seals all three, so coaches can still reach them
+        // and builds from before the switch show other members nothing either.
+        let allow = allowsMemberContact
         var hidden = PrivateContact()
         for (key, flag, path) in [(CrewSettings.profilePhone, CrewSettings.profilePhonePrivate, \CrewProfile.phone),
                                   (CrewSettings.profileEmail, CrewSettings.profileEmailPrivate, \CrewProfile.email),
                                   (CrewSettings.profileFaceTime, CrewSettings.profileFaceTimePrivate, \CrewProfile.facetime)] {
             let text = value(key)
-            if isPrivate(flag) && !text.isEmpty {
+            if (isPrivate(flag) || !allow) && !text.isEmpty {
                 switch key {
                 case CrewSettings.profilePhone: hidden.phone = text
                 case CrewSettings.profileEmail: hidden.email = text
@@ -347,6 +357,7 @@ struct MyProfileSection: View {
     @AppStorage(CrewSettings.profilePhonePrivate) private var phonePrivate = false
     @AppStorage(CrewSettings.profileEmailPrivate) private var emailPrivate = false
     @AppStorage(CrewSettings.profileFaceTimePrivate) private var facetimePrivate = false
+    @AppStorage(CrewSettings.profileAllowMemberContact) private var allowMemberContact = true
     @State private var picked: PhotosPickerItem?
     @State private var note: String?
 
@@ -405,12 +416,15 @@ struct MyProfileSection: View {
             } label: {
                 Text("Preferred contact").font(AppFont.body)
             }
+            Toggle(isOn: $allowMemberContact) {
+                Label("Allow other crew members to contact you", systemImage: "person.2.fill").font(AppFont.body)
+            }
         } header: {
             Text("Your profile").font(AppFont.bodyBold).textCase(nil)
         } footer: {
             // REM: his word: "they have to manually add their contact info that way they can omit or
             // use alternate contact info". Sign in with Apple gives a name only.
-            Text("Everything here is optional. Your crew sees your photo and a button for each way you fill in. Leave any blank to keep it private, or switch on Coaches only to share it with coaches and no one else. Your preferred contact shows next to your name in the Crew Directory.")
+            Text("Everything here is optional. Your crew sees your photo and a button for each way you fill in. Leave any blank to keep it private, or switch on Coaches only to share it with coaches and no one else. Your preferred contact shows next to your name in the Crew Directory. Switch off Allow other crew members to contact you and only coaches can reach you.")
                 .font(AppFont.body)
         }
         .onChange(of: picked) { _, item in
@@ -425,7 +439,9 @@ struct MyProfileSection: View {
     }
 
     private func coachesOnly(_ isOn: Binding<Bool>) -> some View {
-        Toggle(isOn: isOn) { Label("Coaches only", systemImage: "lock.fill").font(AppFont.body) }
+        // With other members' contact switched off, everything is coaches only already.
+        Toggle(isOn: allowMemberContact ? isOn : .constant(true)) { Label("Coaches only", systemImage: "lock.fill").font(AppFont.body) }
+            .disabled(!allowMemberContact)
     }
 
     private func use(_ image: UIImage) async {

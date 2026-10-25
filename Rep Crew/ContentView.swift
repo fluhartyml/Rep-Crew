@@ -69,6 +69,13 @@ struct ContentView: View {
                         NavigationLink(value: CrewScreen.events) {
                             Label("Events", systemImage: "pin.fill").font(AppFont.bodyBold)
                         }
+                        // REM: his word, 2026-10-25: "on the head coach home page to be quick links to user list
+                        // editor". Head coach only; coaches still reach it from Settings → Coach Mode.
+                        if GodMode.isOwner {
+                            NavigationLink(value: CrewScreen.userList) {
+                                Label("User List", systemImage: "person.3.sequence.fill").font(AppFont.bodyBold)
+                            }
+                        }
                         invitations
                         section("Your challenges", active + upcoming.reversed())
                         crewChallenges
@@ -103,6 +110,7 @@ struct ContentView: View {
                 case .newMembers: ApplicationsView()
                 case .inbox: InboxView(challenges: challenges) { joining = $0 }
                 case .events: EventsView()
+                case .userList: UserListView()
                 }
             }
             .toolbar {
