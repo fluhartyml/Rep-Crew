@@ -640,6 +640,16 @@
 //  ID (GodMode.ids). 100 strangers from 50 states would all share the same challenges and
 //  photos. His: "we need to make 'tribes' or localize crews."
 //
+//  OFFICIAL WORDS (his, 2026-10-26 ~18:1x, after Claude mixed the group and the person):
+//  • Crew = the group of people. Never one person.
+//  • Crew Member = one person in a crew. Crew Leader = a member who leads a challenge.
+//    Coach / Head Coach = above the crew leaders.
+//  • "My Crew" = a group of people you have ownership of (a leader's or coach's crew).
+//  • "My Memberships" = what you belong to, plural, because you're in more than one challenge.
+//    His: "crew member should say 'My Memberships' because it is plural you have more than one
+//    challenge". Home's Crew Member section (Inbox, Events, Challenges, My Week, Library) gets this
+//    title, moved above Head Coach (his: "probably above head coach").
+//
 //  WORDS (his): a crew member name is a person; a crew name is a group of crew members.
 //  The Head Coach → Crew Name screen names the group, so it stays (not renamed to
 //  "Crew Member Name").
