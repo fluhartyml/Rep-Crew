@@ -36,7 +36,7 @@ struct SettingsView: View {
                 } header: {
                     header("You")
                 } footer: {
-                    Text("Your crew sees this name on your invites. You are crew member \(CrewCloud.numberText(crewNumber)).")
+                    Text("Your crewmates see this name on your invites. You are crew member \(CrewCloud.numberText(crewNumber)).")
                         .font(AppFont.body)
                 }
 
@@ -53,12 +53,12 @@ struct SettingsView: View {
                         Text("Match Health Workouts").font(AppFont.bodyBold)
                     }
                     Toggle(isOn: $shareHealth) {
-                        Text("Share Minutes and Calories with Your Crew").font(AppFont.bodyBold)
+                        Text("Share Minutes and Calories with Your Crewmates").font(AppFont.bodyBold)
                     }
                 } header: {
                     header("Health")
                 } footer: {
-                    Text("Pair workouts other apps saved to Health with your Rep Crew exercises, and pick how they count. Your Health numbers stay on this phone unless you share them; your crew always sees your reps. Heart rate is never shared.")
+                    Text("Pair workouts other apps saved to Health with your Rep Crew exercises, and pick how they count. Your Health numbers stay on this phone unless you share them; your crewmates always see your reps. Heart rate is never shared.")
                         .font(AppFont.body)
                 }
 
@@ -101,7 +101,7 @@ struct SettingsView: View {
                         }
                     }
                 } header: {
-                    header("Your crew")
+                    header("Your crewmates")
                 }
 
                 BlockedPeopleSection()

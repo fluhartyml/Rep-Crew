@@ -544,7 +544,7 @@ private struct ComposeView: View {
                     Section {
                         Toggle(isOn: $allowReplies) { Text("Allow replies").font(AppFont.body) }
                     } footer: {
-                        Text(allowReplies ? "Your crew can Reply or Reply All." : "One way: no Reply or Reply All.").font(AppFont.body)
+                        Text(allowReplies ? "Your crewmates can Reply or Reply All." : "One way: no Reply or Reply All.").font(AppFont.body)
                     }
                 }
             }

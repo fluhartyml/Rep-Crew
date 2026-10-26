@@ -426,7 +426,7 @@ struct MyProfileSection: View {
         } footer: {
             // REM: his word: "they have to manually add their contact info that way they can omit or
             // use alternate contact info". Sign in with Apple gives a name only.
-            Text("Everything here is optional. Your crew sees your photo and a button for each way you fill in. Leave any blank to keep it private, or switch on Coaches only to share it with coaches and no one else. Your preferred contact shows next to your name in the Crew Directory. Switch off Allow other crew members to contact you and only coaches can reach you.")
+            Text("Everything here is optional. Your crewmates see your photo and a button for each way you fill in. Leave any blank to keep it private, or switch on Coaches only to share it with coaches and no one else. Your preferred contact shows next to your name in the Crew Directory. Switch off Allow other crew members to contact you and only coaches can reach you.")
                 .font(AppFont.body)
         }
         .onChange(of: picked) { _, item in

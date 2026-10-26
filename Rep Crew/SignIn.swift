@@ -134,8 +134,8 @@ struct NameView: View {
     var body: some View {
         VStack(spacing: 20) {
             Spacer()
-            Text("What should your crew call you?").font(AppFont.title).multilineTextAlignment(.center)
-            Text("Your crew sees this name on your challenges and messages. You can change it later in Settings.")
+            Text("What should your crewmates call you?").font(AppFont.title).multilineTextAlignment(.center)
+            Text("Your crewmates see this name on your challenges and messages. You can change it later in Settings.")
                 .font(AppFont.body)
                 .multilineTextAlignment(.center)
             TextField("Your name", text: $typed)

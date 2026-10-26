@@ -236,7 +236,7 @@ struct EditProfileView: View {
             } header: {
                 Text("Name").font(AppFont.bodyBold).textCase(nil)
             } footer: {
-                Text("Your crew sees this name on your invites, boards and leaderboards.").font(AppFont.body)
+                Text("Your crewmates see this name on your invites, boards and leaderboards.").font(AppFont.body)
             }
             MyProfileSection()
             BodyStatsSection()

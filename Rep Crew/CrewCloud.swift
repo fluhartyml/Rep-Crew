@@ -55,7 +55,7 @@ final class CrewCloud {
         if myID != nil { return }
         do {
             guard try await container.accountStatus() == .available else {
-                status = "Not signed in to iCloud. Sign in from the iPhone Settings app to share with your crew."
+                status = "Not signed in to iCloud. Sign in from the iPhone Settings app to share with your crewmates."
                 return
             }
             myID = try await container.userRecordID().recordName
@@ -191,7 +191,7 @@ final class CrewCloud {
         } catch let error as CKError where error.code == .unknownItem {
             return []   // No one has joined yet, so the record type doesn't exist yet.
         } catch {
-            status = "Couldn't load your crew: \(error.localizedDescription)"
+            status = "Couldn't load your crewmates: \(error.localizedDescription)"
             return []
         }
     }
@@ -228,7 +228,7 @@ final class CrewCloud {
             _ = try await db.modifyRecords(saving: [record], deleting: [], savePolicy: .allKeys)
             await refreshMyAccess()   // joining a challenge is level 16 (Access.swift)
         } catch {
-            status = "Couldn't tell your crew you joined: \(error.localizedDescription)"
+            status = "Couldn't tell your crewmates you joined: \(error.localizedDescription)"
         }
         pending.removeAll { $0.challenge?.crewID == crewID }
     }

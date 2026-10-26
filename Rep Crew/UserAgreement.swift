@@ -9,6 +9,8 @@
 //  REM: RootView shows this before anything else, sign-in included, until this phone has agreed to the
 //  current `version`. Everyone already using the app sees it on their next launch. Change the text →
 //  raise `version`, and everyone agrees again.
+//  REM: version 2, his word 2026-10-26: "your crew should find and replace with your crewmates" — the crew is
+//  his; to a member the others are crewmates.
 //  REM: "after reading": I Agree stays off until you've scrolled to the end.
 //  REM: Apple guideline 1.2 (user-generated content) asks for terms people agree to, with no tolerance
 //  for objectionable content or abusive users. The rest restates what the app already does (filter,
@@ -24,17 +26,17 @@ extension CrewSettings {
 }
 
 enum UserAgreement {
-    static let version = 1
+    static let version = 2
 
     static var isAccepted: Bool { UserDefaults.standard.integer(forKey: CrewSettings.agreementVersion) >= version }
 
     static let sections: [(heading: String, body: String)] = [
         ("Using Rep Crew",
-         "Rep Crew helps you and your crew keep each other accountable for exercise. By tapping I Agree, you agree to everything below. If you don't agree, don't use Rep Crew."),
-        ("Respect your crew",
+         "Rep Crew helps you and your crewmates keep each other accountable for exercise. By tapping I Agree, you agree to everything below. If you don't agree, don't use Rep Crew."),
+        ("Respect your crewmates",
          "No nudity or sexual content, no harassment, bullying, threats, hate or violence, and no spam. There is zero tolerance for objectionable content or abusive behavior."),
         ("What you post",
-         "Your crew sees the photos, messages, events and profile you share. Post only what you have the right to share, and only photos of people who said yes. You can delete what you posted."),
+         "Your crewmates see the photos, messages, events and profile you share. Post only what you have the right to share, and only photos of people who said yes. You can delete what you posted."),
         ("Reports, removal and bans",
          "You can report anything and block anyone. The developer reviews every report. Coaches and challenge leaders can remove posts, and anyone who breaks these rules can be removed or banned from the crew."),
         ("Your health",

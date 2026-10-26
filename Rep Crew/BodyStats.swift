@@ -186,7 +186,7 @@ struct BodyStatsView: View {
                         Label("Read Body Stats from Health", systemImage: "heart.text.square.fill").font(AppFont.bodyBold)
                     }
                 } footer: {
-                    Text("Health asks which stats Rep Crew may read. Nothing is saved to iCloud or shown to your crew.")
+                    Text("Health asks which stats Rep Crew may read. Nothing is saved to iCloud or shown to your crewmates.")
                         .font(AppFont.body)
                 }
             } else {
