@@ -25,6 +25,10 @@ struct ContentView: View {
     /// Read by the lists below so they redraw the moment a closing arrives (ChallengeClose.swift).
     @AppStorage(CrewSettings.closedChallenges) private var closedChallenges = ""
     @State private var listings: [CrewListing] = []
+    /// Home's three reveals (Smitty's drop-down), remembered on this phone.
+    @AppStorage("home.reveal.active") private var showActive = true
+    @AppStorage("home.reveal.available") private var showAvailable = false
+    @AppStorage("home.reveal.finished") private var showFinished = false
     /// crewID → when anyone in the crew last saved progress (lastActivity).
     @State private var activity: [String: Date] = [:]
     /// A past challenge to run again (NewChallengeView(again:)).
@@ -93,11 +97,15 @@ struct ContentView: View {
                             Text("Crew Member").font(AppFont.bodyBold).textCase(nil)
                         }
                         invitations
-                        section("Your challenges", active + upcoming.reversed())
+                        // REM: Smitty's ask, 2026-10-26, his "yes build it": "one thing that says finished challenges
+                        // active challenges available challenges … then you click on those and it would … just open up
+                        // the next page" — a drop-down, so a crowded app never buries Home. Three reveals, each
+                        // remembered on this phone: Active open, Available and Finished closed until tapped.
+                        section("Active challenges", active + upcoming.reversed(), isOpen: $showActive)
                         if tier >= .messageBase { CrewBoardsSection(challenges: active) }
-                        crewChallenges(title: tier == .verified && challenges.isEmpty ? "Join Your First Challenge" : "Other challenges")
+                        crewChallenges(title: tier == .verified && challenges.isEmpty ? "Join Your First Challenge" : "Available challenges")
                         if challenges.isEmpty && cloud.pending.isEmpty && others.isEmpty && cloud.can(.start) { emptyState }
-                        section("Finished", finished)
+                        section("Finished challenges", finished, isOpen: $showFinished, libraryLink: true)
                     }
                     .refreshable { await syncCrew() }
             }
@@ -181,10 +189,31 @@ struct ContentView: View {
                                         openBoards: { path.append(CrewScreen.leaderboards) }))
     }
 
+    /// A tappable section header with a chevron that opens and closes it.
+    private func revealHeader(_ title: String, count: Int, isOpen: Binding<Bool>) -> some View {
+        Button { withAnimation { isOpen.wrappedValue.toggle() } } label: {
+            HStack {
+                Text(title).font(AppFont.bodyBold)
+                Text("\(count)").font(AppFont.body).foregroundStyle(.secondary)
+                Spacer()
+                Image(systemName: "chevron.right").font(AppFont.bodyBold)
+                    .rotationEffect(.degrees(isOpen.wrappedValue ? 90 : 0))
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .textCase(nil)
+        .accessibilityValue(isOpen.wrappedValue ? "Open" : "Closed")
+        .accessibilityHint("Shows or hides these challenges")
+    }
+
     @ViewBuilder
-    private func section(_ title: String, _ items: [Challenge]) -> some View {
-        if !items.isEmpty {
-            Section {
+    private func section(_ title: String, _ items: [Challenge], isOpen: Binding<Bool>, libraryLink: Bool = false) -> some View {
+        Section {
+            if isOpen.wrappedValue {
+                if items.isEmpty && !libraryLink {
+                    Text("None right now.").font(AppFont.body).foregroundStyle(.secondary)
+                }
                 ForEach(items) { challenge in
                     NavigationLink(value: challenge) { ChallengeRow(challenge: challenge, crewActivity: activity[challenge.crewID]) }
                     // Its own row: two buttons in one List row both fire on a tap (PhotoBoard REM).
@@ -203,9 +232,14 @@ struct ContentView: View {
                     for index in offsets { context.delete(items[index]) }
                     try? context.save()
                 }
-            } header: {
-                Text(title).font(AppFont.bodyBold).textCase(nil)
+                if libraryLink {
+                    NavigationLink(value: CrewScreen.library) {
+                        Label("Library: every challenge ever made", systemImage: "books.vertical.fill").font(AppFont.body)
+                    }
+                }
             }
+        } header: {
+            revealHeader(title, count: items.count, isOpen: isOpen)
         }
     }
 
@@ -238,8 +272,14 @@ struct ContentView: View {
 
     @ViewBuilder
     private func crewChallenges(title: String) -> some View {
-        if !others.isEmpty {
-            Section {
+        // A verified new user with nothing yet sees "Join Your First Challenge" open, whatever was saved.
+        let firstTime = title == "Join Your First Challenge"
+        let isOpen = firstTime ? .constant(true) : $showAvailable
+        Section {
+            if isOpen.wrappedValue {
+                if others.isEmpty {
+                    Text("None right now.").font(AppFont.body).foregroundStyle(.secondary)
+                }
                 ForEach(others) { listing in
                     NavigationLink(value: listing) {
                         VStack(alignment: .leading, spacing: 6) {
@@ -251,9 +291,9 @@ struct ContentView: View {
                         .padding(.vertical, 4)
                     }
                 }
-            } header: {
-                Text(title).font(AppFont.bodyBold).textCase(nil)
             }
+        } header: {
+            revealHeader(title, count: others.count, isOpen: isOpen)
         }
     }
 
