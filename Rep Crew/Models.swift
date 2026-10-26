@@ -32,6 +32,9 @@ final class Challenge {
     /// day. Until you pass them, this phone doesn't post a lower number over them.
     var restoredDay: Int = 0
     var restoredRepsToday: Int = 0
+    /// My Week (MyWeek.swift): the weekdays you put this challenge on, Calendar numbers 1 (Sunday) to 7,
+    /// comma-separated. Empty means it isn't on your week, so it counts every day. Yours alone; never shared.
+    var weekdays: String = ""
 
     @Relationship(deleteRule: .cascade, inverse: \ExerciseGoal.challenge)
     var goals: [ExerciseGoal]? = []
@@ -100,6 +103,21 @@ final class Challenge {
     static func activityText(_ date: Date?) -> String {
         guard let date else { return "no reps yet" }
         return "active \(date.formatted(.relative(presentation: .named)))"
+    }
+
+    /// The weekdays it's on in My Week; empty when it isn't on your week.
+    var scheduledWeekdays: Set<Int> { Set(weekdays.split(separator: ",").compactMap { Int($0) }) }
+
+    /// True when `date` counts for this challenge: it's on that weekday in My Week, or not on your week at all.
+    func isScheduled(on date: Date) -> Bool {
+        let days = scheduledWeekdays
+        return days.isEmpty || days.contains(Calendar.current.component(.weekday, from: date))
+    }
+
+    func setScheduled(_ on: Bool, weekday: Int) {
+        var days = scheduledWeekdays
+        if on { days.insert(weekday) } else { days.remove(weekday) }
+        weekdays = days.sorted().map(String.init).joined(separator: ",")
     }
 
     /// Each day of the challenge, first to last.

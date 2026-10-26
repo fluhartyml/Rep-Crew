@@ -89,6 +89,10 @@ struct ContentView: View {
                             NavigationLink(value: CrewScreen.events) {
                                 Label("Events", systemImage: "pin.fill").font(AppFont.bodyBold)
                             }
+                            // REM: Smitty's weekly schedule, his design 2026-10-26 (MyWeek.swift).
+                            NavigationLink(value: CrewScreen.myWeek) {
+                                Label("My Week", systemImage: "calendar").font(AppFont.bodyBold)
+                            }
                             // REM: his word, 2026-10-26: a library of every challenge ever made (Library.swift).
                             NavigationLink(value: CrewScreen.library) {
                                 Label("Library", systemImage: "books.vertical.fill").font(AppFont.bodyBold)
@@ -145,6 +149,7 @@ struct ContentView: View {
                 case .events: EventsView()
                 case .userList: UserListView()
                 case .library: LibraryView()
+                case .myWeek: MyWeekView()
                 }
             }
             .toolbar {

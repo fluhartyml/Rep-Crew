@@ -183,13 +183,19 @@ extension Challenge {
     var repsToday: Int { allGoals.reduce(0) { $0 + $1.total(on: .now) } }
 
     /// Days in a row with every goal met, through today if it's done, else through yesterday.
+    /// REM: his rule for My Week, 2026-10-26: "if your challenge doesnt appear on monday because its on wednesdays
+    /// sheet then it is not ripe and hasnt passed its next day in a streak if it is thursday and you didnt do
+    /// wednesdays challenge it has broken your streak". Days it isn't on are skipped; a missed day it IS on breaks it.
     var streak: Int {
         let cal = Calendar.current
         var day = cal.startOfDay(for: .now)
-        if !isComplete(on: day) { day = cal.date(byAdding: .day, value: -1, to: day) ?? day }
+        if isScheduled(on: day) && !isComplete(on: day) { day = cal.date(byAdding: .day, value: -1, to: day) ?? day }
         var count = 0
-        while day >= startDate, isComplete(on: day) {
-            count += 1
+        while day >= startDate {
+            if isScheduled(on: day) {
+                guard isComplete(on: day) else { break }
+                count += 1
+            }
             day = cal.date(byAdding: .day, value: -1, to: day) ?? startDate.addingTimeInterval(-86_400)
         }
         return count
@@ -471,7 +477,7 @@ struct LeaderboardsView: View {
 // MARK: - Finding your way
 
 /// Pushed screens that aren't Home.
-enum CrewScreen: Hashable { case leaderboards, directory, newMembers, inbox, events, userList, library }
+enum CrewScreen: Hashable { case leaderboards, directory, newMembers, inbox, events, userList, library, myWeek }
 
 /// Home and Leaderboards, one tap from any screen. His word: "maybe a home glyph for non
 /// home sheets so you can always find your way home".
