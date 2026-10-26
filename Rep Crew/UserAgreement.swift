@@ -33,6 +33,7 @@ enum UserAgreement {
 
     /// The app's formal name, underlined wherever the agreement says it.
     static let formalName = "Daily Rep Crew Accountability"
+    static let eulaLine = "End User License Agreement (EULA)"
 
     /// REM: his words 2026-10-26: "it should be daily rep crew accountability throughout the EULA" and "you may
     /// want to use </underlined> Daily Rep Crew Accountability </underlined>".
@@ -81,6 +82,9 @@ struct UserAgreementView: View {
             ScrollView {
                 // Lazy, so the marker at the end appears only when it's scrolled onto the screen.
                 LazyVStack(alignment: .leading, spacing: 20) {
+                    // REM: his "yes build it", 2026-10-26: "User Agreement (EULA)" cut off as a large title, so the
+                    // title stays User Agreement and EULA is the first line.
+                    Text(UserAgreement.eulaLine).font(AppFont.bodyBold)
                     Text(UserAgreement.styled("Please read this before using \(UserAgreement.formalName).")).font(AppFont.body)
                     ForEach(UserAgreement.sections, id: \.heading) { section in
                         VStack(alignment: .leading, spacing: 6) {
@@ -107,7 +111,7 @@ struct UserAgreementView: View {
                 .padding()
                 .background(.bar)
             }
-            .navigationTitle("User Agreement (EULA)")
+            .navigationTitle("User Agreement")
         }
     }
 }
@@ -116,6 +120,7 @@ struct UserAgreementView: View {
 struct AgreementText: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
+            Text(UserAgreement.eulaLine).font(AppFont.bodyBold)
             ForEach(UserAgreement.sections, id: \.heading) { section in
                 VStack(alignment: .leading, spacing: 6) {
                     Text(UserAgreement.styled(section.heading)).font(AppFont.heading)
@@ -133,7 +138,7 @@ struct AgreementReadView: View {
         ScrollView {
             AgreementText().padding()
         }
-        .navigationTitle("User Agreement (EULA)")
+        .navigationTitle("User Agreement")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
