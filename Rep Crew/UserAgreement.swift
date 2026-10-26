@@ -11,6 +11,8 @@
 //  raise `version`, and everyone agrees again.
 //  REM: version 2, his word 2026-10-26: "your crew should find and replace with your crewmates" — the crew is
 //  his; to a member the others are crewmates.
+//  REM: version 3, his words 2026-10-26: "if you do not agree please uninstall and discontinue use of [Daily] Rep
+//  Crew" · "use daily rep crew accountability thats its folmal name it may be shortened elsewhere".
 //  REM: "after reading": I Agree stays off until you've scrolled to the end.
 //  REM: Apple guideline 1.2 (user-generated content) asks for terms people agree to, with no tolerance
 //  for objectionable content or abusive users. The rest restates what the app already does (filter,
@@ -26,13 +28,13 @@ extension CrewSettings {
 }
 
 enum UserAgreement {
-    static let version = 2
+    static let version = 3
 
     static var isAccepted: Bool { UserDefaults.standard.integer(forKey: CrewSettings.agreementVersion) >= version }
 
     static let sections: [(heading: String, body: String)] = [
         ("Using Rep Crew",
-         "Rep Crew helps you and your crewmates keep each other accountable for exercise. By tapping I Agree, you agree to everything below. If you don't agree, don't use Rep Crew."),
+         "Rep Crew helps you and your crewmates keep each other accountable for exercise. By tapping I Agree, you agree to everything below. If you do not agree, please uninstall and discontinue use of Daily Rep Crew Accountability."),
         ("Respect your crewmates",
          "No nudity or sexual content, no harassment, bullying, threats, hate or violence, and no spam. There is zero tolerance for objectionable content or abusive behavior."),
         ("What you post",
