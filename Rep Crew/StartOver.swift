@@ -107,6 +107,7 @@ extension CrewCloud {
             ("StartOver", ["memberID": "schema.seed" as NSString, "requestedAt": now as NSDate]),
             ("StartOverDone", ["memberID": "schema.seed" as NSString, "requestedAt": now as NSDate]),
             ("Welcomed", ["memberID": "schema.seed" as NSString, "welcomedAt": now as NSDate]),
+            ("LibraryHidden", ["crewID": "schema.seed" as NSString, "hiddenAt": now as NSDate]),
         ]
         let records = fields.map { item -> CKRecord in
             let record = CKRecord(recordType: item.type, recordID: CKRecord.ID(recordName: "schema.seed.\(item.type)"))

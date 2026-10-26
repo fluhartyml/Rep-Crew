@@ -25,7 +25,6 @@ struct ContentView: View {
     /// Read by the lists below so they redraw the moment a closing arrives (ChallengeClose.swift).
     @AppStorage(CrewSettings.closedChallenges) private var closedChallenges = ""
     @State private var listings: [CrewListing] = []
-    @State private var past: [CrewListing] = []
     /// crewID → when anyone in the crew last saved progress (lastActivity).
     @State private var activity: [String: Date] = [:]
     /// A past challenge to run again (NewChallengeView(again:)).
@@ -86,6 +85,10 @@ struct ContentView: View {
                             NavigationLink(value: CrewScreen.events) {
                                 Label("Events", systemImage: "pin.fill").font(AppFont.bodyBold)
                             }
+                            // REM: his word, 2026-10-26: a library of every challenge ever made (Library.swift).
+                            NavigationLink(value: CrewScreen.library) {
+                                Label("Library", systemImage: "books.vertical.fill").font(AppFont.bodyBold)
+                            }
                         } header: {
                             Text("Crew Member").font(AppFont.bodyBold).textCase(nil)
                         }
@@ -95,7 +98,6 @@ struct ContentView: View {
                         crewChallenges(title: tier == .verified && challenges.isEmpty ? "Join Your First Challenge" : "Other challenges")
                         if challenges.isEmpty && cloud.pending.isEmpty && others.isEmpty && cloud.can(.start) { emptyState }
                         section("Finished", finished)
-                        pastChallenges
                     }
                     .refreshable { await syncCrew() }
             }
@@ -134,6 +136,7 @@ struct ContentView: View {
                 case .inbox: InboxView(challenges: challenges) { joining = $0 }
                 case .events: EventsView()
                 case .userList: UserListView()
+                case .library: LibraryView()
                 }
             }
             .toolbar {
@@ -233,26 +236,6 @@ struct ContentView: View {
         return listings.filter { !mine.contains($0.id) && !ChallengeClosure.isClosed($0.id) }.sorted { $0.info.startDay > $1.info.startDay }
     }
 
-    /// Everyone's ended public challenges, plus Start Again on your own finished ones (in `section`).
-    @ViewBuilder
-    private var pastChallenges: some View {
-        if !past.isEmpty && cloud.can(.start) {
-            Section {
-                ForEach(past) { listing in
-                    Button { again = listing.info } label: {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(listing.info.title).font(AppFont.bodyBold).foregroundStyle(.primary)
-                            Text("\(listing.leaderName) · \(listing.info.days) days · Start Again").font(AppFont.body).foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 4)
-                    }
-                }
-            } header: {
-                Text("Past challenges").font(AppFont.bodyBold).textCase(nil)
-            }
-        }
-    }
-
     @ViewBuilder
     private func crewChallenges(title: String) -> some View {
         if !others.isEmpty {
@@ -302,7 +285,6 @@ struct ContentView: View {
         let found = await cloud.crewChallenges()
         await cloud.refreshClosures(Dictionary(found.map { ($0.id, $0.leaderID) }, uniquingKeysWith: { first, _ in first }))
         listings = found
-        past = await cloud.pastChallenges()
         var seen: [String: Date] = [:]
         for crewID in Set(challenges.filter { !$0.isFinished }.map(\.crewID) + found.map(\.id)) where !crewID.isEmpty {
             if let date = await cloud.lastActivity(crewID: crewID) { seen[crewID] = date }
