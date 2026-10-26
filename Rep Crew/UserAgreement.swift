@@ -13,6 +13,7 @@
 //  his; to a member the others are crewmates.
 //  REM: version 3, his words 2026-10-26: "if you do not agree please uninstall and discontinue use of [Daily] Rep
 //  Crew" · "use daily rep crew accountability thats its folmal name it may be shortened elsewhere".
+//  REM: version 4: the formal name throughout, underlined (his, same evening).
 //  REM: "after reading": I Agree stays off until you've scrolled to the end.
 //  REM: Apple guideline 1.2 (user-generated content) asks for terms people agree to, with no tolerance
 //  for objectionable content or abusive users. The rest restates what the app already does (filter,
@@ -28,13 +29,28 @@ extension CrewSettings {
 }
 
 enum UserAgreement {
-    static let version = 3
+    static let version = 4
+
+    /// The app's formal name, underlined wherever the agreement says it.
+    static let formalName = "Daily Rep Crew Accountability"
+
+    /// REM: his words 2026-10-26: "it should be daily rep crew accountability throughout the EULA" and "you may
+    /// want to use </underlined> Daily Rep Crew Accountability </underlined>".
+    static func styled(_ text: String) -> AttributedString {
+        var result = AttributedString(text)
+        var searchFrom = result.startIndex
+        while let range = result[searchFrom...].range(of: formalName) {
+            result[range].underlineStyle = .single
+            searchFrom = range.upperBound
+        }
+        return result
+    }
 
     static var isAccepted: Bool { UserDefaults.standard.integer(forKey: CrewSettings.agreementVersion) >= version }
 
     static let sections: [(heading: String, body: String)] = [
-        ("Using Rep Crew",
-         "Rep Crew helps you and your crewmates keep each other accountable for exercise. By tapping I Agree, you agree to everything below. If you do not agree, please uninstall and discontinue use of Daily Rep Crew Accountability."),
+        ("Using Daily Rep Crew Accountability",
+         "Daily Rep Crew Accountability helps you and your crewmates keep each other accountable for exercise. By tapping I Agree, you agree to everything below. If you do not agree, please uninstall and discontinue use of Daily Rep Crew Accountability."),
         ("Respect your crewmates",
          "No nudity or sexual content, no harassment, bullying, threats, hate or violence, and no spam. There is zero tolerance for objectionable content or abusive behavior."),
         ("What you post",
@@ -42,9 +58,9 @@ enum UserAgreement {
         ("Reports, removal and bans",
          "You can report anything and block anyone. The developer reviews every report. Coaches and challenge leaders can remove posts, and anyone who breaks these rules can be removed or banned from the crew."),
         ("Your health",
-         "Rep Crew is a way to keep track of your own exercise. It is not medical advice. Check with a doctor before starting a new exercise routine, and stop if something hurts."),
+         "Daily Rep Crew Accountability is a way to keep track of your own exercise. It is not medical advice. Check with a doctor before starting a new exercise routine, and stop if something hurts."),
         ("Your privacy",
-         "What Rep Crew reads from Health stays on your iPhone unless you choose to share it. Your contact info is shared only the way you set it in Settings → Your profile."),
+         "What Daily Rep Crew Accountability reads from Health stays on your iPhone unless you choose to share it. Your contact info is shared only the way you set it in Settings → Your profile."),
         ("Apple's terms",
          "Apple's standard license agreement for apps from the App Store also applies."),
         ("Changes",
@@ -62,11 +78,11 @@ struct UserAgreementView: View {
             ScrollView {
                 // Lazy, so the marker at the end appears only when it's scrolled onto the screen.
                 LazyVStack(alignment: .leading, spacing: 20) {
-                    Text("Please read this before using Rep Crew.").font(AppFont.body)
+                    Text(UserAgreement.styled("Please read this before using \(UserAgreement.formalName).")).font(AppFont.body)
                     ForEach(UserAgreement.sections, id: \.heading) { section in
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(section.heading).font(AppFont.heading)
-                            Text(section.body).font(AppFont.body).fixedSize(horizontal: false, vertical: true)
+                            Text(UserAgreement.styled(section.heading)).font(AppFont.heading)
+                            Text(UserAgreement.styled(section.body)).font(AppFont.body).fixedSize(horizontal: false, vertical: true)
                         }
                     }
                     Text("Version \(UserAgreement.version)").font(AppFont.body).foregroundStyle(.secondary)
@@ -99,8 +115,8 @@ struct AgreementText: View {
         VStack(alignment: .leading, spacing: 20) {
             ForEach(UserAgreement.sections, id: \.heading) { section in
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(section.heading).font(AppFont.heading)
-                    Text(section.body).font(AppFont.body).fixedSize(horizontal: false, vertical: true)
+                    Text(UserAgreement.styled(section.heading)).font(AppFont.heading)
+                    Text(UserAgreement.styled(section.body)).font(AppFont.body).fixedSize(horizontal: false, vertical: true)
                 }
             }
             Text("Version \(UserAgreement.version)").font(AppFont.body).foregroundStyle(.secondary)
