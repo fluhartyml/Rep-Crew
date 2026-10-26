@@ -607,6 +607,29 @@
 //  • Today RepEntry holds only a count — no duration. The set timer is what supplies it.
 
 // ============================================================================
+// MARK: - CUSTOMER ASKS: SMITTY'S FACETIME (2026-10-26 ~11:55, NOT BUILT)
+// ============================================================================
+//
+//  ⬆️ PRIORITY (his, 2026-10-26 12:1x): "these are higher priority than what we discussed
+//  this morning because this morning was our R&D smitties transcript was discussion with our
+//  customer." → These come BEFORE "PLAN: MANY CREWS, BY ZIP CODE" below.
+//  Source: Transcription Keeper text AirDropped to ~/Downloads (text-25A1C245BA26-1.txt).
+//
+//  1. ORGANIZE THE HOME PAGE — Active / Available / Finished challenges
+//     Problem (Smitty): "if everybody puts challenges on here I'm kind of screwed … it'll be
+//     like too long … to get to the different challenges that I could join I'm scrolled to
+//     bump." Michael's framing: a zillion challenges become wallpaper.
+//     Ask (Smitty): "one thing that says finished challenges active challenges available
+//     challenges … then you click on those and it would send you … just open up the next page."
+//     Home shows your name and your active challenges up top.
+//
+//  2. WEEKLY SCHEDULE — pick exercises per day
+//     Ask (Smitty): "a weekly schedule like Monday Tuesday Wednesday Thursday Friday and then
+//     you can click which day you do … I don't think people need to do the same exercise every
+//     day." Michael's reading: routines by muscle group — leg day, chest day, swim day, arm day.
+//     Uses the existing exercise library.
+//
+// ============================================================================
 // MARK: - PLAN: MANY CREWS, BY ZIP CODE (talked through 2026-10-26 ~09:15–10:25, NOT BUILT)
 // ============================================================================
 //
