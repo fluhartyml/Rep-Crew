@@ -134,6 +134,10 @@ struct SetTimerPanel: View {
                     .multilineTextAlignment(.center)
                     .textFieldStyle(.roundedBorder)
                     .focused($repsFocused)
+                    // Typing over the starting 0 replaces it: "0" then "2" reads 2, not 02.
+                    .onChange(of: reps) { _, text in
+                        if text.count > 1, text.hasPrefix("0"), !text.hasPrefix("0.") { reps = String(text.dropFirst()) }
+                    }
                 Button {
                     Task { await save(end: end) }
                 } label: {
@@ -157,7 +161,8 @@ struct SetTimerPanel: View {
                     end = finished
                     timing = false
                     // REM: his ask 2026-10-25 (units): minutes come from this set's clock, steps and miles from
-                    // what Health counted during it; reps and laps start at what's left of today's goal, as before.
+                    // what Health counted during it; reps and laps start at 0, like the Watch (his word, 2026-10-26:
+                    // "yes start at 0 to match the watch"). Save Set stays off until it's above 0.
                     // Any of them can be changed before Save Set. Nothing measured → the field is left to type.
                     switch goal.unit {
                     case .minutes:
@@ -171,8 +176,7 @@ struct SetTimerPanel: View {
                             }
                         }
                     case .reps, .laps:
-                        let left = goal.remaining(on: .now)
-                        reps = left > 0 ? goal.unit.amount(left).replacingOccurrences(of: ",", with: "") : ""
+                        reps = "0"
                     }
                     repsFocused = true
                 } label: {
