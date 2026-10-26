@@ -645,6 +645,9 @@
 //  • Crew Member = one person in a crew. Crew Leader = a member who leads a challenge.
 //    Coach / Head Coach = above the crew leaders.
 //  • "My Crew" = a group of people you have ownership of (a leader's or coach's crew).
+//  • Crewmate = another member of your crew. His: "they are my crew not theirs :) they are their crew
+//    mates" · "your crew should find and replace with your crewmates" (done in shipped text, agreement v2).
+//    Kept: "Your crew leader" (a person) and the Head Coach's own Crew Name screen (it is his crew).
 //  • "My Memberships" = what you belong to, plural, because you're in more than one challenge.
 //    His: "crew member should say 'My Memberships' because it is plural you have more than one
 //    challenge". Home's Crew Member section (Inbox, Events, Challenges, My Week, Library) gets this
