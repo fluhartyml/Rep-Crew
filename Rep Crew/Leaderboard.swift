@@ -477,7 +477,7 @@ struct LeaderboardsView: View {
 // MARK: - Finding your way
 
 /// Pushed screens that aren't Home.
-enum CrewScreen: Hashable { case leaderboards, directory, newMembers, inbox, events, userList, library, myWeek }
+enum CrewScreen: Hashable { case leaderboards, directory, newMembers, inbox, events, userList, library, myWeek, challenges }
 
 /// Home and Leaderboards, one tap from any screen. His word: "maybe a home glyph for non
 /// home sheets so you can always find your way home".

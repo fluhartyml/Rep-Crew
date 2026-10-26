@@ -89,6 +89,15 @@ struct ContentView: View {
                             NavigationLink(value: CrewScreen.events) {
                                 Label("Events", systemImage: "pin.fill").font(AppFont.bodyBold)
                             }
+                            // REM: his word, 2026-10-26: "it probably should have challenges > just like myweek> does",
+                            // and his "yes build it" — Active, Available and Finished moved off Home onto one page.
+                            NavigationLink(value: CrewScreen.challenges) {
+                                HStack {
+                                    Label("Challenges", systemImage: "flag.checkered").font(AppFont.bodyBold)
+                                    Spacer()
+                                    Text("\(active.count) active").font(AppFont.body).foregroundStyle(.secondary)
+                                }
+                            }
                             // REM: Smitty's weekly schedule, his design 2026-10-26 (MyWeek.swift).
                             NavigationLink(value: CrewScreen.myWeek) {
                                 Label("My Week", systemImage: "calendar").font(AppFont.bodyBold)
@@ -101,15 +110,10 @@ struct ContentView: View {
                             Text("Crew Member").font(AppFont.bodyBold).textCase(nil)
                         }
                         invitations
-                        // REM: Smitty's ask, 2026-10-26, his "yes build it": "one thing that says finished challenges
-                        // active challenges available challenges … then you click on those and it would … just open up
-                        // the next page" — a drop-down, so a crowded app never buries Home. Three reveals, each
-                        // remembered on this phone: Active open, Available and Finished closed until tapped.
-                        section("Active challenges", active + upcoming.reversed(), isOpen: $showActive)
                         if tier >= .messageBase { CrewBoardsSection(challenges: active) }
-                        crewChallenges(title: tier == .verified && challenges.isEmpty ? "Join Your First Challenge" : "Available challenges")
+                        // A brand-new member with nothing yet still sees "Join Your First Challenge" right on Home.
+                        if firstTime { crewChallenges(title: "Join Your First Challenge") }
                         if challenges.isEmpty && cloud.pending.isEmpty && others.isEmpty && cloud.can(.start) { emptyState }
-                        section("Finished challenges", finished, isOpen: $showFinished, libraryLink: true)
                     }
                     .refreshable { await syncCrew() }
             }
@@ -150,6 +154,7 @@ struct ContentView: View {
                 case .userList: UserListView()
                 case .library: LibraryView()
                 case .myWeek: MyWeekView()
+                case .challenges: challengesPage
                 }
             }
             .toolbar {
@@ -192,6 +197,22 @@ struct ContentView: View {
         }
         .environment(\.crewNav, CrewNav(goHome: { path = NavigationPath() },
                                         openBoards: { path.append(CrewScreen.leaderboards) }))
+    }
+
+    private var firstTime: Bool { HomeTier.current == .verified && challenges.isEmpty }
+
+    /// Home → Challenges. REM: Smitty's ask, 2026-10-26, his "yes build it": "one thing that says finished challenges
+    /// active challenges available challenges … then you click on those and it would … just open up the next page" —
+    /// a drop-down, so a crowded app never buries Home. Three reveals, each remembered on this phone: Active open,
+    /// Available and Finished closed until tapped. Moved here from Home at his word the same day.
+    private var challengesPage: some View {
+        List {
+            section("Active challenges", active + upcoming.reversed(), isOpen: $showActive)
+            crewChallenges(title: firstTime ? "Join Your First Challenge" : "Available challenges")
+            section("Finished challenges", finished, isOpen: $showFinished, libraryLink: true)
+        }
+        .refreshable { await syncCrew() }
+        .navigationTitle("Challenges")
     }
 
     /// A tappable section header with a chevron that opens and closes it.
