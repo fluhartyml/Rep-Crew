@@ -62,14 +62,9 @@ struct ContentView: View {
                         // REM: his word, 2026-10-25: Home "integrated with the user profile", headed by role.
                         ProfileCardSection(tier: tier)
                         WelcomeCardSection(tier: tier)
-                        if tier == .headCoach { HeadCoachToolsSection() }
-                        // REM: his word, 2026-10-25: "on the head coach home page to be quick links to user list
-                        // editor". User List now sits in the Coach section, with New Crew Members and the Directory.
-                        if tier >= .coach { CoachToolsSection() }
-                        if tier >= .moderator {
-                            CrewsYouLeadSection(challenges: active.filter { $0.leaderID.isEmpty && !$0.crewID.isEmpty })
-                        }
-                        MyEventsSection(events: myEvents) { Task { await loadMyEvents() } }
+                        // REM: his word, 2026-10-26: "crew member should say 'My Memberships' because it is plural you
+                        // have more than one challenge", moved "above head coach" · "yes build it". Crew = the group;
+                        // My Memberships = what you belong to (Developer Notes, OFFICIAL WORDS).
                         Section {
                             // A row, not a toolbar button: a fifth toolbar button pushed others into an overflow menu (build 61).
                             NavigationLink(value: CrewScreen.inbox) {
@@ -107,8 +102,16 @@ struct ContentView: View {
                                 Label("Library", systemImage: "books.vertical.fill").font(AppFont.bodyBold)
                             }
                         } header: {
-                            Text("Crew Member").font(AppFont.bodyBold).textCase(nil)
+                            Text("My Memberships").font(AppFont.bodyBold).textCase(nil)
                         }
+                        if tier == .headCoach { HeadCoachToolsSection() }
+                        // REM: his word, 2026-10-25: "on the head coach home page to be quick links to user list
+                        // editor". User List now sits in the Coach section, with New Crew Members and the Directory.
+                        if tier >= .coach { CoachToolsSection() }
+                        if tier >= .moderator {
+                            CrewsYouLeadSection(challenges: active.filter { $0.leaderID.isEmpty && !$0.crewID.isEmpty })
+                        }
+                        MyEventsSection(events: myEvents) { Task { await loadMyEvents() } }
                         invitations
                         if tier >= .messageBase { CrewBoardsSection(challenges: active) }
                         // A brand-new member with nothing yet still sees "Join Your First Challenge" right on Home.
