@@ -152,8 +152,13 @@ private struct HeadCoachPhotoSection: View {
             }
             if isSet {
                 Button(role: .destructive) { Task { await set(nil) } } label: {
-                    Label(hasOwnPhoto ? "Use Their Own Photo" : "Remove Photo", systemImage: "arrow.uturn.backward")
-                        .font(AppFont.bodyBold)
+                    // The arrow red like the words (his word, 2026-10-26: "yes add the red arrow").
+                    Label {
+                        Text(hasOwnPhoto ? "Use Their Own Photo" : "Remove Photo")
+                    } icon: {
+                        Image(systemName: "arrow.uturn.backward").foregroundStyle(.red)
+                    }
+                    .font(AppFont.bodyBold)
                 }
                 .disabled(working)
             }
