@@ -52,7 +52,7 @@ struct AboutView: View {
 
                 Section {
                     NavigationLink { AgreementReadView() } label: {
-                        Label("User Agreement", systemImage: "doc.text").font(AppFont.bodyBold)
+                        Label("User Agreement (EULA)", systemImage: "doc.text").font(AppFont.bodyBold)
                     }
                 }
 

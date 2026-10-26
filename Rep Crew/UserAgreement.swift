@@ -36,10 +36,13 @@ enum UserAgreement {
 
     /// REM: his words 2026-10-26: "it should be daily rep crew accountability throughout the EULA" and "you may
     /// want to use </underlined> Daily Rep Crew Accountability </underlined>".
+    /// REM: his "yes build it", 2026-10-26: the name never splits across lines — no-break spaces inside it, so it
+    /// moves to the next line whole. Text stays 18 pt; no size waiver needed.
     static func styled(_ text: String) -> AttributedString {
-        var result = AttributedString(text)
+        let whole = formalName.replacingOccurrences(of: " ", with: "\u{00A0}")
+        var result = AttributedString(text.replacingOccurrences(of: formalName, with: whole))
         var searchFrom = result.startIndex
-        while let range = result[searchFrom...].range(of: formalName) {
+        while let range = result[searchFrom...].range(of: whole) {
             result[range].underlineStyle = .single
             searchFrom = range.upperBound
         }
@@ -104,7 +107,7 @@ struct UserAgreementView: View {
                 .padding()
                 .background(.bar)
             }
-            .navigationTitle("User Agreement")
+            .navigationTitle("User Agreement (EULA)")
         }
     }
 }
@@ -130,7 +133,7 @@ struct AgreementReadView: View {
         ScrollView {
             AgreementText().padding()
         }
-        .navigationTitle("User Agreement")
+        .navigationTitle("User Agreement (EULA)")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
