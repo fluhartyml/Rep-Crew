@@ -614,6 +614,8 @@
 //  this morning because this morning was our R&D smitties transcript was discussion with our
 //  customer." → These come BEFORE "PLAN: MANY CREWS, BY ZIP CODE" below.
 //  Source: Transcription Keeper text AirDropped to ~/Downloads (text-25A1C245BA26-1.txt).
+//  ⚠️ PARTIAL: recording started after the call began (his, 12:2x) — Smitty's opening
+//  remarks were not captured. Ask Smitty if anything from the start is missing here.
 //
 //  1. ORGANIZE THE HOME PAGE — Active / Available / Finished challenges
 //     Problem (Smitty): "if everybody puts challenges on here I'm kind of screwed … it'll be
