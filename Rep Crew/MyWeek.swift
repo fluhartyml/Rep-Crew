@@ -168,3 +168,51 @@ private struct PickDay: Identifiable {
     let day: Int
     var id: Int { day }
 }
+
+/// On a challenge's own screen: Every day, or the weekdays you pick. The same setting as the My Week sheets.
+/// REM: his idea, 2026-10-26: "the challenge card could have a toggle for the crew member to toggle every day or
+/// to add it to a weekday sheet" · "yes build it". Turning Every day off starts with today picked, and the last
+/// day can't be unpicked, because no days at all would mean every day again.
+struct MyWeekSection: View {
+    @Environment(\.modelContext) private var context
+    let challenge: Challenge
+
+    var body: some View {
+        Section {
+            Toggle(isOn: Binding(get: { challenge.scheduledWeekdays.isEmpty }, set: { everyDay in
+                challenge.weekdays = everyDay ? "" : String(Calendar.current.component(.weekday, from: .now))
+                try? context.save()
+            })) {
+                Text("Every day").font(AppFont.bodyBold)
+            }
+            if !challenge.scheduledWeekdays.isEmpty {
+                HStack(spacing: 4) {
+                    ForEach(1...7, id: \.self) { day in
+                        let isOn = challenge.scheduledWeekdays.contains(day)
+                        Button {
+                            guard !(isOn && challenge.scheduledWeekdays.count == 1) else { return }
+                            challenge.setScheduled(!isOn, weekday: day)
+                            try? context.save()
+                        } label: {
+                            Text(Calendar.current.veryShortWeekdaySymbols[day - 1])
+                                .font(AppFont.bodyBold)
+                                .foregroundStyle(isOn ? .white : .primary)
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                                .background(Circle().fill(isOn ? Color.accentColor : Color.secondary.opacity(0.15)))
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel(Calendar.current.weekdaySymbols[day - 1])
+                        .accessibilityAddTraits(isOn ? .isSelected : [])
+                    }
+                }
+            }
+        } header: {
+            Text("My Week").font(AppFont.bodyBold).textCase(nil)
+        } footer: {
+            Text(challenge.scheduledWeekdays.isEmpty
+                 ? "Counts every day."
+                 : "Counts only on the days you picked. Other days don't break your streak.")
+                .font(AppFont.body)
+        }
+    }
+}

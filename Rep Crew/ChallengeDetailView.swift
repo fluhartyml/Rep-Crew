@@ -64,6 +64,8 @@ struct ChallengeDetailView: View {
                         Label("Match Health Workouts", systemImage: "heart.text.square").font(AppFont.bodyBold)
                     }
                 }
+                // Every day, or only the weekdays you pick (MyWeek.swift).
+                MyWeekSection(challenge: challenge)
             }
 
             if removed {
