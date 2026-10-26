@@ -685,6 +685,20 @@
 //  • Weak spot: a rogue coach does damage in their own area until someone above revokes.
 //  • OPEN: can coaches delete members' posts/photos in their area, or only manage people?
 //
+//  CREW NAME + PICKED ZIP CODES (his idea, 2026-10-26 ~17:45, talk only, NOT BUILT)
+//  • His: "should a crew name be associated with a zip code? or have a region of zip codes
+//    the crew leader or coach want to have in their crew? maybe theres a list of all zip
+//    codes or a database of them and the coach gets to select the zipcodes they want to be
+//    in charge of and that coaches crew leaders get to choose the zip codes the coach in
+//    their chain of commmand has chosen"
+//  • Shape: a coach picks ZIPs from a full list; a crew leader under that coach picks only
+//    from the coach's ZIPs. Fits the chain of grants above — each grant a ZIP set, inside
+//    the one above it. An alternative to the fixed 1 → 3 → 5 digit ladder.
+//  • Claude's lean (not his decision): the crew name belongs to the crew, not to a ZIP —
+//    the ZIPs say where it is, the name says who it is, so two crews can share a ZIP.
+//  • OPEN: can two coaches pick the same ZIP? Where the ZIP list comes from (bundled file
+//    vs a service) is not decided.
+//
 //  ALREADY IN PLACE: report and block (his word) — App Store guideline 1.2 for apps where
 //  strangers post.
 //
