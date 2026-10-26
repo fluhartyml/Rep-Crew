@@ -607,6 +607,74 @@
 //  • Today RepEntry holds only a count — no duration. The set timer is what supplies it.
 
 // ============================================================================
+// MARK: - PLAN: MANY CREWS, BY ZIP CODE (talked through 2026-10-26 ~09:15–10:25, NOT BUILT)
+// ============================================================================
+//
+//  WHY (his question): as built, every download joins ONE crew — his. One public CloudKit
+//  database (iCloud.com.accountability.dailyrepcrew), Head Coach hard-wired to his iCloud
+//  ID (GodMode.ids). 100 strangers from 50 states would all share the same challenges and
+//  photos. His: "we need to make 'tribes' or localize crews."
+//
+//  WORDS (his): a crew member name is a person; a crew name is a group of crew members.
+//  The Head Coach → Crew Name screen names the group, so it stays (not renamed to
+//  "Crew Member Name").
+//
+//  THE LADDER (his names, his ZIP idea; the 1 → 3 → 5 split was Claude's suggestion, he
+//  agreed):
+//    Head Coach (him, god mode)   → the continental US
+//     └─ Regional Area            → ZIP 1st digit       (4     = OH, IN, KY, MI)
+//         └─ Metro Organization   → ZIP first 3 digits  (452   = Cincinnati)
+//             └─ Local Team       → full 5-digit ZIP    (45230 = Mt. Washington)
+//                 └─ Crews → Crew Members
+//  • Skip the 2-digit level: it matches no Post Office unit, so groups would cut across
+//    real areas. (Claude's; he agreed.)
+//  • Local Teams per ZIP: unlimited (his: "local can be infinite"). Members per ZIP:
+//    unlimited — families share ZIPs.
+//  • A crew is two or more people (his). The smallest group of people.
+//  • Still OPEN: does a Local Team hold several crews, or is the team the crew? And how
+//    many crews per ZIP — he said both "max" (one per ZIP) and "infinite"; asked, not
+//    answered.
+//
+//  LEVEL 0 — THE FIRST DOWNLOAD (his: work from the base up)
+//  • First step on first launch: type the 5-digit ZIP code (his pick over GPS — no location
+//    permission). The app looks up city / county / state (Apple's geocoder, from memory,
+//    NOT tested) and shows e.g. "Cincinnati, Hamilton County, Ohio"; the person confirms or
+//    fixes it — some ZIPs cross county or city lines.
+//  • Nobody exists yet in a new area, so there is no leader to accept anyone. The first
+//    person is the catalyst: they create a challenge and become that crew's leader (his).
+//  • ZIP center points let the app rank crews by distance — same ZIP first, then
+//    neighbors — without anyone's exact location.
+//
+//  ZIP+4 — PRIVATE, LIKE THE LAST FOUR OF A SOCIAL (his)
+//  • The +4 is a delivery segment (one block side, one building), close to an address.
+//  • Idea (his): use it to help an orphaned crew member find a crew close by.
+//  • Rule: never shown next to a name, never shared. If used at all, only on the person's
+//    own phone to sort nearby crews; never saved to iCloud. The app asks for 5 digits.
+//
+//  PERMISSIONS — A CHAIN OF GRANTS (Claude's proposal; not yet confirmed by him)
+//  • CloudKit cannot enforce "only a Texas coach edits Texas" on the server. What it cannot
+//    fake is who wrote a record — the same check Crew Name already uses (GodMode.ids).
+//  • He grants Regional; each coach grants only below their own level and inside their own
+//    area; every phone checks the chain back to him and ignores a broken link; anyone above
+//    can revoke, and everything that grant made possible goes with it.
+//  • Weak spot: a rogue coach does damage in their own area until someone above revokes.
+//  • OPEN: can coaches delete members' posts/photos in their area, or only manage people?
+//
+//  ALREADY IN PLACE: report and block (his word) — App Store guideline 1.2 for apps where
+//  strangers post.
+//
+//  CLOUDKIT FACTS FROM THE SAME TALK
+//  • Public-database storage is billed to the app's container under his Developer account —
+//    not to his or any user's personal iCloud plan. Apple doesn't bill for it; the free
+//    allowance grows with active users. What happens past the allowance: unverified.
+//  • Photo size: 1600 px JPEG + 400 px thumbnail at 0.75 (PhotoBoard.jpegFile); estimated
+//    0.3–0.5 MB per photo, so 500 photos ≈ 150–250 MB (estimate, not measured).
+//  • Count: Census 2024 lists 33,791 ZIP code areas (33,300 continental); the Post Office's
+//    own count is about 41,000 incl. PO-box-only ZIPs (from memory, unchecked).
+//  • Reference map Claude built for this talk: "Continental US ZIP Codes" artifact (type a
+//    ZIP prefix, see the area light up).
+
+// ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE
 // ============================================================================
 //
