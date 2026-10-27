@@ -755,9 +755,9 @@
 //  ⚠️ Before building: check Apple's docs on tvOS per-profile app data (Claude stated it
 //  from memory).
 //  View Home As: his word, "the apple tv follows the iphones view as" · "use cloud kit
-//  persistant data across devices". So viewAsLevel moves from memory-only (10-25) into
-//  CloudKit: it persists across devices and launches until he ends it from the bar.
-//  This reverses "quitting the app always brings him back" — the Home bar must stay visible.
+//  persistant data across devices". So viewAsLevel moves from memory-only into CloudKit:
+//  it persists across devices and launches until he ends it from the bar. (Memory-only
+//  was Claude's implementation choice on 10-25, not his rule.)
 
 // ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE
