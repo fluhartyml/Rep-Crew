@@ -735,6 +735,27 @@
 //    ZIP prefix, see the area light up).
 
 // ============================================================================
+// MARK: - APPLE TV BOARD (design talk 2026-10-27, NOT BUILT, no build go yet)
+// ============================================================================
+//
+//  His idea, 13:0x: "the apple tv version of the rep app could be a status or leaderboard
+//  that just served information and status". Read-only: no rep entry, no messages.
+//  Smitty likely has no Apple TV (his word: a smart TV, not a physical Apple TV) — AirPlay
+//  from the phone is an option if his TV supports it (unchecked).
+//
+//  Flow, his design — center-button press between each stage:
+//    1. Announcements — new or priority ones. None new → "No new announcements" plus the
+//       last one, "so the user knows theres no error like 'this page left blank'".
+//       Never posted → "No announcements yet."
+//    2. Your week — the weekly routine as a flat list (MyWeek data).
+//    3. Challenge boards — one per active challenge; left/right (swipe or click) moves
+//       between them. Same board rules as the phone: today's reps, no place labels.
+//  Whose week: whoever is signed in to the Apple TV (his word: "signed in then it is").
+//  A user's week is private, so no rotating through other family members' weeks.
+//  ⚠️ Before building: check Apple's docs on tvOS per-profile app data (Claude stated it
+//  from memory).
+
+// ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE
 // ============================================================================
 //
