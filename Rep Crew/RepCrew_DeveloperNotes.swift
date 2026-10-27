@@ -712,6 +712,14 @@
 //  • OPEN: can two coaches pick the same ZIP? Where the ZIP list comes from (bundled file
 //    vs a service) is not decided.
 //
+//  CHAIN OF COMMAND UNDER THE HEAD COACH — DISCUSSION ONLY (his, 2026-10-26 ~19:2x: "the under head
+//  coach chain of command is in discussion only")
+//  • His question: "how do coaches and crew member and or crew leaders get assigned to each other".
+//  • Today nobody is assigned: a Crew Leader is whoever starts a challenge, members join it; a Coach is
+//    granted by him and oversees every challenge.
+//  • Claude's lean (not his decision): assignment comes from ZIPs — he grants a coach ZIP codes; leaders
+//    and members in those ZIPs fall under that coach, no hand assignment.
+//
 //  ALREADY IN PLACE: report and block (his word) — App Store guideline 1.2 for apps where
 //  strangers post.
 //
