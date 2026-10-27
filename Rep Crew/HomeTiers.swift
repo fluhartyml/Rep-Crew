@@ -23,8 +23,9 @@
 //
 //  REM: his word, 2026-10-25: "as head coach i need to temporarily pretend to be at each defines crew level so
 //  i can shake down each access level as if i were a new user or a crew leader". View Home As sets
-//  CrewCloud.viewAsLevel: Home, every ability check (can) and Coach Mode then act on that level. It is in
-//  memory only, so quitting the app always ends it, and the bar at the top of Home ends it with one tap.
+//  CrewCloud.viewAsLevel: Home, every ability check (can) and Coach Mode then act on that level. It is
+//  saved to his own iCloud (TVShare.swift, his word 2026-10-27), so it lasts across launches and his
+//  devices, Apple TV included, until the bar at the top of Home ends it with one tap.
 //
 
 import SwiftData

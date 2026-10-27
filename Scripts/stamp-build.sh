@@ -79,7 +79,9 @@ COMMIT=$($GIT rev-parse --short HEAD 2>/dev/null || echo "nogit")
 BRANCH=$($GIT rev-parse --abbrev-ref HEAD 2>/dev/null || echo "nogit")
 BUILT=$(date "+%Y-%m-%d %H:%M")
 
-STAMP=$(find "$ROOT" -maxdepth 3 -name BuildStamp.swift | head -1)
+# Every target with its own BuildStamp.swift gets stamped (the phone's, and the Apple TV's in Rep Crew TV/,
+# added 2026-10-27), so each app on a device names the same commit.
+STAMPS=$(find "$ROOT" -maxdepth 3 -name BuildStamp.swift)
 
 # A dirty tree means the binary is that commit PLUS something unrecorded. Say so — a
 # stamp claiming a clean commit it isn't is worse than no stamp. The files this script
@@ -95,12 +97,14 @@ fi
     -e "s|CURRENT_PROJECT_VERSION = .*;|CURRENT_PROJECT_VERSION = $BUILD_NUMBER;|" \
     "$PBX"
 
-if [ -n "$STAMP" ]; then
-    /usr/bin/sed -i '' \
-        -e "s|static let commit = \".*\"|static let commit = \"$COMMIT\"|" \
-        -e "s|static let branch = \".*\"|static let branch = \"$BRANCH\"|" \
-        -e "s|static let built = \".*\"|static let built = \"$BUILT\"|" \
-        "$STAMP"
+if [ -n "$STAMPS" ]; then
+    echo "$STAMPS" | while IFS= read -r STAMP; do
+        /usr/bin/sed -i '' \
+            -e "s|static let commit = \".*\"|static let commit = \"$COMMIT\"|" \
+            -e "s|static let branch = \".*\"|static let branch = \"$BRANCH\"|" \
+            -e "s|static let built = \".*\"|static let built = \"$BUILT\"|" \
+            "$STAMP"
+    done
     echo "build number: $BUILD_NUMBER   commit: $COMMIT ($BRANCH)"
 else
     echo "build number: $BUILD_NUMBER   commit: $COMMIT ($BRANCH)   [no BuildStamp.swift — in-app display not wired]"

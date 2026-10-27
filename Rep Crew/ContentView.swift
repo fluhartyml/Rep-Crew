@@ -49,6 +49,8 @@ struct ContentView: View {
     private var active: [Challenge] { _ = closedChallenges; return challenges.filter(\.isActive) }
     /// Changes whenever today's numbers do, so the Watch gets a fresh copy.
     private var watchSignature: String { challenges.map { "\($0.title).\($0.repsToday)" }.joined(separator: "|") }
+    /// Changes when your week does, so the Apple TV board gets it (TVShare.swift).
+    private var weekSignature: String { challenges.map { "\($0.crewID).\($0.title).\($0.weekdays).\($0.isFinished)" }.joined(separator: "|") }
     private var upcoming: [Challenge] { _ = closedChallenges; return challenges.filter { !$0.hasStarted && !$0.isClosed } }
     private var finished: [Challenge] { _ = closedChallenges; return challenges.filter(\.isFinished) }
 
@@ -139,6 +141,12 @@ struct ContentView: View {
                 if scenePhase == .active, challenges.contains(where: \.countsHealth) { await HealthLibrary.shared.refresh() }
             }
             .task(id: watchSignature) { WatchBridge.shared.sendGoals(challenges) }
+            .task(id: weekSignature) {
+                // REM: a short wait so tapping through the weekday sheets saves once, not on every tap.
+                try? await Task.sleep(for: .seconds(2))
+                guard !Task.isCancelled else { return }
+                await cloud.saveWeek(challenges)
+            }
             // A coach tapped a "joined the crew" notification (CrewNotifications).
             .onChange(of: cloud.openNewMembers, initial: true) { _, open in
                 guard open else { return }

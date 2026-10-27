@@ -44,8 +44,18 @@ final class CrewCloud {
     /// This phone's member's level, flags and title (Access.swift). Loaded on connect.
     var myAccess = MemberAccess(level: 0, flags: "", title: "")
     /// Head coach only: a level he is trying the app at (HomeTiers.swift → View Home As). nil = himself.
-    /// Kept in memory only, so quitting the app always brings him back.
-    var viewAsLevel: Int?
+    /// REM: his word, 2026-10-27: "the apple tv follows the iphones view as" · "use cloud kit persistant data
+    /// across devices". Saved to his own iCloud (TVShare.swift), so it lasts across launches and devices until
+    /// he ends it from the bar on Home. (It was memory-only before; that was Claude's choice, not his rule.)
+    var viewAsLevel: Int? {
+        didSet {
+            guard viewAsLevel != oldValue, !loadingViewAs else { return }
+            let level = viewAsLevel
+            Task { await saveViewAs(level) }
+        }
+    }
+    /// True while connect() restores View Home As, so the restore isn't saved straight back.
+    private var loadingViewAs = false
     /// Other members' levels as last read, by iCloud ID, for the verified seal (VerifiedSeal.swift).
     var knownLevels: [String: Int] = [:]
     /// Photos the head coach set for people, by iCloud ID (Profile.swift). Loaded on connect.
@@ -65,6 +75,11 @@ final class CrewCloud {
             await loadCoachKeys()
             await loadCrewName()
             await loadAccess()
+            if GodMode.isRealOwner {
+                loadingViewAs = true
+                viewAsLevel = await loadViewAs()
+                loadingViewAs = false
+            }
             await loadAvatarOverrides()
             status = "Connected to iCloud"
         } catch {

@@ -735,7 +735,7 @@
 //    ZIP prefix, see the area light up).
 
 // ============================================================================
-// MARK: - APPLE TV BOARD (design talk 2026-10-27, NOT BUILT, no build go yet)
+// MARK: - APPLE TV BOARD (BUILT 2026-10-27 at his "build the apple tv board but dont sent to testflight")
 // ============================================================================
 //
 //  His idea, 13:0x: "the apple tv version of the rep app could be a status or leaderboard
@@ -758,6 +758,23 @@
 //  persistant data across devices". So viewAsLevel moves from memory-only into CloudKit:
 //  it persists across devices and launches until he ends it from the bar. (Memory-only
 //  was Claude's implementation choice on 10-25, not his rule.)
+//
+//  BUILT (2026-10-27, compile-checked tvOS + iOS in scratch; NOT run on any device, NOT on TestFlight):
+//  • New target "Rep Crew TV" (folder Rep Crew TV/, tvOS 17+, same bundle ID as the phone so it joins
+//    the same App Store record). Read-only: TVCloud.swift mirrors the phone's reading rules, file by
+//    file; TVBoardView.swift is the three stages. Icon: his "App Icon & Top Shelf Image" brandassets,
+//    copied from the mint houz drive's Rep Crew folder.
+//  • RepCrewTV.entitlements: CloudKit (same container) + User Management → runs-as-current-user, so
+//    iCloud follows whoever is signed in on the Apple TV (Apple's WWDC20 session 10645).
+//  • Phone: TVShare.swift saves your week and View Home As to the PRIVATE database (record type
+//    PersonalBoard, name "mine"). ContentView saves the week when it changes; CrewCloud.viewAsLevel
+//    saves on change and is restored on launch for the head coach.
+//  • Scripts/stamp-build.sh now stamps every BuildStamp.swift (the TV has its own copy).
+//  • "New" announcements = not yet shown on this Apple TV (TVSeen, per Apple TV user). There is no
+//    "priority" flag in the app, so none is used.
+//  • The phone's Blocklist is phone-only; the TV honors bans, not personal blocks.
+//  ⚠️ Before TestFlight: deploy PersonalBoard (CloudKit-Schema.ckdb) to Production — his step — and
+//    the App ID needs the User Management capability (automatic signing should add it; unverified).
 
 // ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE
