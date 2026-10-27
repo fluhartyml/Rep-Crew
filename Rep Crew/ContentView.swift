@@ -104,8 +104,9 @@ struct ContentView: View {
                             }
                             // REM: his word, 2026-10-26: "there thould be a send message to head coach … like 'message
                             // to sysop'" · "yes build it". A direct message into his Inbox; he answers from there.
-                            // Not shown to him (he'd be writing to himself).
-                            if !GodMode.isRealOwner, let headCoach = GodMode.ids.first {
+                            // Not shown to him (he'd be writing to himself), except while he views Home as another
+                            // level, so he can test it (his "ill use view as").
+                            if !GodMode.isOwner, let headCoach = GodMode.ids.first {
                                 Button { messagingHeadCoach = true } label: {
                                     Label("Message the Head Coach", systemImage: "envelope.fill").font(AppFont.bodyBold)
                                 }
