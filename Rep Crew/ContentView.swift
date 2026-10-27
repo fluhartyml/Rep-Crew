@@ -38,6 +38,7 @@ struct ContentView: View {
     @State private var showingNew = false
     @State private var showingAbout = false
     @State private var showingSettings = false
+    @State private var messagingHeadCoach = false
     @State private var joining: Invite?
     @State private var path = NavigationPath()
     /// Head coach announcements not yet accepted on this phone (MustRead.swift).
@@ -100,6 +101,17 @@ struct ContentView: View {
                             // REM: his word, 2026-10-26: a library of every challenge ever made (Library.swift).
                             NavigationLink(value: CrewScreen.library) {
                                 Label("Library", systemImage: "books.vertical.fill").font(AppFont.bodyBold)
+                            }
+                            // REM: his word, 2026-10-26: "there thould be a send message to head coach … like 'message
+                            // to sysop'" · "yes build it". A direct message into his Inbox; he answers from there.
+                            // Not shown to him (he'd be writing to himself).
+                            if !GodMode.isRealOwner, let headCoach = GodMode.ids.first {
+                                Button { messagingHeadCoach = true } label: {
+                                    Label("Message the Head Coach", systemImage: "envelope.fill").font(AppFont.bodyBold)
+                                }
+                                .sheet(isPresented: $messagingHeadCoach) {
+                                    InboxComposeView(target: ProfileTarget(id: headCoach, name: "the Head Coach"))
+                                }
                             }
                         } header: {
                             Text("My Memberships").font(AppFont.bodyBold).textCase(nil)
