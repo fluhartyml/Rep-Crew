@@ -903,6 +903,11 @@
 //  group): "i want that to be what i see when i open the app on my home screen i want the users to see their
 //  home group in their home page" → each user has a HOME GROUP that their Home opens on (his = The Smitty
 //  Bunch / the app group). OPEN: how a user's home group is set (they pick one? the first they join?).
+//  His: "questionere or surveys" → a questionnaire/survey sets the home group (new-member application +
+//  readiness test could feed it; questions OPEN).
+//  Lobby (his, 16:3x): "the lobby should be the group sharing user progreess questions answers struggles
+//  achievements solutions" → the Lobby is a shared board for progress, questions & answers, struggles,
+//  achievements and solutions (adds to the tabs sketched above).
 
 // ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE
