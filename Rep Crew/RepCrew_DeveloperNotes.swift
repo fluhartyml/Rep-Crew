@@ -929,6 +929,8 @@
 //    text, YouTube, photo). Topics: Accomplishment, Progress, Question, Struggle, Advice, Solution.
 //    FitnessLevel Starter/Steady/Strong/Elite, picked by each person (top of the Lobby); the feed shows
 //    your level by default, "All levels" shows everything. Own delete; coaches remove. No Health data.
+//  Readiness test (his, 17:0x): "the readiness test should be a honor systen survey" → self-reported
+//  answers, no timed test, no Health reading; it suggests a FitnessLevel, the user can override.
 
 // ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE
