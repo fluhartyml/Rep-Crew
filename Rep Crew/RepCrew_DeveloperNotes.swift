@@ -805,6 +805,10 @@
 //     His (14:5x, at Home on the 16e): "the smitty bunch is the localized group i am in" → today's crew
 //     name IS a group. "yes they can be in multiple groups swipe right and left between your groups you
 //     are in" → Home swipes left/right between your groups.
+//     His: "maybe the groups have home pages with banners and an avatar". Claude's sketch, his "yes thats
+//     close": group home page = group banner + avatar + name on top, then that group's challenges, events,
+//     announcements; swipe between groups; your own profile card under the group header or as a button
+//     (which one: OPEN).
 //  7. Group events — his "if the [church] had events where the others in [the] group could
 //     join and go or not meet at the park": a group posts an event, members tap Going /
 //     Not going, add to Apple Calendar. Joins the Events board idea (10-24, bulletin board).
