@@ -837,7 +837,7 @@
 //     Who makes a group (his "yes thats it"): a VERIFIED user; they become its crew leader, and the group
 //     starts with a challenge they make. Making a group generates its home page automatically (plain
 //     banner + default dumbbell avatar, like a new profile); the leader changes banner, avatar, name.
-//     How people join a group: OPEN (asked: leader invites, ask to join, or both).
+//     How people join a group (his): "both invite and ask to join" — leader invites, and anyone can ask.
 //  8. Home page customizing (his, 2026-10-29 ~15:0x, discussing, NOT decided to build):
 //     • Leader: fonts and colors for the group's page ("funt coolors" = font colors). Set vs free: OPEN.
 //     • Viewer: "if the user can modify font sizes they can adjust to their own sizes and can adjust to a
