@@ -939,6 +939,10 @@
 //  "i guess smart stacks are what im thinking about for swiping" → BUILT: Rep Crew Widget target,
 //  small/medium/large, check leaderboards when editing it, arrow steps through them; stack several in a
 //  Smart Stack to swipe. App group group.com.accountability.dailyrepcrew carries the boards (WidgetSync.swift).
+//  Level rewards (his, same evening, BRAINSTORM, not built): "putting a widget on your phone helps you
+//  level up we neeed a level reward system" · "the levels could possibly be a leaderboard on its own".
+//  Open: does it raise the access level (0–255, unlocks abilities) or a separate points level? The app
+//  can see an added widget (WidgetCenter.getCurrentConfigurations).
 
 // ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE
