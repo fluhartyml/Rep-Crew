@@ -842,6 +842,8 @@
 //     line from what was done and when ("Completed … before 9 AM"); his: "it comes from the last rep
 //     logged but overidable by the user" → time from the last logged rep, editable before posting.
 //     Whether a single day's win can be shared (not just a whole challenge): asked, OPEN.
+//     Principle (his): "its the 'users story' to tell" → the app only suggests the line; the whole post
+//     is theirs to edit.
 //  7. Group events — his "if the [church] had events where the others in [the] group could
 //     join and go or not meet at the park": a group posts an event, members tap Going /
 //     Not going, add to Apple Calendar. Joins the Events board idea (10-24, bulletin board).
