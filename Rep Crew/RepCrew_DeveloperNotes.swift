@@ -811,7 +811,10 @@
 //     His: "the user can overide though" → the user can override their level/category.
 //     ⛔ His: "no health  app is shared or posted" → Health numbers stay on the phone; they only help set
 //     the level. Nothing from Health is posted or shared. (Existing Settings switch "Share Minutes and
-//     Calories with Your Crewmates" — asked whether it stays.)
+//     Calories with Your Crewmates" — STAYS. His: "if the grew member shares its okay im just
+//     brainstorming new ways im not meaning to overide already decided things" → never shared
+//     automatically; the member's own opt-in is fine.)
+//     ⚠️ Brainstorm lines here don't override settled decisions unless he says so.
 //  6. Groups — his "if you mother or grandmother has a church group for mall walks of
 //     simpler exercises": smaller circles with simpler challenges.
 //     OPEN: own crew with its own head coach, or a circle inside a crew? (asked)
