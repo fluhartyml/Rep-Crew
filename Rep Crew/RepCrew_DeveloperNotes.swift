@@ -899,6 +899,10 @@
 //    make"); color = one of 6 themes, font = Standard/Rounded/Serif/Typewriter (sizes stay ≥18 pt).
 //  NOT YET: per-group announcements/events, Home fully becoming the group page, per-person text size, Lobby,
 //  readiness test.
+//  HIS NEXT (2026-10-29 ~16:2x, seeing 189's first card "The Smitty Bunch · Everyone on the app" = the app
+//  group): "i want that to be what i see when i open the app on my home screen i want the users to see their
+//  home group in their home page" → each user has a HOME GROUP that their Home opens on (his = The Smitty
+//  Bunch / the app group). OPEN: how a user's home group is set (they pick one? the first they join?).
 
 // ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE
