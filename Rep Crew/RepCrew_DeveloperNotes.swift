@@ -780,6 +780,13 @@
 // MARK: - PLAN: PROFILE TIMELINE, GROUPS, READINESS TEST (2026-10-29 ~14:1x)
 // ============================================================================
 //
+//  ✅ SMITTY APPROVED (2026-10-29 ~15:3x, relayed by Michael) the 10-item list: 1 banner · 2 timeline ·
+//  3 YouTube press-to-play + ask before leaving · 4 coaches remove · 5 groups, swipe on Home · 6 group
+//  home page (verified user → crew leader, starts with a challenge; banner, avatar, fonts, colors) ·
+//  7 per-person text size ≥18 pt · 8 group events Going/Not going → calendar · 9 the Lobby (Public
+//  Challenges · Crews · Accomplishments/Personal Victories, opt-in, app-suggested editable line ·
+//  Take the Challenge) · 10 readiness test (details still open). 1–4 built (168; ask-once rule 181).
+//
 //  Designed with Michael, Smitty sitting with him to verify. Partly from James's FaceTime
 //  ideas — James's part was never captured by the transcriptions (checked both phones
 //  10-28), so these are Michael's restatement. NOT BUILT; no go given yet.
