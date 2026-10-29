@@ -830,6 +830,9 @@
 //     His: "the lobby would show public challenges anyone can join you can create public or private
 //     challenges private are you and people you choose" → matches the existing isPublic switch
 //     (CrewChallenge.isPublic; crewChallenges() already lists public ones only). Lobby lists those.
+//     His: "public would be a separate tab". Claude's sketch of the Lobby tabs (not confirmed): Public
+//     Challenges · Crews · Shared. His: "finished challenges can be posted by the user to brag" → a
+//     Share/brag button on a finished challenge posts it to the Lobby (opt-in).
 //  7. Group events — his "if the [church] had events where the others in [the] group could
 //     join and go or not meet at the park": a group posts an event, members tap Going /
 //     Not going, add to Apple Calendar. Joins the Events board idea (10-24, bulletin board).
