@@ -809,6 +809,9 @@
 //     helps catigorize like people" — Claude raised once that weight/BMI is a poor fitness measure; his
 //     call. Sketch: weight/BMI used for matching only if switched on, never shown, only nudges suggestions.
 //     His: "the user can overide though" → the user can override their level/category.
+//     ⛔ His: "no health  app is shared or posted" → Health numbers stay on the phone; they only help set
+//     the level. Nothing from Health is posted or shared. (Existing Settings switch "Share Minutes and
+//     Calories with Your Crewmates" — asked whether it stays.)
 //  6. Groups — his "if you mother or grandmother has a church group for mall walks of
 //     simpler exercises": smaller circles with simpler challenges.
 //     OPEN: own crew with its own head coach, or a circle inside a crew? (asked)
