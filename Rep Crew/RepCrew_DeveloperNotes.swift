@@ -886,6 +886,19 @@
 //  • YouTube: still + play button, YouTube's embed only after play; any link out asks "Leave Rep Crew?".
 //    ⚠️ Embed Referer = https://<bundle ID> — UNTESTED; if the player shows an error, that's the first suspect.
 //  NOT BUILT: 5 readiness test, 6 groups, 7 group events (waiting on his answers).
+//
+//  BUILT (2026-10-29 ~15:4x, his "please code"; compile-checked iOS; NOT run on any device, NOT on TestFlight):
+//  • Groups.swift — groups v1. No new iCloud type: group = CrewMessage kind .group (group.<UUID>, board
+//    "groups", JSON details: name, about, theme, font, challengeIDs); members = Membership (crewID = group);
+//    invite = CrewMessage kind .groupInvite in their dm box; ask to join = JoinRequest join.<group>.<you>;
+//    banner/avatar = CrewPhoto groupbanner./groupavatar.<group>, leader's only.
+//  • Home top: GroupsPagerSection — The Smitty Bunch card first, then your groups; swipe left/right; tap a
+//    group → GroupHomeView (banner, avatar, about, challenges, members, Ask to Join / Leave; leader: Edit,
+//    Invite People, Approve/Decline requests). Group invites show on Home with Join / No Thanks.
+//  • New Group: verified (level ≥ 11), must pick ≥1 challenge you lead (his "starts with a challenge they
+//    make"); color = one of 6 themes, font = Standard/Rounded/Serif/Typewriter (sizes stay ≥18 pt).
+//  NOT YET: per-group announcements/events, Home fully becoming the group page, per-person text size, Lobby,
+//  readiness test.
 
 // ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE

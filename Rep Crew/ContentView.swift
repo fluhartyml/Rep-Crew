@@ -62,6 +62,8 @@ struct ContentView: View {
                 let tier = HomeTier.current
                     List {
                         ViewAsBanner()
+                        // REM: his word, 2026-10-29: "swipe right and left between your groups you are in" (Groups.swift).
+                        GroupsPagerSection()
                         // REM: his word, 2026-10-25: Home "integrated with the user profile", headed by role.
                         ProfileCardSection(tier: tier)
                         WelcomeCardSection(tier: tier)
@@ -168,6 +170,7 @@ struct ContentView: View {
             .navigationTitle(CrewCloud.displayName(crewName))   // the head coach's name for the crew (CrewName.swift)
             .navigationDestination(for: Challenge.self) { ChallengeDetailView(challenge: $0) }
             .navigationDestination(for: CrewListing.self) { CrewChallengeView(listing: $0) }
+            .navigationDestination(for: CrewGroup.self) { GroupHomeView(group: $0) }
             .navigationDestination(for: CrewScreen.self) { screen in
                 switch screen {
                 case .leaderboards: LeaderboardsView()
