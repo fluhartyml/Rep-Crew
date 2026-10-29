@@ -911,6 +911,8 @@
 //  Smitty's suggestion (relayed, "i am trying to capture smittys suggestions"): "mayby the loby is where
 //  everyone opens the homepage" → app opens on the Lobby. Unresolved vs. "Home opens on your home group" —
 //  brainstorm, not a decision; settle later.
+//  Smitty: "meet up at the park to do an exercise" → meetups (ties to item 8 group events: Going /
+//  Not going → calendar; a meetup = an event with an exercise).
 
 // ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE
