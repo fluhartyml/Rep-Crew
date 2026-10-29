@@ -21,7 +21,8 @@ struct CrewMessage: Identifiable {
     /// direct: one person to one person, outside any challenge (see `direct(to:)`).
     /// closed: the crew leader or a coach closed the challenge (ChallengeClose.swift).
     /// event: a notice on the Events board (Events.swift); only the board reads them.
-    enum Kind: String { case announcement, announcementOneWay, message, reply, welcome, finished, direct, closed, event }
+    /// post: a post on someone's profile timeline (Timeline.swift); only the timeline reads them.
+    enum Kind: String { case announcement, announcementOneWay, message, reply, welcome, finished, direct, closed, event, post }
 
     let id: String
     let crewID: String
@@ -73,6 +74,7 @@ extension CrewCloud {
         case .direct: record["title"] = "✉️ \(senderName)"
         case .closed: record["title"] = "🔒 \(senderName)"
         case .event: record["title"] = "📌 \(senderName)"
+        case .post: record["title"] = "📝 \(senderName)"
         }
         do {
             _ = try await db.modifyRecords(saving: [record], deleting: [], savePolicy: .allKeys)
@@ -153,7 +155,8 @@ extension CrewCloud {
             .filter { !hide.contains($0.senderID) && !removed.contains($0.id) }
     }
 
-    private func removedMessages(crewID: String, leaderID: String?) async -> Set<String> {
+    /// Also read by the profile timeline (Timeline.swift).
+    func removedMessages(crewID: String, leaderID: String?) async -> Set<String> {
         let query = CKQuery(recordType: "MessageRemoval", predicate: NSPredicate(format: "crewID == %@", crewID))
         guard let (results, _) = try? await db.records(matching: query) else { return [] }
         return Set(results.compactMap { try? $0.1.get() }
@@ -471,6 +474,7 @@ struct CrewMessagesSection: View {
         case .direct: return "✉️ \(from)"
         case .closed: return "🔒 \(from)"
         case .event: return "📌 \(from)"
+        case .post: return "📝 \(from)"
         }
     }
 

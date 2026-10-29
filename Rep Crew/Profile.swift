@@ -362,6 +362,11 @@ struct MyProfileSection: View {
     @AppStorage(CrewSettings.profileAllowMemberContact) private var allowMemberContact = true
     @State private var picked: PhotosPickerItem?
     @State private var note: String?
+    @State private var pickedBanner: PhotosPickerItem?
+    @State private var bannerNote: String?
+    @State private var hasBanner = false
+    @State private var showingMine = false
+    @AppStorage(CrewSettings.name) private var myName = ""
 
     private var cameraAvailable: Bool { UIImagePickerController.isSourceTypeAvailable(.camera) }
 
@@ -393,6 +398,29 @@ struct MyProfileSection: View {
                 }
             }
             if let note { Text(note).font(AppFont.body) }
+            // REM: his word, 2026-10-29: "a banner picture that can be personalized [often]" (Timeline.swift).
+            if cameraAvailable {
+                Button { CameraPresenter.shared.present { image in Task { await useBanner(image) } } } label: {
+                    Label("Take Banner Photo", systemImage: "camera.fill").font(AppFont.bodyBold)
+                }
+            }
+            PhotosPicker(selection: $pickedBanner, matching: .images) {
+                Label(hasBanner ? "Change Banner" : "Choose Banner", systemImage: "rectangle.on.rectangle").font(AppFont.bodyBold)
+            }
+            if hasBanner {
+                Button(role: .destructive) {
+                    Task {
+                        bannerNote = await CrewCloud.shared.removeMyBanner() ? nil : "The banner wasn't removed. Check iCloud and try again."
+                        await checkBanner()
+                    }
+                } label: {
+                    Label("Remove Banner", systemImage: "trash").font(AppFont.bodyBold)
+                }
+            }
+            if let bannerNote { Text(bannerNote).font(AppFont.body) }
+            Button { showingMine = true } label: {
+                Label("View Your Profile and Timeline", systemImage: "person.crop.rectangle").font(AppFont.bodyBold)
+            }
             TextField("Phone", text: $phone)
                 .font(AppFont.body)
                 .keyboardType(.phonePad)
@@ -438,6 +466,33 @@ struct MyProfileSection: View {
                 picked = nil
             }
         }
+        .onChange(of: pickedBanner) { _, item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) {
+                    await useBanner(image)
+                }
+                pickedBanner = nil
+            }
+        }
+        .task { await checkBanner() }
+        .sheet(isPresented: $showingMine, onDismiss: { Task { await checkBanner() } }) {
+            if let me = CrewCloud.shared.myID { ProfileView(target: ProfileTarget(id: me, name: myName)) }
+        }
+    }
+
+    private func useBanner(_ image: UIImage) async {
+        bannerNote = "Checking your banner…"
+        let me = myName.trimmingCharacters(in: .whitespaces)
+        bannerNote = await CrewCloud.shared.setBanner(image, senderName: me.isEmpty ? "A crew member" : me)
+            ? "Banner saved." : "This photo can't be used as your banner, or iCloud didn't answer."
+        await checkBanner()
+    }
+
+    private func checkBanner() async {
+        await CrewCloud.shared.connect()
+        guard let me = CrewCloud.shared.myID else { return }
+        hasBanner = await CrewCloud.shared.banner(of: me) != nil
     }
 
     private func coachesOnly(_ isOn: Binding<Bool>) -> some View {
@@ -500,7 +555,7 @@ struct ProfileTarget: Identifiable {
 }
 
 enum ProfileAction: String, Identifiable {
-    case report, block, remove
+    case report, block, remove, reportBanner, removeBanner
     var id: String { rawValue }
 }
 
@@ -515,6 +570,8 @@ struct ProfileView: View {
     @State private var sentNote: String?
 
     @State private var profile: CrewProfile?
+    /// Their banner (Timeline.swift), and the photo behind it for Report / Remove.
+    @State private var banner: (photo: CrewPhoto, image: UIImage)?
     @State private var loaded = false
     @State private var confirming: ProfileAction?
     @State private var note: String?
@@ -534,7 +591,8 @@ struct ProfileView: View {
                 MemberAccessSection(memberID: target.id, name: savedName)
                 Section {
                     VStack(spacing: 12) {
-                        ProfilePhoto(image: profile?.photo, size: 140, seed: target.id)
+                        // REM: his word, 2026-10-29: "the profile has their picture and a banner picture".
+                        ProfileHeader(memberID: target.id, photo: profile?.photo, banner: banner?.image)
                         Text(name).font(AppFont.title).multilineTextAlignment(.center)
                         if let profile, let method = ContactMethod.preferred(profile) {
                             Label("Prefers \(method.title)", systemImage: method.systemImage)
@@ -542,7 +600,8 @@ struct ProfileView: View {
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
+                    .padding(.bottom, 8)
+                    .listRowInsets(EdgeInsets())
                 }
                 Section {
                     contactButtons
@@ -586,6 +645,7 @@ struct ProfileView: View {
                             .font(AppFont.body)
                     }
                 }
+                TimelineSection(memberID: target.id, name: savedName)
                 if note != nil || failed {
                     Section {
                         if let note { Text(note).font(AppFont.body) }
@@ -612,6 +672,16 @@ struct ProfileView: View {
                                 if GodMode.isOn {
                                     Button(role: .destructive) { confirming = .remove } label: {
                                         Label("Remove Photo", systemImage: "trash")
+                                    }
+                                }
+                            }
+                            if banner != nil {
+                                Button { confirming = .reportBanner } label: {
+                                    Label("Report Banner", systemImage: "exclamationmark.bubble")
+                                }
+                                if GodMode.isOn {
+                                    Button(role: .destructive) { confirming = .removeBanner } label: {
+                                        Label("Remove Banner", systemImage: "trash")
                                     }
                                 }
                             }
@@ -721,6 +791,8 @@ struct ProfileView: View {
         case .report: return "Report this photo to the developer?"
         case .block: return "Block \(name)?"
         case .remove: return "Remove this photo for everyone?"
+        case .reportBanner: return "Report this banner to the developer?"
+        case .removeBanner: return "Remove this banner for everyone?"
         case nil: return ""
         }
     }
@@ -730,12 +802,27 @@ struct ProfileView: View {
         case .report: return "Report"
         case .block: return "Block"
         case .remove: return "Remove Photo"
+        case .reportBanner: return "Report"
+        case .removeBanner: return "Remove Banner"
         }
     }
 
     /// The photo board's own Report, Block and PhotoRemoval, pointed at the profile photo.
     private func act(_ action: ProfileAction) async {
         failed = false
+        // The banner is a CrewPhoto of its own (Timeline.swift), so the photo board's Report and removal fit it as is.
+        if action == .reportBanner || action == .removeBanner {
+            guard let banner else { return }
+            let done = action == .reportBanner ? await CrewCloud.shared.report(banner.photo, kind: "banner")
+                                               : await CrewCloud.shared.removePhoto(banner.photo)
+            if done {
+                if action == .reportBanner { note = "Reported. The developer reviews every report, and the banner is hidden for you." }
+                await load()
+            } else {
+                failed = true
+            }
+            return
+        }
         guard let profile else { return }
         let photo = CrewPhoto(id: profile.photoID, crewID: MyProfile.crewIDForRemovals, senderID: target.id,
                               senderName: name, takenAt: .now, thumb: nil)
@@ -752,11 +839,14 @@ struct ProfileView: View {
             dismiss()
         case .remove:
             if await CrewCloud.shared.removePhoto(photo) { await load() } else { failed = true }
+        case .reportBanner, .removeBanner:
+            break   // handled above
         }
     }
 
     private func load() async {
         if case .found(let found) = await CrewCloud.shared.fetchProfile(target.id) { profile = found }
+        banner = await CrewCloud.shared.banner(of: target.id)
         loaded = true
     }
 }

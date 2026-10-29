@@ -799,13 +799,26 @@
 //     HOW IT WORKS: OPEN (exercises, scoring, matching not yet described).
 //  6. Groups — his "if you mother or grandmother has a church group for mall walks of
 //     simpler exercises": smaller circles with simpler challenges.
-//     OPEN: own crew with its own head coach, or a circle inside a crew? (asked, unanswered)
+//     OPEN: own crew with its own head coach, or a circle inside a crew? (asked)
+     His answer (14:4x): "community board or a group circle board of challenges" → a group is a
+     board of its own challenges. Who runs it / who joins: not yet said.
 //  7. Group events — his "if the [church] had events where the others in [the] group could
 //     join and go or not meet at the park": a group posts an event, members tap Going /
 //     Not going, add to Apple Calendar. Joins the Events board idea (10-24, bulletin board).
 //
 //  Timeline design notes: the feed concept is not proprietary (BBS message bases, blogs);
 //  use our own name and look, never Facebook/Instagram marks or "Like".
+//
+//  BUILT (2026-10-29, items 1-4; compile-checked iOS in scratch; NOT run on any device, NOT on TestFlight):
+//  • Timeline.swift: banner + timeline + YouTube card. No new iCloud record type: posts are CrewMessage
+//    kind .post on crewID timeline.<owner> (JSON text, like Events); post photos and banners are CrewPhoto
+//    (crewID timeline.<owner> / banner.<owner>). Finished challenges read from Progress (same rule as ×N).
+//  • Profile.swift: ProfileHeader (banner + photo) and TimelineSection on every profile; Settings → Your
+//    profile gets Take/Choose/Change/Remove Banner and View Your Profile and Timeline (the directory
+//    leaves you out). Coaches: Remove Banner, Remove Post; anyone: Report Banner.
+//  • YouTube: still + play button, YouTube's embed only after play; any link out asks "Leave Rep Crew?".
+//    ⚠️ Embed Referer = https://<bundle ID> — UNTESTED; if the player shows an error, that's the first suspect.
+//  NOT BUILT: 5 readiness test, 6 groups, 7 group events (waiting on his answers).
 
 // ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE
