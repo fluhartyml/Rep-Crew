@@ -915,6 +915,7 @@
 //  Not going → calendar; a meetup = an event with an exercise).
 //  Smitty: "crossfit challenge" → a CrossFit-style (mixed, timed workout) challenge. ⚠️ "CrossFit" is a
 //  trademark — don't use the word in shipped text; name it ourselves (his call).
+//  Smitty: "feed acomplishments challenges advice" → a feed mixing accomplishments, challenges and advice.
 
 // ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE
