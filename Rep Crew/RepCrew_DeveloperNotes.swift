@@ -943,6 +943,7 @@
 //  level up we neeed a level reward system" · "the levels could possibly be a leaderboard on its own".
 //  Open: does it raise the access level (0–255, unlocks abilities) or a separate points level? The app
 //  can see an added widget (WidgetCenter.getCurrentConfigurations).
+//  → his answer: separate, "for 'bragging rights'". Points level only; access levels stay as they are.
 
 // ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE
