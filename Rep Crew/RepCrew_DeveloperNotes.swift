@@ -916,6 +916,14 @@
 //  Smitty: "crossfit challenge" → a CrossFit-style (mixed, timed workout) challenge. ⚠️ "CrossFit" is a
 //  trademark — don't use the word in shipped text; name it ourselves (his call).
 //  Smitty: "feed acomplishments challenges advice" → a feed mixing accomplishments, challenges and advice.
+//  Transcription Keeper recording 2026-10-29 21:41Z (7 min, AirDropped; Smitty + others):
+//   • Baseline test to place people — "my mom and her church friends aren't gonna be working out with you
+//     and me doing 200 push-ups" · "baseline understanding of where you would fit".
+//   • "you would be inviting people to whatever group anyway" · introduce mom to the app; "once they're in
+//     there they can maybe request to join a group that's a little more competitive".
+//   • Speaker 3: "how your Instagram shows you stuff that you wanna see … beginner stuff if you're a
+//     beginner … harder stuff if you're [intermediate] … that's where the grouping would come to play …
+//     for the public feed" → the public feed is filtered by level.
 
 // ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE
