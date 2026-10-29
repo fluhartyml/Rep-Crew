@@ -576,6 +576,8 @@ struct ProfileView: View {
     @State private var confirming: ProfileAction?
     @State private var note: String?
     @State private var failed = false
+    /// Their points, league and awards (Rewards.swift); nil until they have a card.
+    @State private var rewards: RewardCard?
 
     private var isMine: Bool { target.id == CrewCloud.shared.myID }
     /// Their saved name, else the one the board or message showed.
@@ -603,6 +605,7 @@ struct ProfileView: View {
                     .padding(.bottom, 8)
                     .listRowInsets(EdgeInsets())
                 }
+                if let rewards { RewardsSection(card: rewards) }
                 Section {
                     contactButtons
                     if !loaded {
@@ -847,6 +850,7 @@ struct ProfileView: View {
     private func load() async {
         if case .found(let found) = await CrewCloud.shared.fetchProfile(target.id) { profile = found }
         banner = await CrewCloud.shared.banner(of: target.id)
+        rewards = await Rewards.card(for: target.id)
         loaded = true
     }
 }

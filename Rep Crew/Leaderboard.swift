@@ -468,6 +468,10 @@ struct LeaderboardsView: View {
                 NavigationLink(value: CrewScreen.directory) {
                     Label("Crew Directory", systemImage: "person.3.fill").font(AppFont.bodyBold)
                 }
+                // REM: his word, 2026-10-29: "the levels could possibly be a leaderboard on its own" (Rewards.swift).
+                NavigationLink(value: CrewScreen.leagues) {
+                    Label("Leagues and Rep Levels", systemImage: "star.circle.fill").font(AppFont.bodyBold)
+                }
             }
             Section {
                 if mine.isEmpty {
@@ -510,7 +514,7 @@ struct LeaderboardsView: View {
 // MARK: - Finding your way
 
 /// Pushed screens that aren't Home.
-enum CrewScreen: Hashable { case leaderboards, directory, newMembers, inbox, events, userList, library, myWeek, challenges }
+enum CrewScreen: Hashable { case leaderboards, directory, newMembers, inbox, events, userList, library, myWeek, challenges, leagues }
 
 /// Home and Leaderboards, one tap from any screen. His word: "maybe a home glyph for non
 /// home sheets so you can always find your way home".

@@ -944,6 +944,13 @@
 //  Open: does it raise the access level (0–255, unlocks abilities) or a separate points level? The app
 //  can see an added widget (WidgetCenter.getCurrentConfigurations).
 //  → his answer: separate, "for 'bragging rights'". Points level only; access levels stay as they are.
+//  Then: "level points for winning challenges" · "an award system" · "begiinner advanced intermediate
+//  leaderboards" · "dualingo inspired" (a description, not a copy) · "yes code it" → BUILT: Rewards.swift.
+//  Points (daily goal 10, streak 7d 25 / 30d 100, finish 50, widget 25 once, Lobby share 5/day), awards at a
+//  crew challenge's end (Most Reps 100, Iron Streak 75, Early Bird 75, Every Day 50), Rep Level = 1 + per 100.
+//  Weekly leagues Beginner/Intermediate/Advanced in groups of ~30, reset Monday, top/bottom up to 5 (max a
+//  third) move. Leaderboards ▸ Leagues and Rep Levels; Rewards on each profile. Cards are CrewMessages
+//  (kind .points, board "points") — no new CloudKit type.
 
 // ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE

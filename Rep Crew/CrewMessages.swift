@@ -23,7 +23,8 @@ struct CrewMessage: Identifiable {
     /// event: a notice on the Events board (Events.swift); only the board reads them.
     /// post: a post on someone's profile timeline (Timeline.swift); only the timeline reads them.
     /// group: a group's definition on the "groups" board; groupInvite: an invite into someone's box (Groups.swift).
-    enum Kind: String { case announcement, announcementOneWay, message, reply, welcome, finished, direct, closed, event, post, group, groupInvite }
+    /// points: a member's points card on the "points" board (Rewards.swift); only Leagues and profiles read them.
+    enum Kind: String { case announcement, announcementOneWay, message, reply, welcome, finished, direct, closed, event, post, group, groupInvite, points }
 
     let id: String
     let crewID: String
@@ -78,6 +79,7 @@ extension CrewCloud {
         case .post: record["title"] = "📝 \(senderName)"
         case .group: record["title"] = "👥 \(senderName)"
         case .groupInvite: record["title"] = "👥 \(senderName) invited you"
+        case .points: record["title"] = "⭐ \(senderName)"
         }
         do {
             _ = try await db.modifyRecords(saving: [record], deleting: [], savePolicy: .allKeys)
@@ -479,6 +481,7 @@ struct CrewMessagesSection: View {
         case .event: return "📌 \(from)"
         case .post: return "📝 \(from)"
         case .group, .groupInvite: return "👥 \(from)"
+        case .points: return "⭐ \(from)"
         }
     }
 

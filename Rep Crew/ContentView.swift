@@ -171,6 +171,10 @@ struct ContentView: View {
             .task(id: scenePhase) {
                 if scenePhase == .active { mustRead = await cloud.unacceptedMustReads() }
             }
+            // Points, awards and the weekly league move (Rewards.swift), each time the app comes to the front.
+            .task(id: scenePhase) {
+                if scenePhase == .active { await Rewards.sync(challenges) }
+            }
             .fullScreenCover(item: Binding(get: { mustRead.first }, set: { _ in })) { message in
                 MustReadView(message: message) {
                     MustRead.accept(message.id)
@@ -192,6 +196,7 @@ struct ContentView: View {
                 case .library: LibraryView()
                 case .myWeek: MyWeekView()
                 case .challenges: challengesPage
+                case .leagues: LeaguesView()
                 }
             }
             .toolbar {
