@@ -355,28 +355,40 @@ struct LeaderboardSection: View {
                 Text("Leaderboard").font(AppFont.bodyBold).textCase(nil)
             }
             // Re-runs whenever your reps change; the short wait lets a run of taps land as one save.
-            .task(id: "\(day).\(challenge.repsToday).\(challenge.isComplete(on: .now)).\(challenge.healthMinutesToday).\(challenge.healthCaloriesToday)") {
+            .task(id: Self.postKey(challenge, day: day)) {
                 try? await Task.sleep(for: .seconds(1))
                 guard !Task.isCancelled else { return }
-                // A challenge rebuilt from the crew's copy (CrewRestore.swift) may not know how today's reps
-                // split between exercises; don't post a lower total over what the crew's board already has.
-                guard !(day == challenge.restoredDay && challenge.repsToday < challenge.restoredRepsToday) else { return }
-                let me = name.trimmingCharacters(in: .whitespaces)
-                await CrewCloud.shared.postProgress(crewID: challenge.crewID, dayNumber: day,
-                                                    name: me.isEmpty ? "A crew member" : me,
-                                                    reps: challenge.repsToday, complete: challenge.isComplete(on: .now),
-                                                    streak: challenge.streak,
-                                                    minutes: challenge.healthMinutesToday, calories: challenge.healthCaloriesToday)
-                await announceFinished(day: day, me: me)
+                await Self.post(challenge, day: day, name: name)
             }
         }
     }
 }
 
 extension LeaderboardSection {
+    /// Changes whenever what the crew's board shows for you does; a `.task(id:)` on it posts each change.
+    @MainActor static func postKey(_ challenge: Challenge, day: Int) -> String {
+        "\(day).\(challenge.repsToday).\(challenge.isComplete(on: .now)).\(challenge.healthMinutesToday).\(challenge.healthCaloriesToday)"
+    }
+
+    /// Your reps today go to the crew's board, and "Finished today" to the crew the first time every goal is met.
+    /// REM: shared by the challenge screen and Home's challenge cards (HomeChallenges.swift), so a + tap on
+    /// either reaches the leaderboard the same way.
+    @MainActor static func post(_ challenge: Challenge, day: Int, name: String) async {
+        // A challenge rebuilt from the crew's copy (CrewRestore.swift) may not know how today's reps
+        // split between exercises; don't post a lower total over what the crew's board already has.
+        guard !(day == challenge.restoredDay && challenge.repsToday < challenge.restoredRepsToday) else { return }
+        let me = name.trimmingCharacters(in: .whitespaces)
+        await CrewCloud.shared.postProgress(crewID: challenge.crewID, dayNumber: day,
+                                            name: me.isEmpty ? "A crew member" : me,
+                                            reps: challenge.repsToday, complete: challenge.isComplete(on: .now),
+                                            streak: challenge.streak,
+                                            minutes: challenge.healthMinutesToday, calories: challenge.healthCaloriesToday)
+        await announceFinished(challenge, day: day, me: me)
+    }
+
     /// Roadmap 7, from the original call: "James completed his daily challenge" goes to the crew.
     /// Once per challenge day, the first time every goal is met; an undo and redo doesn't resend.
-    func announceFinished(day: Int, me: String) async {
+    @MainActor static func announceFinished(_ challenge: Challenge, day: Int, me: String) async {
         guard challenge.isComplete(on: .now) else { return }
         let key = "finished.\(challenge.crewID).\(day)"
         guard !UserDefaults.standard.bool(forKey: key) else { return }

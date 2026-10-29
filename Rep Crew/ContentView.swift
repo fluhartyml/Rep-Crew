@@ -62,6 +62,9 @@ struct ContentView: View {
                 let tier = HomeTier.current
                     List {
                         ViewAsBanner()
+                        // REM: his word, 2026-10-29: Home "should promote your challenges" — "make them more
+                        // obvious". First, above everything else (HomeChallenges.swift).
+                        HomeChallengesSection(challenges: active)
                         // REM: his word, 2026-10-29: "swipe right and left between your groups you are in" (Groups.swift).
                         GroupsPagerSection()
                         // REM: his word, 2026-10-25: Home "integrated with the user profile", headed by role.

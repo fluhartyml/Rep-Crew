@@ -22,16 +22,34 @@ import PhotosUI
 import SwiftUI
 
 /// Where a person puts themselves. Each post carries its poster's level, so the feed can match.
-enum FitnessLevel: String, CaseIterable, Identifiable, Codable {
-    case starter, steady, strong, elite
+/// REM: his word 2026-10-29: "beginner intermediate and advanced" — the same three as the leagues. Builds up to
+/// 206 saved four (starter, steady, strong, elite); those still read: Starter → Beginner, Steady → Intermediate,
+/// Strong or Elite → Advanced, so old posts and old settings keep their place.
+enum FitnessLevel: CaseIterable, Identifiable, Codable, RawRepresentable {
+    case beginner, intermediate, advanced
+
+    init?(rawValue: String) {
+        switch rawValue {
+        case "beginner", "starter": self = .beginner
+        case "intermediate", "steady": self = .intermediate
+        case "advanced", "strong", "elite": self = .advanced
+        default: return nil
+        }
+    }
+    var rawValue: String {
+        switch self {
+        case .beginner: "beginner"
+        case .intermediate: "intermediate"
+        case .advanced: "advanced"
+        }
+    }
     var id: String { rawValue }
     var title: String { rawValue.capitalized }
     var blurb: String {
         switch self {
-        case .starter: "Just getting going: walks, light moves"
-        case .steady: "Working out most weeks"
-        case .strong: "Training hard and often"
-        case .elite: "Competing or close to it"
+        case .beginner: "Just getting going: walks, light moves"
+        case .intermediate: "Working out most weeks"
+        case .advanced: "Training hard and often"
         }
     }
 }
@@ -55,7 +73,7 @@ enum LobbyTopic: String, CaseIterable, Identifiable, Codable {
 
 struct LobbyPostDetails: Codable, Equatable {
     var topic = LobbyTopic.progress.rawValue
-    var level = FitnessLevel.starter.rawValue
+    var level = FitnessLevel.beginner.rawValue
     var text = ""
     var youtube: String? = nil
     var photoID: String? = nil
@@ -65,12 +83,12 @@ struct LobbyPost: Identifiable {
     let message: CrewMessage
     let details: LobbyPostDetails
     var id: String { message.id }
-    var level: FitnessLevel { FitnessLevel(rawValue: details.level) ?? .starter }
+    var level: FitnessLevel { FitnessLevel(rawValue: details.level) ?? .beginner }
     var topic: LobbyTopic { LobbyTopic(rawValue: details.topic) ?? .progress }
 }
 
 extension CrewSettings {
-    /// Your FitnessLevel raw value; unset = Starter until you pick.
+    /// Your FitnessLevel raw value; unset = Beginner until you pick.
     static let fitnessLevel = "fitnessLevel"
     /// The Lobby's filter: "mine" (your level, the default) or "all".
     static let lobbyFilter = "lobbyFilter"
@@ -114,7 +132,7 @@ extension CrewCloud {
 
 struct LobbyView: View {
     @AppStorage(CrewSettings.name) private var myName = ""
-    @AppStorage(CrewSettings.fitnessLevel) private var myLevel = FitnessLevel.starter.rawValue
+    @AppStorage(CrewSettings.fitnessLevel) private var myLevel = FitnessLevel.beginner.rawValue
     @AppStorage(CrewSettings.lobbyFilter) private var filter = "mine"
     @State private var posts: [LobbyPost] = []
     @State private var loaded = false
@@ -124,7 +142,7 @@ struct LobbyView: View {
     @State private var viewingPhoto: String?
     @State private var failed = false
 
-    private var level: FitnessLevel { FitnessLevel(rawValue: myLevel) ?? .starter }
+    private var level: FitnessLevel { FitnessLevel(rawValue: myLevel) ?? .beginner }
     /// His recording: beginners see beginner posts; each level sees its own. "All levels" shows everything.
     private var shown: [LobbyPost] { filter == "all" ? posts : posts.filter { $0.level == level } }
 
@@ -162,6 +180,8 @@ struct LobbyView: View {
             }
         }
         .navigationTitle("Lobby")
+        // REM: an old saved level ("steady") matches no picker tag; rewrite it once as its new name.
+        .onAppear { if myLevel != level.rawValue { myLevel = level.rawValue } }
         .task { await load() }
         .refreshable { await load() }
         .sheet(isPresented: $composing) {

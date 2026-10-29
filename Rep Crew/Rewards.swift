@@ -25,8 +25,8 @@
 //  its numbers as JSON in the text — no new iCloud record type, so nothing to deploy to Production. Only a card
 //  CloudKit says its member wrote counts.
 //
-//  REM: LEAGUES — Beginner, Intermediate, Advanced. You start where your Lobby fitness level puts you
-//  (Starter → Beginner, Steady → Intermediate, Strong or Elite → Advanced). Each week's board is your league,
+//  REM: LEAGUES — Beginner, Intermediate, Advanced. You start at your Lobby fitness level, which uses the
+//  same three names (his word 2026-10-29). Each week's board is your league,
 //  split into groups of about 30 by a fixed shuffle of member IDs, so every phone puts the same people
 //  together. It resets Monday. The first time your phone opens in a new week it ranks last week's group:
 //  the top few move up a league (with at least 1 point), the bottom few move down (never below Beginner).
@@ -53,9 +53,9 @@ enum League: String, CaseIterable, Codable, Identifiable {
 
     init(fitness: FitnessLevel) {
         switch fitness {
-        case .starter: self = .beginner
-        case .steady: self = .intermediate
-        case .strong, .elite: self = .advanced
+        case .beginner: self = .beginner
+        case .intermediate: self = .intermediate
+        case .advanced: self = .advanced
         }
     }
 }
@@ -155,7 +155,7 @@ enum Rewards {
 
     static var league: League {
         if let saved = defaults.string(forKey: CrewSettings.league), let league = League(rawValue: saved) { return league }
-        return League(fitness: FitnessLevel(rawValue: defaults.string(forKey: CrewSettings.fitnessLevel) ?? "") ?? .starter)
+        return League(fitness: FitnessLevel(rawValue: defaults.string(forKey: CrewSettings.fitnessLevel) ?? "") ?? .beginner)
     }
 
     // MARK: Points
