@@ -833,6 +833,11 @@
 //     His: "public would be a separate tab". Claude's sketch of the Lobby tabs (not confirmed): Public
 //     Challenges · Crews · Shared. His: "finished challenges can be posted by the user to brag" → a
 //     Share/brag button on a finished challenge posts it to the Lobby (opt-in).
+//     His: "maybe a user can challenge the challenge posted to start a new challenge" → "Take the
+//     Challenge" under a shared one starts a new challenge, same exercises/length, they lead it.
+//     (Notify the original poster? asked.) Naming (his): "it wouldnt be calleed brag maybe called an
+//     acomplishment or personal victories" → never "brag" in the app; "Accomplishments" / "Personal
+//     Victories" (pick: OPEN).
 //  7. Group events — his "if the [church] had events where the others in [the] group could
 //     join and go or not meet at the park": a group posts an event, members tap Going /
 //     Not going, add to Apple Calendar. Joins the Events board idea (10-24, bulletin board).
