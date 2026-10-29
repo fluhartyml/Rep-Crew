@@ -827,6 +827,9 @@
 //     His: "a page that is optional to post to anyone that has the app can use it to explore crews and
 //     challenges" → open to everyone with the app (not one group); browse crews/groups and challenges.
 //     Name (his): "im thinking it could be something like a 'lobby'" → the Lobby.
+//     His: "the lobby would show public challenges anyone can join you can create public or private
+//     challenges private are you and people you choose" → matches the existing isPublic switch
+//     (CrewChallenge.isPublic; crewChallenges() already lists public ones only). Lobby lists those.
 //  7. Group events — his "if the [church] had events where the others in [the] group could
 //     join and go or not meet at the park": a group posts an event, members tap Going /
 //     Not going, add to Apple Calendar. Joins the Events board idea (10-24, bulletin board).
