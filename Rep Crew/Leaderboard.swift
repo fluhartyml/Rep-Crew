@@ -181,6 +181,11 @@ extension CrewCloud {
 
 extension Challenge {
     var repsToday: Int { allGoals.reduce(0) { $0 + $1.total(on: .now) } }
+    /// Every exercise's daily goal added up, the same way the board adds up reps. Nil when the exercises
+    /// count in different units: 10,000 steps plus 50 push-ups isn't a number anyone can use.
+    var dailyTotal: Int? {
+        Set(allGoals.map(\.unit)).count == 1 ? allGoals.reduce(0) { $0 + $1.dailyTarget } : nil
+    }
 
     /// Days in a row with every goal met, through today if it's done, else through yesterday.
     /// REM: his rule for My Week, 2026-10-26: "if your challenge doesnt appear on monday because its on wednesdays
@@ -221,6 +226,8 @@ struct BoardBlock<Link: Hashable>: View {
     let days: Int
     /// What the board's totals count in: the challenge's one unit, or reps when its exercises differ.
     var unit: ExerciseUnit = .reps
+    /// Today's goal across every exercise, for "50 to go" on each row; nil leaves it off.
+    var target: Int?
     /// You, when you're in this challenge.
     var me: CrewStanding?
     /// You lead this challenge, so you can remove people from it.
@@ -310,10 +317,10 @@ struct BoardBlock<Link: Hashable>: View {
     /// the board is where the whole crew is listed. Not before iCloud answers, and not for someone banned.
     @ViewBuilder private func standing(_ row: CrewStanding) -> some View {
         if row.disqualified || row.id == "me" {
-            StandingRow(row: row, isMe: row.id == me?.id, unit: unit)
+            StandingRow(row: row, isMe: row.id == me?.id, unit: unit, target: target)
         } else {
             Button { profileOf = ProfileTarget(id: row.id, name: row.name) } label: {
-                StandingRow(row: row, isMe: row.id == me?.id, unit: unit).contentShape(Rectangle())
+                StandingRow(row: row, isMe: row.id == me?.id, unit: unit, target: target).contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityHint("Opens their profile")
@@ -340,7 +347,8 @@ struct LeaderboardSection: View {
     var body: some View {
         if let day = challenge.dayNumber(), !challenge.crewID.isEmpty {
             Section {
-                BoardBlock<Challenge>(crewID: challenge.crewID, day: day, days: challenge.days, unit: challenge.sharedUnit, me: challenge.myStanding,
+                BoardBlock<Challenge>(crewID: challenge.crewID, day: day, days: challenge.days, unit: challenge.sharedUnit,
+                                      target: challenge.dailyTotal, me: challenge.myStanding,
                                       canBan: challenge.leaderID.isEmpty || GodMode.isOn)
             } header: {
                 Text("Leaderboard").font(AppFont.bodyBold).textCase(nil)
@@ -380,10 +388,17 @@ extension LeaderboardSection {
     }
 }
 
+extension Invite.ChallengeInfo {
+    var dailyTotal: Int? {
+        Set(goals.map(\.exerciseUnit)).count == 1 ? goals.reduce(0) { $0 + $1.target } : nil
+    }
+}
+
 private struct StandingRow: View {
     let row: CrewStanding
     let isMe: Bool
     var unit: ExerciseUnit = .reps
+    var target: Int?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -391,6 +406,10 @@ private struct StandingRow: View {
                 HStack(spacing: 6) {
                     Text(row.name).font(isMe ? AppFont.bodyBold : AppFont.body).lineLimit(1)
                     VerifiedSeal(memberID: row.id)
+                }
+                // REM: his ask, 2026-10-29: "crew leader board that shows how many reps you have to go".
+                if let toGo {
+                    Text(toGo).font(AppFont.body).foregroundStyle(.secondary).monospacedDigit()
                 }
                 // Only when nonzero. Plain numbers from Health — no ring words.
                 if !healthLine.isEmpty {
@@ -406,7 +425,18 @@ private struct StandingRow: View {
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(row.name), \(unit.label(row.reps)) today" + (healthLine.isEmpty ? "" : ", \(healthLine) from Health")
+                            + (toGo.map { ", \($0)" } ?? "")
                             + (row.streak > 0 ? ", \(row.streak) day streak" : ""))
+    }
+
+    /// "50 reps to go", or "Goal met". Not for a disqualified row or a challenge with no goal.
+    /// REM: the board only knows the day's total, so someone who did extra of one exercise but not the
+    /// other reads "Not done yet" rather than a number that would be wrong.
+    private var toGo: String? {
+        guard let target, target > 0, !row.disqualified else { return nil }
+        if row.complete { return "Goal met" }
+        let left = target - row.reps
+        return left > 0 ? "\(unit.label(left)) to go" : "Not done yet"
     }
 
     private var healthLine: String {
@@ -445,7 +475,8 @@ struct LeaderboardsView: View {
                 ForEach(mine) { challenge in
                     if let day = challenge.dayNumber() {
                         BoardBlock(title: challenge.title, link: challenge, crewID: challenge.crewID,
-                                   day: day, days: challenge.days, unit: challenge.sharedUnit, me: challenge.myStanding,
+                                   day: day, days: challenge.days, unit: challenge.sharedUnit, target: challenge.dailyTotal,
+                                   me: challenge.myStanding,
                                    canBan: challenge.leaderID.isEmpty || GodMode.isOn)
                     }
                 }
@@ -459,7 +490,8 @@ struct LeaderboardsView: View {
                 ForEach(others) { listing in
                     if let day = listing.dayNumber {
                         BoardBlock(title: listing.info.title, link: listing, crewID: listing.id,
-                                   day: day, days: listing.info.days, unit: listing.info.sharedUnit)
+                                   day: day, days: listing.info.days, unit: listing.info.sharedUnit,
+                                   target: listing.info.dailyTotal)
                     }
                 }
             } header: {
@@ -543,7 +575,8 @@ struct CrewChallengeView: View {
             AskToJoinSection(listing: listing)
             if let day = listing.dayNumber {
                 Section {
-                    BoardBlock<CrewListing>(crewID: listing.id, day: day, days: listing.info.days, canBan: GodMode.isOn)
+                    BoardBlock<CrewListing>(crewID: listing.id, day: day, days: listing.info.days, unit: listing.info.sharedUnit,
+                                            target: listing.info.dailyTotal, canBan: GodMode.isOn)
                 } header: {
                     Text("Leaderboard").font(AppFont.bodyBold).textCase(nil)
                 }

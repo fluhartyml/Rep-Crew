@@ -14,6 +14,7 @@
 //    All crews        all-crews       a coach's announcement to every phone (CrewMessages.swift). On by default.
 //    Join requests    join-requests   Leaders only. On by default.
 //    Coach only       coach-<crewID>  kind == "finished" on a public challenge you're not in. Off by default.
+//  Reps to go (RepReminders.swift) are local reminders, not subscriptions. Off by default.
 //
 
 import SwiftUI
@@ -75,6 +76,8 @@ struct NotificationSettingsView: View {
             } footer: {
                 Text("Messages, announcements, and who finished today.").font(AppFont.body)
             }
+
+            RepRemindersSection(challenges: challenges)
 
             Section {
                 Toggle(isOn: offBinding(NotificationSettings.replies)) { Text("Replies and messages to you").font(AppFont.body) }

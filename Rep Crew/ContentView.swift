@@ -147,6 +147,10 @@ struct ContentView: View {
                 if scenePhase == .active, challenges.contains(where: \.countsHealth) { await HealthLibrary.shared.refresh() }
             }
             .task(id: watchSignature) { WatchBridge.shared.sendGoals(challenges) }
+            // Reps-to-go reminders (RepReminders.swift) follow every logged rep, and catch up when the app comes back.
+            .task(id: "\(watchSignature).\(scenePhase == .active)") {
+                if scenePhase == .active { await RepReminders.reschedule(challenges) }
+            }
             .task(id: weekSignature) {
                 // REM: a short wait so tapping through the weekday sheets saves once, not on every tap.
                 try? await Task.sleep(for: .seconds(2))
