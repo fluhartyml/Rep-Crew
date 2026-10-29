@@ -957,6 +957,8 @@
 //  and nudge the app, which adds the taps as rep entries (as WatchBridge does). Tapping the widget opens its
 //  challenge (repcrew://challenge?crew=). Claude kept the store where it is instead of moving it to the app
 //  group (agreed plan): same result, no move of his data.
+//  Bottom tabs (Hanna's suggestion, via him, 2026-10-29, DISCUSSION, not built): tabs along the bottom —
+//  Home, Leaderboard, Profile, Chat, Feed, Quests. iPhone shows 5; a 6th goes under "More".
 
 // ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE
