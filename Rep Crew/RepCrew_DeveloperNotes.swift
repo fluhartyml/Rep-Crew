@@ -812,6 +812,17 @@
 //     Who makes a group (his "yes thats it"): a VERIFIED user; they become its crew leader, and the group
 //     starts with a challenge they make. Making a group generates its home page automatically (plain
 //     banner + default dumbbell avatar, like a new profile); the leader changes banner, avatar, name.
+//     How people join a group: OPEN (asked: leader invites, ask to join, or both).
+//  8. Home page customizing (his, 2026-10-29 ~15:0x, discussing, NOT decided to build):
+//     • Leader: fonts and colors for the group's page ("funt coolors" = font colors). Set vs free: OPEN.
+//     • Viewer: "if the user can modify font sizes they can adjust to their own sizes and can adjust to a
+//       size they can see". Claude's sketch (unanswered): follow iPhone Text Size, never below 18 pt, plus
+//       an in-app Text Size slider; leader's font/colors still apply.
+//     • "home page profile statistics" — which stats, and who sees them: OPEN (offered: finished ×N,
+//       streak, reps/minutes/calories, weight).
+//  9. Community page (his): "community page woyld have crew challenges or community challenges. a grew
+//     member would get inspiration from other peoples runs" → a page across groups showing challenges
+//     and other people's activity (e.g. runs) for inspiration.
 //  7. Group events — his "if the [church] had events where the others in [the] group could
 //     join and go or not meet at the park": a group posts an event, members tap Going /
 //     Not going, add to Apple Calendar. Joins the Events board idea (10-24, bulletin board).
