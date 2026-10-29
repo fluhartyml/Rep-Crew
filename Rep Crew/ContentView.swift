@@ -150,6 +150,7 @@ struct ContentView: View {
             // Reps-to-go reminders (RepReminders.swift) and the widget follow every logged rep, and catch up when the app comes back.
             .task(id: "\(watchSignature).\(scenePhase == .active)") {
                 guard scenePhase == .active else { return }
+                WidgetSync.applyTaps(challenges, context: context)   // + taps from the widget first
                 WidgetSync.save(challenges)   // the Home Screen widget (WidgetSync.swift)
                 await RepReminders.reschedule(challenges)
             }
@@ -233,8 +234,20 @@ struct ContentView: View {
             .sheet(item: $joining) { JoinView(invite: $0) }
             .onChange(of: openedURL, initial: true) { _, url in
                 guard let url else { return }
-                joining = Invite(url: url)
                 openedURL = nil
+                // REM: the widget opens its challenge: repcrew://challenge?crew=<crewID> (LeaderboardWidget.swift).
+                if url.host == "challenge" {
+                    let crewID = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "crew" }?.value
+                    if let challenge = challenges.first(where: { $0.crewID == crewID }) {
+                        path = NavigationPath()
+                        path.append(challenge)
+                    }
+                    return
+                }
+                joining = Invite(url: url)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .widgetTapped)) { _ in
+                WidgetSync.applyTaps(challenges, context: context)
             }
         }
         .environment(\.crewNav, CrewNav(goHome: { path = NavigationPath() },

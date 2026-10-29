@@ -84,6 +84,54 @@ struct NextBoardIntent: AppIntent {
     }
 }
 
+/// A + button: logs reps on one exercise, sends your new total to the crew's board, and tells the app.
+struct LogRepsIntent: AppIntent {
+    static var title: LocalizedStringResource = "Log Reps"
+    static var isDiscoverable = false
+
+    @Parameter(title: "Challenge") var crewID: String
+    @Parameter(title: "Exercise") var goalOrder: Int
+    @Parameter(title: "Exercise name") var goalName: String
+    @Parameter(title: "Count") var count: Int
+
+    init() { crewID = ""; goalOrder = 0; goalName = ""; count = 0 }
+    init(crewID: String, goal: WidgetBoard.Goal) {
+        self.crewID = crewID
+        goalOrder = goal.order
+        goalName = goal.name
+        count = goal.quickAdd
+    }
+
+    func perform() async throws -> some IntentResult {
+        guard count > 0 else { return .result() }
+        WidgetBoardStore.addTap(WidgetTap(crewID: crewID, goalOrder: goalOrder, goalName: goalName, count: count))
+        CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(),
+                                             CFNotificationName(WidgetBoardStore.tapNotification as CFString), nil, nil, true)
+        if let board = WidgetBoardStore.load().first(where: { $0.id == crewID }) { await postProgress(board) }
+        return .result()
+    }
+
+    /// Today's new total to the crew's board, as the app's postProgress (Leaderboard.swift) would. Only the
+    /// fields this knows are changed; the app fills in the rest (minutes, calories) when it next opens.
+    private func postProgress(_ board: WidgetBoard) async {
+        guard let day = board.dayNumber(), board.me.id != "me" else { return }
+        let (me, _) = board.withTaps(WidgetBoardStore.taps())
+        let db = CKContainer(identifier: "iCloud.com.accountability.dailyrepcrew").publicCloudDatabase
+        let id = CKRecord.ID(recordName: "\(crewID).\(board.me.id).\(day)")
+        let record = (try? await db.record(for: id)) ?? CKRecord(recordType: "Progress", recordID: id)
+        if record["memberID"] == nil {
+            record["crewID"] = crewID
+            record["memberID"] = board.me.id
+            record["dayNumber"] = day
+            record["name"] = WidgetBoardStore.myName
+        }
+        record["reps"] = me.reps
+        record["complete"] = me.complete ? 1 : 0
+        record["streak"] = board.meStreak + (me.complete && !board.me.complete ? 1 : 0)
+        _ = try? await db.modifyRecords(saving: [record], deleting: [], savePolicy: .changedKeys)
+    }
+}
+
 // MARK: - Timeline
 
 struct BoardEntry: TimelineEntry {
@@ -149,7 +197,7 @@ struct BoardProvider: AppIntentTimelineProvider {
             }
         }
         byID[board.me.id] = nil
-        let me = board.meDay == day ? board.me : .init(id: board.me.id, name: "You", reps: 0, complete: false)
+        let me = board.withTaps(WidgetBoardStore.taps()).me
         return (byID.values.filter { !board.hidden.contains($0.id) } + [me])
             .sorted { $0.reps != $1.reps ? $0.reps > $1.reps : $0.name < $1.name }
     }
@@ -188,7 +236,7 @@ struct BoardWidgetView: View {
                     .accessibilityLabel("Next leaderboard")
                 }
             }
-            ForEach(entry.rows.prefix(limit)) { row in
+            ForEach(entry.rows.prefix(limit - (buttons(board).isEmpty ? 0 : 1))) { row in
                 if family == .systemSmall {
                     VStack(alignment: .leading, spacing: 0) {
                         Text(row.name).font(row.id == board.me.id ? Self.bold : Self.regular).lineLimit(1)
@@ -203,7 +251,27 @@ struct BoardWidgetView: View {
                 }
             }
             Spacer(minLength: 0)
+            let buttons = buttons(board)
+            if !buttons.isEmpty {
+                HStack(spacing: 6) {
+                    ForEach(buttons, id: \.order) { goal in
+                        Button(intent: LogRepsIntent(crewID: board.id, goal: goal)) {
+                            Text(goal.quickLabel).font(Self.bold).lineLimit(1).minimumScaleFactor(0.8)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .tint(.orange)
+                    }
+                }
+            }
         }
+        // REM: his ask: tap the widget to open the app — straight to this challenge, ready to log.
+        .widgetURL(URL(string: "repcrew://challenge?crew=\(board.id)"))
+    }
+
+    /// + buttons for exercises not yet met today: one on the small widget, up to two otherwise.
+    private func buttons(_ board: WidgetBoard) -> [WidgetBoard.Goal] {
+        let open = board.withTaps(WidgetBoardStore.taps()).goals.filter { $0.today < $0.target }
+        return Array(open.prefix(family == .systemSmall ? 1 : 2))
     }
 
     private var limit: Int {

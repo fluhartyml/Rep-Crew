@@ -951,6 +951,12 @@
 //  Weekly leagues Beginner/Intermediate/Advanced in groups of ~30, reset Monday, top/bottom up to 5 (max a
 //  third) move. Leaderboards ▸ Leagues and Rep Levels; Rewards on each profile. Cards are CrewMessages
 //  (kind .points, board "points") — no new CloudKit type.
+//  Widget logs reps (his, same evening): "can the widget update the users challenges?" · "it needs the other
+//  too" · "can the widget tell the iphone app?" · tap to open the app · "yes do both code it" → BUILT: + buttons
+//  on the widget (one on small, up to two otherwise) save a WidgetTap, post the new total to Progress at once,
+//  and nudge the app, which adds the taps as rep entries (as WatchBridge does). Tapping the widget opens its
+//  challenge (repcrew://challenge?crew=). Claude kept the store where it is instead of moving it to the app
+//  group (agreed plan): same result, no move of his data.
 
 // ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE

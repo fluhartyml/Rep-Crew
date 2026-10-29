@@ -13,6 +13,7 @@ struct RepCrewApp: App {
 
     init() {
         WatchBridge.shared.start(container)
+        WidgetSync.listen()   // + taps on the Home Screen widget
     }
 
     var body: some Scene {
