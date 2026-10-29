@@ -838,6 +838,10 @@
 //     (Notify the original poster? asked.) Naming (his): "it wouldnt be calleed brag maybe called an
 //     acomplishment or personal victories" → never "brag" in the app; "Accomplishments" / "Personal
 //     Victories" (pick: OPEN).
+//     Post wording (his): "post somethhing like 'challenge completed before 9am'" → the app writes the
+//     line from what was done and when ("Completed … before 9 AM"); his: "it comes from the last rep
+//     logged but overidable by the user" → time from the last logged rep, editable before posting.
+//     Whether a single day's win can be shared (not just a whole challenge): asked, OPEN.
 //  7. Group events — his "if the [church] had events where the others in [the] group could
 //     join and go or not meet at the park": a group posts an event, members tap Going /
 //     Not going, add to Apple Calendar. Joins the Events board idea (10-24, bulletin board).
