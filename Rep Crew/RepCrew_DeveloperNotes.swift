@@ -809,6 +809,9 @@
 //     close": group home page = group banner + avatar + name on top, then that group's challenges, events,
 //     announcements; swipe between groups; your own profile card under the group header or as a button
 //     (which one: OPEN).
+//     Who makes a group (his "yes thats it"): a VERIFIED user; they become its crew leader, and the group
+//     starts with a challenge they make. Making a group generates its home page automatically (plain
+//     banner + default dumbbell avatar, like a new profile); the leader changes banner, avatar, name.
 //  7. Group events — his "if the [church] had events where the others in [the] group could
 //     join and go or not meet at the park": a group posts an event, members tap Going /
 //     Not going, add to Apple Calendar. Joins the Events board idea (10-24, bulletin board).
