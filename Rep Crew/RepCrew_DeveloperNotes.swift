@@ -824,6 +824,8 @@
 //     member would get inspiration from other peoples runs" → a page across groups showing challenges
 //     and other people's activity (e.g. runs) for inspiration.
 //     His: activity reaches the community page "only when they choose to share it" (opt-in per item).
+//     His: "a page that is optional to post to anyone that has the app can use it to explore crews and
+//     challenges" → open to everyone with the app (not one group); browse crews/groups and challenges.
 //  7. Group events — his "if the [church] had events where the others in [the] group could
 //     join and go or not meet at the park": a group posts an event, members tap Going /
 //     Not going, add to Apple Calendar. Joins the Events board idea (10-24, bulletin board).
