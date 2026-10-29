@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		AA000000000000000000001C /* Rep Crew Watch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000010 /* Rep Crew Watch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		AA0000000000000000000032 /* Rep Crew Widget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000026 /* Rep Crew Widget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -17,6 +18,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = AA0000000000000000000012;
 			remoteInfo = "Rep Crew Watch";
+		};
+		AA0000000000000000000030 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AA0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA0000000000000000000029;
+			remoteInfo = "Rep Crew Widget";
 		};
 /* End PBXContainerItemProxy section */
 
@@ -32,12 +40,24 @@
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA0000000000000000000033 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				AA0000000000000000000032 /* Rep Crew Widget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		AA0000000000000000000004 /* Daily Rep Crew Accountability.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Daily Rep Crew Accountability.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0000000000000000000010 /* Rep Crew Watch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Rep Crew Watch.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA000000000000000000001D /* Rep Crew TV.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Rep Crew TV.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA0000000000000000000026 /* Rep Crew Widget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Rep Crew Widget.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -54,6 +74,16 @@
 		AA000000000000000000001E /* Rep Crew TV */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "Rep Crew TV";
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000027 /* Rep Crew Widget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Rep Crew Widget";
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000028 /* Rep Crew Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Rep Crew Shared";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -80,6 +110,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA000000000000000000002B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -89,6 +126,8 @@
 				AA0000000000000000000005 /* Rep Crew */,
 				AA0000000000000000000011 /* Rep Crew Watch */,
 				AA000000000000000000001E /* Rep Crew TV */,
+				AA0000000000000000000027 /* Rep Crew Widget */,
+				AA0000000000000000000028 /* Rep Crew Shared */,
 				AA0000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -99,6 +138,7 @@
 				AA0000000000000000000004 /* Daily Rep Crew Accountability.app */,
 				AA0000000000000000000010 /* Rep Crew Watch.app */,
 				AA000000000000000000001D /* Rep Crew TV.app */,
+				AA0000000000000000000026 /* Rep Crew Widget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -114,14 +154,17 @@
 				AA0000000000000000000008 /* Frameworks */,
 				AA0000000000000000000009 /* Resources */,
 				AA000000000000000000001B /* Embed Watch Content */,
+				AA0000000000000000000033 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				AA0000000000000000000019 /* PBXTargetDependency */,
+				AA0000000000000000000031 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				AA0000000000000000000005 /* Rep Crew */,
+				AA0000000000000000000028 /* Rep Crew Shared */,
 			);
 			name = "Daily Rep Crew Accountability";
 			packageProductDependencies = (
@@ -174,6 +217,29 @@
 			productReference = AA000000000000000000001D /* Rep Crew TV.app */;
 			productType = "com.apple.product-type.application";
 		};
+		AA0000000000000000000029 /* Rep Crew Widget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA000000000000000000002D /* Build configuration list for PBXNativeTarget "Rep Crew Widget" */;
+			buildPhases = (
+				AA000000000000000000002A /* Sources */,
+				AA000000000000000000002B /* Frameworks */,
+				AA000000000000000000002C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AA0000000000000000000027 /* Rep Crew Widget */,
+				AA0000000000000000000028 /* Rep Crew Shared */,
+			);
+			name = "Rep Crew Widget";
+			packageProductDependencies = (
+			);
+			productName = "Rep Crew Widget";
+			productReference = AA0000000000000000000026 /* Rep Crew Widget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -191,6 +257,9 @@
 						CreatedOnToolsVersion = 27.0;
 					};
 					AA000000000000000000001F = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					AA0000000000000000000029 = {
 						CreatedOnToolsVersion = 27.0;
 					};
 				};
@@ -212,6 +281,7 @@
 				AA0000000000000000000006 /* Daily Rep Crew Accountability */,
 				AA0000000000000000000012 /* Rep Crew Watch */,
 				AA000000000000000000001F /* Rep Crew TV */,
+				AA0000000000000000000029 /* Rep Crew Widget */,
 			);
 		};
 /* End PBXProject section */
@@ -232,6 +302,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		AA0000000000000000000022 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA000000000000000000002C /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -262,6 +339,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA000000000000000000002A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -269,6 +353,11 @@
 			isa = PBXTargetDependency;
 			target = AA0000000000000000000012 /* Rep Crew Watch */;
 			targetProxy = AA000000000000000000001A /* PBXContainerItemProxy */;
+		};
+		AA0000000000000000000031 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AA0000000000000000000029 /* Rep Crew Widget */;
+			targetProxy = AA0000000000000000000030 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -401,7 +490,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = RepCrew.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 163;
+				CURRENT_PROJECT_VERSION = 199;
 				DEVELOPMENT_TEAM = 3X3F6UJ44H;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -433,7 +522,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = RepCrew.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 163;
+				CURRENT_PROJECT_VERSION = 199;
 				DEVELOPMENT_TEAM = 3X3F6UJ44H;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -464,7 +553,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = RepCrewWatch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 163;
+				CURRENT_PROJECT_VERSION = 199;
 				DEVELOPMENT_TEAM = 3X3F6UJ44H;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -497,7 +586,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = RepCrewWatch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 163;
+				CURRENT_PROJECT_VERSION = 199;
 				DEVELOPMENT_TEAM = 3X3F6UJ44H;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -530,7 +619,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				CODE_SIGN_ENTITLEMENTS = RepCrewTV.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 163;
+				CURRENT_PROJECT_VERSION = 199;
 				DEVELOPMENT_TEAM = 3X3F6UJ44H;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -559,7 +648,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				CODE_SIGN_ENTITLEMENTS = RepCrewTV.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 163;
+				CURRENT_PROJECT_VERSION = 199;
 				DEVELOPMENT_TEAM = 3X3F6UJ44H;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -579,6 +668,60 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 3;
 				TVOS_DEPLOYMENT_TARGET = 17.0;
+			};
+			name = Release;
+		};
+		AA000000000000000000002E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = RepCrewWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 199;
+				DEVELOPMENT_TEAM = 3X3F6UJ44H;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "RepCrewWidget-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Rep Crew";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.accountability.dailyrepcrew.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		AA000000000000000000002F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = RepCrewWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 199;
+				DEVELOPMENT_TEAM = 3X3F6UJ44H;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "RepCrewWidget-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Rep Crew";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.accountability.dailyrepcrew.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -617,6 +760,15 @@
 			buildConfigurations = (
 				AA0000000000000000000024 /* Debug */,
 				AA0000000000000000000025 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA000000000000000000002D /* Build configuration list for PBXNativeTarget "Rep Crew Widget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA000000000000000000002E /* Debug */,
+				AA000000000000000000002F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

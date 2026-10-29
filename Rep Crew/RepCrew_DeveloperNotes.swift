@@ -931,6 +931,14 @@
 //    your level by default, "All levels" shows everything. Own delete; coaches remove. No Health data.
 //  Readiness test (his, 17:0x): "the readiness test should be a honor systen survey" → self-reported
 //  answers, no timed test, no Health reading; it suggests a FitnessLevel, the user can override.
+//  Reps to go (his, 2026-10-29 evening): "crew leader board that shows how many reps you have to go" ·
+//  "the notification should be set by the user on how much it naggs the user" → BUILT: "N to go" on each
+//  board row; Settings ▸ Notifications ▸ Reps to go (Off / Once a day / Every 3 hours / Every hour until
+//  done, plus From/Until hours). RepReminders.swift.
+//  Widget (his, same evening): "show the leaderboard … so you can choose which one to see" · swipe →
+//  "i guess smart stacks are what im thinking about for swiping" → BUILT: Rep Crew Widget target,
+//  small/medium/large, check leaderboards when editing it, arrow steps through them; stack several in a
+//  Smart Stack to swipe. App group group.com.accountability.dailyrepcrew carries the boards (WidgetSync.swift).
 
 // ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE

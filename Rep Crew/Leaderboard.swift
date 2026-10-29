@@ -308,6 +308,7 @@ struct BoardBlock<Link: Hashable>: View {
             guard !crewID.isEmpty else { return }
             while !Task.isCancelled {
                 others = await CrewCloud.shared.standings(crewID: crewID, dayNumber: day)
+                WidgetSync.saveOthers(crewID: crewID, day: day, standings: others)
                 try? await Task.sleep(for: .seconds(60))
             }
         }
