@@ -913,6 +913,8 @@
 //  brainstorm, not a decision; settle later.
 //  Smitty: "meet up at the park to do an exercise" → meetups (ties to item 8 group events: Going /
 //  Not going → calendar; a meetup = an event with an exercise).
+//  Smitty: "crossfit challenge" → a CrossFit-style (mixed, timed workout) challenge. ⚠️ "CrossFit" is a
+//  trademark — don't use the word in shipped text; name it ourselves (his call).
 
 // ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE
