@@ -18,6 +18,8 @@ struct SettingsView: View {
     @AppStorage(CrewSettings.name) private var name = ""
     @AppStorage(CrewSettings.testFlight) private var testFlight = ""
     @AppStorage(CrewSettings.crewNumber) private var crewNumber = 0
+    /// OutsideLinks.Rule (Timeline.swift); set by the first "Leave Rep Crew?" answer.
+    @AppStorage(CrewSettings.outsideLinks) private var outsideLinks = OutsideLinks.Rule.ask.rawValue
     /// Checked against iCloud when Settings opens, not left to whenever iCloud answers.
     @State private var isGod = false
 
@@ -70,6 +72,19 @@ struct SettingsView: View {
                     header("Notifications")
                 } footer: {
                     Text("Pick which challenges and notices reach this phone.").font(AppFont.body)
+                }
+
+                Section {
+                    Picker(selection: $outsideLinks) {
+                        ForEach(OutsideLinks.Rule.allCases) { Text($0.title).font(AppFont.body).tag($0.rawValue) }
+                    } label: {
+                        Text("Links Outside Rep Crew").font(AppFont.bodyBold)
+                    }
+                } header: {
+                    header("Leaving the App")
+                } footer: {
+                    Text("What happens when a video's link would open YouTube outside Rep Crew. Your first answer sets it.")
+                        .font(AppFont.body)
                 }
 
                 Section {

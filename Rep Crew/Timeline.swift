@@ -46,6 +46,33 @@ struct TimelineItem: Identifiable {
     let content: Content
 }
 
+// MARK: - Leaving the app
+
+extension CrewSettings {
+    /// OutsideLinks.Rule raw value; unset = ask.
+    static let outsideLinks = "outsideLinks"
+}
+
+/// What happens when something in Rep Crew would open outside it (a YouTube link out of the player).
+enum OutsideLinks {
+    enum Rule: String, CaseIterable, Identifiable {
+        case ask, open, never
+        var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .ask: "Ask Me"
+            case .open: "Always Open"
+            case .never: "Never Open"
+            }
+        }
+    }
+
+    static var rule: Rule {
+        get { Rule(rawValue: UserDefaults.standard.string(forKey: CrewSettings.outsideLinks) ?? "") ?? .ask }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: CrewSettings.outsideLinks) }
+    }
+}
+
 // MARK: - YouTube links
 
 enum YouTubeLink {
@@ -608,11 +635,23 @@ private struct YouTubePlayer: UIViewRepresentable {
         }
 
         /// James's safeguard: nothing leaves Rep Crew without asking.
+        /// REM: his word, 2026-10-29: "ask once and save as a rule". The first answer is kept (OutsideLinks)
+        /// and used from then on; Settings → Links Outside Rep Crew changes it.
         @MainActor private func askToLeave(_ url: URL) {
+            switch OutsideLinks.rule {
+            case .open: UIApplication.shared.open(url); return
+            case .never: return
+            case .ask: break
+            }
             guard let top = CameraPresenter.topScreen() else { return }
-            let alert = UIAlertController(title: "Leave Rep Crew?", message: "This opens YouTube outside the app.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-            alert.addAction(UIAlertAction(title: "Open", style: .default) { _ in UIApplication.shared.open(url) })
+            let alert = UIAlertController(title: "Leave Rep Crew?",
+                                          message: "This opens YouTube outside the app. Rep Crew remembers your answer; change it in Settings.",
+                                          preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Don't Open", style: .cancel) { _ in OutsideLinks.rule = .never })
+            alert.addAction(UIAlertAction(title: "Open", style: .default) { _ in
+                OutsideLinks.rule = .open
+                UIApplication.shared.open(url)
+            })
             top.present(alert, animated: true)
         }
     }
