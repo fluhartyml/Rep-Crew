@@ -796,7 +796,12 @@
 //  4. Who sees it: the crew, via Crew Directory; coaches can remove a post (sysop).
 //     (Claude-proposed; he did not object — confirm.)
 //  5. Physical readiness test — his "to match people up with like fitness levels".
-//     HOW IT WORKS: OPEN (exercises, scoring, matching not yet described).
+//     HOW IT WORKS — his "10 we have to figure out can you suggest" → Claude's sketch (2026-10-29 ~15:2x),
+//     not yet okayed as a whole: ~10 min at home, no equipment — 30-s chair stands (CDC STEADI), 1-min
+//     push-ups (wall/knee/floor), plank hold (cap 2 min), 1-mile walk/run time. Scores → level Starter /
+//     Steady / Strong / Elite. Optional, private (only the level is used), easier versions, "stop if
+//     anything hurts", no medical claims, retake any time (monthly reminder?).
+//     His: "same levels of exercises group together" → matching groups people by level.
 //  6. Groups — his "if you mother or grandmother has a church group for mall walks of
 //     simpler exercises": smaller circles with simpler challenges.
 //     OPEN: own crew with its own head coach, or a circle inside a crew? (asked)
