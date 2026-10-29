@@ -373,10 +373,10 @@ struct TimelineSection: View {
     }
 }
 
-private struct PhotoRef: Identifiable { let id: String }
+struct PhotoRef: Identifiable { let id: String }
 
 /// A post's photo, loaded on its own so the timeline shows before the pictures arrive.
-private struct TimelinePhotoThumb: View {
+struct TimelinePhotoThumb: View {
     let photoID: String
     let open: () -> Void
     @State private var image: UIImage?
@@ -401,7 +401,7 @@ private struct TimelinePhotoThumb: View {
     }
 }
 
-private struct TimelinePhotoViewer: View {
+struct TimelinePhotoViewer: View {
     @Environment(\.dismiss) private var dismiss
     let photoID: String
     @State private var image: UIImage?

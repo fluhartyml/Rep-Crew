@@ -89,6 +89,10 @@ struct ContentView: View {
                             NavigationLink(value: CrewScreen.events) {
                                 Label("Events", systemImage: "pin.fill").font(AppFont.bodyBold)
                             }
+                            // REM: his word, 2026-10-29: "please code the feed by level" — the Lobby (Lobby.swift).
+                            NavigationLink { LobbyView() } label: {
+                                Label("Lobby", systemImage: "person.3.sequence.fill").font(AppFont.bodyBold)
+                            }
                             // REM: his word, 2026-10-26: "it probably should have challenges > just like myweek> does",
                             // and his "yes build it" — Active, Available and Finished moved off Home onto one page.
                             NavigationLink(value: CrewScreen.challenges) {

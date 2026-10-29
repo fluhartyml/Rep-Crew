@@ -924,6 +924,11 @@
 //   • Speaker 3: "how your Instagram shows you stuff that you wanna see … beginner stuff if you're a
 //     beginner … harder stuff if you're [intermediate] … that's where the grouping would come to play …
 //     for the public feed" → the public feed is filtered by level.
+//  BUILT (his "please code the feed by level"; compile-checked iOS; not run, not on TestFlight):
+//  • Lobby.swift + Home row "Lobby": posts = CrewMessage kind .post on board "lobby" (JSON: topic, level,
+//    text, YouTube, photo). Topics: Accomplishment, Progress, Question, Struggle, Advice, Solution.
+//    FitnessLevel Starter/Steady/Strong/Elite, picked by each person (top of the Lobby); the feed shows
+//    your level by default, "All levels" shows everything. Own delete; coaches remove. No Health data.
 
 // ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE
