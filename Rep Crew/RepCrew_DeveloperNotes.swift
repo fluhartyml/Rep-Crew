@@ -802,6 +802,13 @@
 //     Steady / Strong / Elite. Optional, private (only the level is used), easier versions, "stop if
 //     anything hurts", no medical claims, retake any time (monthly reminder?).
 //     His: "same levels of exercises group together" → matching groups people by level.
+//     His: "honor system your stats when you open the app can it be based on the apple health metrics?"
+//     → Health fills what it has (VO2 max [Watch], six-minute walk distance, walking speed, steps,
+//     resting HR, exercise minutes); strength (push-ups, plank, chair stands) stays honor system.
+//     Body size (his): "it has implied metrics like fat people skinny people active people sloths" · "it
+//     helps catigorize like people" — Claude raised once that weight/BMI is a poor fitness measure; his
+//     call. Sketch: weight/BMI used for matching only if switched on, never shown, only nudges suggestions.
+//     His: "the user can overide though" → the user can override their level/category.
 //  6. Groups — his "if you mother or grandmother has a church group for mall walks of
 //     simpler exercises": smaller circles with simpler challenges.
 //     OPEN: own crew with its own head coach, or a circle inside a crew? (asked)
