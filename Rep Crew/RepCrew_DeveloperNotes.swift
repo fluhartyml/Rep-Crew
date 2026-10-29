@@ -800,8 +800,8 @@
 //  6. Groups — his "if you mother or grandmother has a church group for mall walks of
 //     simpler exercises": smaller circles with simpler challenges.
 //     OPEN: own crew with its own head coach, or a circle inside a crew? (asked)
-     His answer (14:4x): "community board or a group circle board of challenges" → a group is a
-     board of its own challenges. Who runs it / who joins: not yet said.
+//     His answer (14:4x): "community board or a group circle board of challenges" → a group is a
+//     board of its own challenges. Who runs it / who joins: not yet said.
 //  7. Group events — his "if the [church] had events where the others in [the] group could
 //     join and go or not meet at the park": a group posts an event, members tap Going /
 //     Not going, add to Apple Calendar. Joins the Events board idea (10-24, bulletin board).
