@@ -823,6 +823,7 @@
 //  9. Community page (his): "community page woyld have crew challenges or community challenges. a grew
 //     member would get inspiration from other peoples runs" → a page across groups showing challenges
 //     and other people's activity (e.g. runs) for inspiration.
+//     His: activity reaches the community page "only when they choose to share it" (opt-in per item).
 //  7. Group events — his "if the [church] had events where the others in [the] group could
 //     join and go or not meet at the park": a group posts an event, members tap Going /
 //     Not going, add to Apple Calendar. Joins the Events board idea (10-24, bulletin board).
