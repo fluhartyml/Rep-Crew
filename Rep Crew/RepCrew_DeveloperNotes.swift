@@ -777,6 +777,37 @@
 //    the App ID needs the User Management capability (automatic signing should add it; unverified).
 
 // ============================================================================
+// MARK: - PLAN: PROFILE TIMELINE, GROUPS, READINESS TEST (2026-10-29 ~14:1x)
+// ============================================================================
+//
+//  Designed with Michael, Smitty sitting with him to verify. Partly from James's FaceTime
+//  ideas — James's part was never captured by the transcriptions (checked both phones
+//  10-28), so these are Michael's restatement. NOT BUILT; no go given yet.
+//
+//  1. Profile: picture (exists — Profile.swift "photo" CKAsset) + a BANNER behind it (new),
+//     changeable any time ("can be personalized often").
+//  2. Timeline on each profile, newest first — his "both posts and finished challenges and
+//     youtube video imbeds":
+//     • Posts: text, optional photo, optional YouTube link.
+//     • Finished challenges: added automatically.
+//  3. YouTube: "imbeded from youtube links and not the physical video file" — no file stored;
+//     shows the thumbnail; "it plays if you press play" (never autoplay). Needs internet.
+//     James's safeguard (pasted transcript): ask permission before anything leaves the app.
+//  4. Who sees it: the crew, via Crew Directory; coaches can remove a post (sysop).
+//     (Claude-proposed; he did not object — confirm.)
+//  5. Physical readiness test — his "to match people up with like fitness levels".
+//     HOW IT WORKS: OPEN (exercises, scoring, matching not yet described).
+//  6. Groups — his "if you mother or grandmother has a church group for mall walks of
+//     simpler exercises": smaller circles with simpler challenges.
+//     OPEN: own crew with its own head coach, or a circle inside a crew? (asked, unanswered)
+//  7. Group events — his "if the [church] had events where the others in [the] group could
+//     join and go or not meet at the park": a group posts an event, members tap Going /
+//     Not going, add to Apple Calendar. Joins the Events board idea (10-24, bulletin board).
+//
+//  Timeline design notes: the feed concept is not proprietary (BBS message bases, blogs);
+//  use our own name and look, never Facebook/Instagram marks or "Like".
+
+// ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE
 // ============================================================================
 //
