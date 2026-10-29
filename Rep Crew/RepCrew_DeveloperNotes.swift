@@ -802,6 +802,9 @@
 //     OPEN: own crew with its own head coach, or a circle inside a crew? (asked)
 //     His answer (14:4x): "community board or a group circle board of challenges" → a group is a
 //     board of its own challenges. Who runs it / who joins: not yet said.
+//     His (14:5x, at Home on the 16e): "the smitty bunch is the localized group i am in" → today's crew
+//     name IS a group. "yes they can be in multiple groups swipe right and left between your groups you
+//     are in" → Home swipes left/right between your groups.
 //  7. Group events — his "if the [church] had events where the others in [the] group could
 //     join and go or not meet at the park": a group posts an event, members tap Going /
 //     Not going, add to Apple Calendar. Joins the Events board idea (10-24, bulletin board).
