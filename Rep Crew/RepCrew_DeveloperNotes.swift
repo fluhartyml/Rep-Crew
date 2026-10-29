@@ -959,6 +959,8 @@
 //  group (agreed plan): same result, no move of his data.
 //  Bottom tabs (Hanna's suggestion, via him, 2026-10-29, DISCUSSION, not built): tabs along the bottom —
 //  Home, Leaderboard, Profile, Chat, Feed, Quests. iPhone shows 5; a 6th goes under "More".
+//  → his "five tabs only"; Quests he doesn't recall ("i was just saying randomly") → SETTLED (his "yes thats
+//  good"): Home, Leaderboard, Feed, Chat, Profile. Quests parked until he or Hanna remembers it. Not built.
 
 // ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE
