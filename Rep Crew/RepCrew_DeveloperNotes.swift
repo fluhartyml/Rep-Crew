@@ -908,6 +908,9 @@
 //  Lobby (his, 16:3x): "the lobby should be the group sharing user progreess questions answers struggles
 //  achievements solutions" → the Lobby is a shared board for progress, questions & answers, struggles,
 //  achievements and solutions (adds to the tabs sketched above).
+//  Smitty's suggestion (relayed, "i am trying to capture smittys suggestions"): "mayby the loby is where
+//  everyone opens the homepage" → app opens on the Lobby. Unresolved vs. "Home opens on your home group" —
+//  brainstorm, not a decision; settle later.
 
 // ============================================================================
 // MARK: - HOUSE RULES THAT APPLY HERE
