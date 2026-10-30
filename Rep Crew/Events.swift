@@ -15,10 +15,19 @@
 //  REM: posting needs the same ability as crew messages (Access → Post crew messages). Your own event:
 //  delete it. Someone else's: coaches and he can remove it (a MessageRemoval, as for messages).
 //
+//  REM: GET-TOGETHERS. His word, 2026-10-29: Smitty's park meetups, "not just parks because that sounds bad" ·
+//  "get togethers sounds better" · "yes code it". A Get-Together is an event with kind "getTogether": a place
+//  picked by searching Apple Maps (MKLocalSearch: no location permission, nothing about where you are is read),
+//  shown on a map with Directions, and Going / Not Going so the crew sees who's coming.
+//  REM: Going / Not Going is one CrewMessage per person per event (kind .rsvp, record "rsvp.<event>.<member>",
+//  board "rsvp.<event>"), saved over each time you change it, like the points card. Only a record CloudKit says
+//  its member wrote counts. Builds before 208 never ask for an rsvp board, so they never see one.
+//
 
 import CloudKit
 import EventKit
 import EventKitUI
+import MapKit
 import PhotosUI
 import SwiftUI
 
@@ -35,6 +44,18 @@ struct CrewEventDetails: Codable, Equatable {
     /// and builds before this ignore both.
     var media: String? = nil
     var posterID: String? = nil
+    /// "getTogether" for a Get-Together; nil for any other event. Optional, so older events decode unchanged.
+    var kind: String? = nil
+    /// The place picked from Apple Maps, when there is one.
+    var latitude: Double? = nil
+    var longitude: Double? = nil
+
+    static let getTogether = "getTogether"
+    var isGetTogether: Bool { kind == Self.getTogether }
+    var coordinate: CLLocationCoordinate2D? {
+        guard let latitude, let longitude else { return nil }
+        return CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
 }
 
 struct CrewEvent: Identifiable {
@@ -55,6 +76,14 @@ struct CrewEvent: Identifiable {
     }
 }
 
+struct EventRSVP: Identifiable {
+    static let going = "going"
+    static let notGoing = "notGoing"
+    let id: String
+    let name: String
+    let going: Bool
+}
+
 extension CrewCloud {
     static let eventsBoard = "events"
 
@@ -67,6 +96,46 @@ extension CrewCloud {
                 return CrewEvent(message: message, details: details)
             }
             .sorted { $0.details.startsAt < $1.details.startsAt }
+    }
+
+    // MARK: Going / Not Going
+
+    static func rsvpBoard(_ event: CrewEvent) -> String { "rsvp.\(event.id)" }
+
+    /// Everyone's answer for one event, minus blocked people and answers someone else wrote.
+    func rsvps(for event: CrewEvent) async -> [EventRSVP] {
+        await connect()
+        let query = CKQuery(recordType: "CrewMessage", predicate: NSPredicate(format: "crewID == %@", Self.rsvpBoard(event)))
+        guard let (results, _) = try? await db.records(matching: query, resultsLimit: CKQueryOperation.maximumResults) else { return [] }
+        let blocked = Blocklist.ids
+        return results.compactMap { try? $0.1.get() }.compactMap { record in
+            guard let message = Self.message(from: record), message.kind == .rsvp, writer(of: record) == message.senderID,
+                  !blocked.contains(message.senderID) else { return nil }
+            return EventRSVP(id: message.senderID, name: message.senderName, going: message.text == EventRSVP.going)
+        }
+        .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    /// Your answer, saved over your last one.
+    func setRSVP(_ going: Bool, for event: CrewEvent, name: String) async -> Bool {
+        await connect()
+        guard let myID else { return false }
+        let record = CKRecord(recordType: "CrewMessage", recordID: CKRecord.ID(recordName: "rsvp.\(event.id).\(myID)"))
+        record["crewID"] = Self.rsvpBoard(event)
+        record["text"] = going ? EventRSVP.going : EventRSVP.notGoing
+        record["senderID"] = myID
+        record["senderName"] = name
+        record["kind"] = CrewMessage.Kind.rsvp.rawValue
+        record["toID"] = CrewMessage.everyone
+        record["sentAt"] = Date.now
+        record["title"] = "🙋 \(name)"
+        do {
+            _ = try await db.modifyRecords(saving: [record], deleting: [], savePolicy: .allKeys)
+            return true
+        } catch {
+            status = "Couldn't save your answer: \(error.localizedDescription)"
+            return false
+        }
     }
 
     func postEvent(_ details: CrewEventDetails, senderName: String) async -> Bool {
@@ -98,6 +167,7 @@ struct EventsView: View {
     @State private var events: [CrewEvent] = []
     @State private var loaded = false
     @State private var posting = false
+    @State private var postingGetTogether = false
 
     var body: some View {
         List {
@@ -114,7 +184,7 @@ struct EventsView: View {
             } header: {
                 Text("Coming up").font(AppFont.bodyBold).textCase(nil)
             } footer: {
-                Text("Post a meetup, a race or a class for the crew. Anyone interested can add it to their calendar.")
+                Text("Post a Get-Together, a race or a class for the crew. Anyone interested can add it to their calendar.")
                     .font(AppFont.body)
             }
             if !past.isEmpty {
@@ -129,7 +199,14 @@ struct EventsView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if cloud.can(.post) {
-                    Button { posting = true } label: {
+                    Menu {
+                        Button { postingGetTogether = true } label: {
+                            Label("Get-Together", systemImage: "figure.2")
+                        }
+                        Button { posting = true } label: {
+                            Label("Other Event", systemImage: "pin.fill")
+                        }
+                    } label: {
                         Image(systemName: "plus.circle.fill").font(AppFont.heading)
                     }
                     .accessibilityLabel("Post an event")
@@ -137,6 +214,7 @@ struct EventsView: View {
             }
         }
         .sheet(isPresented: $posting, onDismiss: { Task { await load() } }) { PostEventView() }
+        .sheet(isPresented: $postingGetTogether, onDismiss: { Task { await load() } }) { PostEventView(getTogether: true) }
         .refreshable { await load() }
         .task { await load() }
     }
@@ -152,6 +230,9 @@ struct EventsView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
                 VStack(alignment: .leading, spacing: 4) {
+                    if event.details.isGetTogether {
+                        Label("Get-Together", systemImage: "figure.2").font(AppFont.body).foregroundStyle(.tint)
+                    }
                     Text(event.details.title).font(AppFont.bodyBold)
                     Text(event.whenText).font(AppFont.body)
                     Text(event.details.location.isEmpty ? "Posted by \(event.message.senderName)"
@@ -179,8 +260,12 @@ struct EventDetailView: View {
     @State private var note: String?
     @State private var confirmingRemove = false
     @State private var editing = false
+    @State private var rsvps: [EventRSVP] = []
+    @State private var saving = false
+    @AppStorage(CrewSettings.name) private var myName = ""
 
     private var isMine: Bool { event.message.senderID == CrewCloud.shared.myID }
+    private var myAnswer: Bool? { rsvps.first { $0.id == CrewCloud.shared.myID }?.going }
 
     var body: some View {
         List {
@@ -198,6 +283,22 @@ struct EventDetailView: View {
                     Label(event.details.location, systemImage: "mappin.and.ellipse").font(AppFont.body)
                 }
                 Text("Posted by \(isMine ? "you" : event.message.senderName)").font(AppFont.body).foregroundStyle(.secondary)
+            }
+            if let coordinate = event.details.coordinate {
+                Section {
+                    Map(initialPosition: .region(MKCoordinateRegion(center: coordinate, latitudinalMeters: 800, longitudinalMeters: 800))) {
+                        Marker(event.details.location.isEmpty ? event.details.title : event.details.location, coordinate: coordinate)
+                    }
+                    .frame(height: 220)
+                    .listRowInsets(EdgeInsets())
+                    .accessibilityLabel("Map of \(event.details.location)")
+                    Button { openDirections(coordinate) } label: {
+                        Label("Directions", systemImage: "arrow.triangle.turn.up.right.diamond.fill").font(AppFont.bodyBold)
+                    }
+                }
+            }
+            if event.details.isGetTogether {
+                rsvpSection
             }
             if !event.details.notes.isEmpty {
                 Section {
@@ -236,8 +337,9 @@ struct EventDetailView: View {
                 }
             }
         }
-        .navigationTitle("Event")
+        .navigationTitle(event.details.isGetTogether ? "Get-Together" : "Event")
         .navigationBarTitleDisplayMode(.inline)
+        .task { if event.details.isGetTogether { rsvps = await CrewCloud.shared.rsvps(for: event) } }
         // Saved changes show after the list reloads, so the page closes back to it.
         .sheet(isPresented: $editing) {
             PostEventView(editing: event) {
@@ -271,6 +373,56 @@ struct EventDetailView: View {
                 }
             }
         }
+    }
+}
+
+extension EventDetailView {
+    /// Going / Not Going, then who's coming. One button per row (two buttons in one List row both fire).
+    @ViewBuilder
+    var rsvpSection: some View {
+        let going = rsvps.filter(\.going)
+        Section {
+            if !event.isPast {
+                Button { Task { await answer(true) } } label: {
+                    Label("Going", systemImage: myAnswer == true ? "checkmark.circle.fill" : "circle").font(AppFont.bodyBold)
+                }
+                .disabled(saving)
+                .accessibilityAddTraits(myAnswer == true ? .isSelected : [])
+                Button { Task { await answer(false) } } label: {
+                    Label("Not Going", systemImage: myAnswer == false ? "xmark.circle.fill" : "circle").font(AppFont.bodyBold)
+                }
+                .disabled(saving)
+                .accessibilityAddTraits(myAnswer == false ? .isSelected : [])
+            }
+            if going.isEmpty {
+                Text("No one has said they're going yet.").font(AppFont.body).foregroundStyle(.secondary)
+            } else {
+                ForEach(going) { person in
+                    Label(person.id == CrewCloud.shared.myID ? "You" : person.name, systemImage: "person.fill").font(AppFont.body)
+                }
+            }
+        } header: {
+            Text(going.isEmpty ? "Who's coming" : "Who's coming · \(going.count)").font(AppFont.bodyBold).textCase(nil)
+        } footer: {
+            Text("Your answer shows to everyone who opens this Get-Together. You can change it any time.").font(AppFont.body)
+        }
+    }
+
+    func answer(_ going: Bool) async {
+        saving = true
+        let me = myName.trimmingCharacters(in: .whitespaces)
+        if await CrewCloud.shared.setRSVP(going, for: event, name: me.isEmpty ? "A crew member" : me) {
+            rsvps = await CrewCloud.shared.rsvps(for: event)
+        } else {
+            note = "That didn't go through. Check Settings → iCloud and try again."
+        }
+        saving = false
+    }
+
+    func openDirections(_ coordinate: CLLocationCoordinate2D) {
+        let item = MKMapItem(placemark: MKPlacemark(coordinate: coordinate))
+        item.name = event.details.location.isEmpty ? event.details.title : event.details.location
+        item.openInMaps()
     }
 }
 
@@ -347,6 +499,9 @@ private struct PostEventView: View {
     var editing: CrewEvent? = nil
     /// Called after an edit saves.
     var saved: () -> Void = {}
+    /// Post a Get-Together: the place comes from Apple Maps.
+    var getTogether = false
+    @State private var findingPlace = false
     @State private var details = CrewEventDetails(title: "", startsAt: PostEventView.nextHour, endsAt: PostEventView.nextHour.addingTimeInterval(3600))
     @State private var posting = false
     @State private var failed = false
@@ -354,6 +509,8 @@ private struct PostEventView: View {
     @State private var poster: UIImage?
     @State private var picked: PhotosPickerItem?
     @State private var pictureNote: String?
+    /// The name a picked place filled in, so typing over it can be told apart.
+    @State private var pickedName = ""
 
     private var cameraAvailable: Bool { UIImagePickerController.isSourceTypeAvailable(.camera) }
 
@@ -369,8 +526,30 @@ private struct PostEventView: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("What, like Saturday Beach Run", text: $details.title).font(AppFont.body)
+                    TextField(details.isGetTogether ? "What, like Saturday Morning Walk" : "What, like Saturday Beach Run",
+                              text: $details.title).font(AppFont.body)
                     TextField("Where", text: $details.location).font(AppFont.body)
+                        .onChange(of: details.location) { _, new in
+                            // Typing over a picked place unpins it, so the map never shows the wrong spot.
+                            if new != pickedName { details.latitude = nil; details.longitude = nil }
+                        }
+                    Button { findingPlace = true } label: {
+                        Label(details.coordinate == nil ? "Find the Place on the Map" : "Change the Place",
+                              systemImage: "mappin.and.ellipse").font(AppFont.bodyBold)
+                    }
+                    if let coordinate = details.coordinate {
+                        Map(initialPosition: .region(MKCoordinateRegion(center: coordinate, latitudinalMeters: 800, longitudinalMeters: 800))) {
+                            Marker(details.location, coordinate: coordinate)
+                        }
+                        .id("\(coordinate.latitude),\(coordinate.longitude)")
+                        .frame(height: 180)
+                        .listRowInsets(EdgeInsets())
+                        .accessibilityHidden(true)
+                    }
+                } footer: {
+                    if details.isGetTogether {
+                        Text("Any spot works: a park, a green space, a trail, the beach.").font(AppFont.body)
+                    }
                 }
                 Section {
                     DatePicker("Starts", selection: $details.startsAt, in: min(Date.now, editing?.details.startsAt ?? .now)...,
@@ -445,9 +624,26 @@ private struct PostEventView: View {
                     Text("That didn't go through. Check Settings → iCloud and try again.").font(AppFont.body)
                 }
             }
-            .navigationTitle(editing == nil ? "Post an Event" : "Edit Event")
+            .navigationTitle(editing == nil ? (details.isGetTogether ? "Post a Get-Together" : "Post an Event")
+                                            : (details.isGetTogether ? "Edit Get-Together" : "Edit Event"))
             .navigationBarTitleDisplayMode(.inline)
-            .onAppear { if let editing, details.title.isEmpty { details = editing.details } }
+            .onAppear {
+                if let editing, details.title.isEmpty {
+                    details = editing.details
+                    pickedName = editing.details.coordinate == nil ? "" : editing.details.location
+                } else if getTogether && editing == nil {
+                    details.kind = CrewEventDetails.getTogether
+                }
+            }
+            .sheet(isPresented: $findingPlace) {
+                PlaceSearchView { item in
+                    let name = item.name ?? item.placemark.title ?? ""
+                    pickedName = name
+                    details.location = name
+                    details.latitude = item.placemark.coordinate.latitude
+                    details.longitude = item.placemark.coordinate.longitude
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }.font(AppFont.bodyBold)
@@ -507,5 +703,62 @@ private struct PostEventView: View {
         poster = image
         details.media = nil
         pictureNote = nil
+    }
+}
+
+// MARK: - Find a place
+
+/// Search Apple Maps by name or address. Nothing about where you are is read; results come from what you type.
+private struct PlaceSearchView: View {
+    @Environment(\.dismiss) private var dismiss
+    let picked: (MKMapItem) -> Void
+    @State private var query = ""
+    @State private var results: [MKMapItem] = []
+    @State private var searching = false
+    @State private var searched = false
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if searching {
+                    HStack(spacing: 12) { ProgressView(); Text("Searching…").font(AppFont.body) }
+                } else if searched && results.isEmpty {
+                    Text("No places found. Try the name with its town or ZIP code.").font(AppFont.body)
+                }
+                ForEach(results, id: \.self) { item in
+                    Button {
+                        picked(item)
+                        dismiss()
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(item.name ?? "Place").font(AppFont.bodyBold).foregroundStyle(.primary)
+                            if let address = item.placemark.title {
+                                Text(address).font(AppFont.body).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+            }
+            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Park, green space, trail or address")
+            .onSubmit(of: .search) { Task { await search() } }
+            .navigationTitle("Find the Place")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }.font(AppFont.bodyBold)
+                }
+            }
+        }
+    }
+
+    private func search() async {
+        let text = query.trimmingCharacters(in: .whitespaces)
+        guard !text.isEmpty else { return }
+        searching = true
+        let request = MKLocalSearch.Request()
+        request.naturalLanguageQuery = text
+        results = (try? await MKLocalSearch(request: request).start())?.mapItems ?? []
+        searching = false
+        searched = true
     }
 }
