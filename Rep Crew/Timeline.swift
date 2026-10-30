@@ -241,6 +241,10 @@ struct ProfileHeader: View {
     let memberID: String
     let photo: UIImage?
     let banner: UIImage?
+    /// Opens the photo full size (ProfilePhotoViewer); only offered when there's a photo to open.
+    var onPhotoTap: (() -> Void)? = nil
+
+    private var hasPhoto: Bool { (CrewCloud.shared.avatarOverrides[memberID] ?? photo) != nil }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -255,9 +259,120 @@ struct ProfileHeader: View {
             .frame(maxWidth: .infinity)
             .clipped()
             .accessibilityHidden(true)
-            ProfilePhoto(image: photo, size: 120, seed: memberID)
-                .overlay(Circle().stroke(Color(.systemBackground), lineWidth: 4))
-                .padding(.top, -60)
+            if let onPhotoTap, hasPhoto {
+                Button(action: onPhotoTap) { circle }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Open Photo")
+            } else {
+                circle
+            }
+        }
+    }
+
+    private var circle: some View {
+        ProfilePhoto(image: photo, size: 120, seed: memberID)
+            .overlay(Circle().stroke(Color(.systemBackground), lineWidth: 4))
+            .padding(.top, -60)
+    }
+}
+
+// MARK: - A profile photo, full size
+
+/// Look only: no Save, no Share, and a screenshot or screen recording shows black where the photo is.
+/// REM: his word, 2026-10-29: "if you tap the persons picture it should open up read only with screencpture
+/// disabled" · "the screenshot is blacked out like it is redacted" · "just the full sized the small circle is too
+/// small to be worth censoring". So the circle and banner stay as they were; only this view is shielded.
+struct ProfilePhotoViewer: View {
+    @Environment(\.dismiss) private var dismiss
+    let image: UIImage
+    let name: String
+
+    var body: some View {
+        NavigationStack {
+            ScreenshotShield {
+                Image(uiImage: image).resizable().scaledToFit()
+            } unavailable: {
+                // REM: the blackout leans on how iOS draws password fields. If a future iOS changes that, the
+                // photo stays hidden rather than showing unshielded: he asked for redacted, not best effort.
+                Text("This photo can't be shown on this version of iOS.").font(AppFont.body).padding()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.black)
+            .navigationTitle(name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }.font(AppFont.bodyBold)
+                }
+            }
+        }
+    }
+}
+
+/// Hosts SwiftUI content inside the layer iOS uses for password fields, which screenshots, screen
+/// recordings and AirPlay mirroring capture as black. Apple has no public switch for this; it's the
+/// password-field behavior, so `unavailable` shows if that layer can't be found.
+struct ScreenshotShield<Content: View, Fallback: View>: View {
+    @ViewBuilder let content: () -> Content
+    @ViewBuilder let unavailable: () -> Fallback
+
+    @State private var supported = ShieldView.isSupported
+
+    var body: some View {
+        if supported {
+            ShieldView(content: content())
+        } else {
+            unavailable()
+        }
+    }
+
+    private struct ShieldView: UIViewRepresentable {
+        let content: Content
+
+        /// The view a secure UITextField draws its text in; it's what capture leaves out.
+        static func secureCanvas() -> UIView? {
+            let field = UITextField()
+            field.isSecureTextEntry = true
+            field.layoutIfNeeded()
+            return field.subviews.first ?? (field.layer.sublayers?.first?.delegate as? UIView)
+        }
+
+        static var isSupported: Bool { secureCanvas() != nil }
+
+        func makeUIView(context: Context) -> UIView {
+            let container = UIView()
+            guard let canvas = Self.secureCanvas() else { return container }
+            canvas.removeFromSuperview()
+            canvas.subviews.forEach { $0.removeFromSuperview() }
+            canvas.isUserInteractionEnabled = true
+            canvas.translatesAutoresizingMaskIntoConstraints = false
+            container.addSubview(canvas)
+            let host = UIHostingController(rootView: content)
+            host.view.backgroundColor = .clear
+            host.view.translatesAutoresizingMaskIntoConstraints = false
+            canvas.addSubview(host.view)
+            context.coordinator.host = host
+            NSLayoutConstraint.activate([
+                canvas.topAnchor.constraint(equalTo: container.topAnchor),
+                canvas.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+                canvas.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                canvas.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+                host.view.topAnchor.constraint(equalTo: canvas.topAnchor),
+                host.view.bottomAnchor.constraint(equalTo: canvas.bottomAnchor),
+                host.view.leadingAnchor.constraint(equalTo: canvas.leadingAnchor),
+                host.view.trailingAnchor.constraint(equalTo: canvas.trailingAnchor),
+            ])
+            return container
+        }
+
+        func updateUIView(_ uiView: UIView, context: Context) {
+            context.coordinator.host?.rootView = content
+        }
+
+        func makeCoordinator() -> Coordinator { Coordinator() }
+
+        final class Coordinator {
+            var host: UIHostingController<Content>?
         }
     }
 }

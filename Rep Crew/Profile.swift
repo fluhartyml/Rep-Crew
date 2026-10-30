@@ -578,6 +578,7 @@ struct ProfileView: View {
     @State private var failed = false
     /// Their points, league and awards (Rewards.swift); nil until they have a card.
     @State private var rewards: RewardCard?
+    @State private var viewingPhoto = false
 
     private var isMine: Bool { target.id == CrewCloud.shared.myID }
     /// Their saved name, else the one the board or message showed.
@@ -590,11 +591,13 @@ struct ProfileView: View {
     var body: some View {
         NavigationStack {
             List {
-                MemberAccessSection(memberID: target.id, name: savedName)
+                // REM: his word, 2026-10-29: "the banner and avatar should be the first thing you see at the top".
+                // Access moved below it.
                 Section {
                     VStack(spacing: 12) {
                         // REM: his word, 2026-10-29: "the profile has their picture and a banner picture".
-                        ProfileHeader(memberID: target.id, photo: profile?.photo, banner: banner?.image)
+                        ProfileHeader(memberID: target.id, photo: profile?.photo, banner: banner?.image,
+                                      onPhotoTap: { viewingPhoto = true })
                         Text(name).font(AppFont.title).multilineTextAlignment(.center)
                         if let profile, let method = ContactMethod.preferred(profile) {
                             Label("Prefers \(method.title)", systemImage: method.systemImage)
@@ -605,6 +608,7 @@ struct ProfileView: View {
                     .padding(.bottom, 8)
                     .listRowInsets(EdgeInsets())
                 }
+                MemberAccessSection(memberID: target.id, name: savedName)
                 if let rewards { RewardsSection(card: rewards) }
                 Section {
                     contactButtons
@@ -701,6 +705,11 @@ struct ProfileView: View {
             .confirmationDialog(question, isPresented: Binding(get: { confirming != nil }, set: { if !$0 { confirming = nil } }),
                                 titleVisibility: .visible, presenting: confirming) { action in
                 Button(buttonTitle(action), role: .destructive) { Task { await act(action) } }
+            }
+            .fullScreenCover(isPresented: $viewingPhoto) {
+                if let image = CrewCloud.shared.avatarOverrides[target.id] ?? profile?.photo {
+                    ProfilePhotoViewer(image: image, name: name)
+                }
             }
             .task { await load() }
         }

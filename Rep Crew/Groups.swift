@@ -130,9 +130,14 @@ extension CrewCloud {
 
     /// Every group, minus ones a coach removed and ones led by someone you blocked.
     func allGroups() async -> [CrewGroup] {
+        await fetchAllGroups() ?? []
+    }
+
+    /// Every group, or nil when iCloud couldn't be read, so Find a Group can say so instead of "No groups yet."
+    func fetchAllGroups() async -> [CrewGroup]? {
         await connect()
         let query = CKQuery(recordType: "CrewMessage", predicate: NSPredicate(format: "crewID == %@", Self.groupsBoard))
-        guard let (results, _) = try? await db.records(matching: query, resultsLimit: 300) else { return [] }
+        guard let (results, _) = try? await db.records(matching: query, resultsLimit: 300) else { return nil }
         let removed = await removedMessages(crewID: Self.groupsBoard, leaderID: nil)
         return results.compactMap { try? $0.1.get() }.compactMap { record in
             guard let message = Self.message(from: record), message.kind == .group, writer(of: record) == message.senderID,
@@ -809,16 +814,32 @@ private struct GroupInviteView: View {
 
 // MARK: - Finding a group
 
+/// REM: his word, 2026-10-29: "All groups should be listed here with the search to find them as typing".
+/// The search matches the group's name or its crew leader's, as each letter is typed.
 struct FindGroupsView: View {
     @State private var groups: [CrewGroup] = []
     @State private var loaded = false
+    @State private var failed = false
+    @State private var search = ""
+
+    private var shown: [CrewGroup] {
+        let text = search.trimmingCharacters(in: .whitespaces)
+        guard !text.isEmpty else { return groups }
+        return groups.filter { $0.details.name.localizedCaseInsensitiveContains(text) || $0.leaderName.localizedCaseInsensitiveContains(text) }
+    }
 
     var body: some View {
         List {
-            if groups.isEmpty {
-                Text(loaded ? "No groups yet." : "Loading…").font(AppFont.body)
+            if !loaded {
+                Text("Loading…").font(AppFont.body)
+            } else if failed {
+                Text("Couldn't load groups. Check iCloud in Settings, then pull down to try again.").font(AppFont.body)
+            } else if groups.isEmpty {
+                Text("No groups yet.").font(AppFont.body)
+            } else if shown.isEmpty {
+                Text("No groups match \"\(search)\".").font(AppFont.body)
             }
-            ForEach(groups) { group in
+            ForEach(shown) { group in
                 NavigationLink(value: group) {
                     HStack(spacing: 12) {
                         GroupAvatar(image: nil, theme: group.theme, size: 44)
@@ -831,10 +852,15 @@ struct FindGroupsView: View {
             }
         }
         .navigationTitle("Find a Group")
-        .task {
-            groups = await CrewCloud.shared.allGroups()
-            loaded = true
-        }
-        .refreshable { groups = await CrewCloud.shared.allGroups() }
+        .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always), prompt: "Group or crew leader")
+        .task { await load() }
+        .refreshable { await load() }
+    }
+
+    private func load() async {
+        let fetched = await CrewCloud.shared.fetchAllGroups()
+        failed = fetched == nil
+        groups = fetched ?? []
+        loaded = true
     }
 }
