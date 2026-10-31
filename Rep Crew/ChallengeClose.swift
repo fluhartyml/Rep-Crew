@@ -15,6 +15,12 @@
 //  and moves to Past challenges at once.
 //  "Coach" is the long-press coach or the head coach (isModerator). A level of 250 set by hand alone
 //  isn't trusted by the shared space (Access.swift), so it doesn't unlock this.
+//  REM: his words, 2026-10-31 (TestFlight note on build 209, "You should be able to close challenge from
+//  within the challenge"): "yes put it on the page the person that made its has an acs level so the close
+//  challenge should appear for peope that have that acs level or above" · on closing being final: "it can
+//  be undone because you just make a new one from the closed one". So anyone whose level is at least the
+//  leader's may close it, besides the leader and coaches. Both levels come from memberAccess (only what
+//  the head coach wrote, or what the member earned), so the reading phone checks the same rule.
 //
 
 import CloudKit
@@ -64,9 +70,10 @@ enum ChallengeClosure {
         UserDefaults.standard.set(lines.joined(separator: "\n"), forKey: CrewSettings.closedDates)
     }
 
-    /// What the crew reads. His rule: your own challenge → Crew Leader; someone else's → Coach.
-    static func notice(byLeader: Bool, name: String) -> String {
-        "\(byLeader ? "Crew Leader" : "Coach") \(name) closed this challenge."
+    /// What the crew reads. His rule: your own challenge → Crew Leader; a coach → Coach; anyone else at
+    /// the leader's level or above → the name of their level's band (e.g. Moderator).
+    static func notice(role: String, name: String) -> String {
+        "\(role) \(name) closed this challenge."
     }
 }
 
@@ -76,8 +83,9 @@ extension CrewCloud {
         await connect()
         guard let myID, !crewID.isEmpty else { return false }
         let mine = leaderID.isEmpty || leaderID == myID
-        guard mine || GodMode.isOn else { return false }
-        let notice = ChallengeClosure.notice(byLeader: mine, name: senderName)
+        guard await mayClose(leaderID: leaderID) else { return false }
+        let role = mine ? "Crew Leader" : GodMode.isOn ? "Coach" : (accessTable.band(for: effectiveLevel)?.name ?? "Member")
+        let notice = ChallengeClosure.notice(role: role, name: senderName)
         let record = CKRecord(recordType: "CrewMessage", recordID: CKRecord.ID(recordName: ChallengeClosure.recordName(crewID)))
         record["crewID"] = crewID
         record["text"] = notice
@@ -106,6 +114,14 @@ extension CrewCloud {
         return true
     }
 
+    /// True when this phone's member may close the challenge: it's theirs, they're a coach, or their level
+    /// is at least the leader's (his rule 2026-10-31).
+    func mayClose(leaderID: String) async -> Bool {
+        guard let myID else { return false }
+        if leaderID.isEmpty || leaderID == myID || GodMode.isOn { return true }
+        return effectiveLevel >= (await memberAccess(leaderID)).level
+    }
+
     /// Reads the closings for these challenges (crewID → leaderID; empty = yours) and keeps the ones the
     /// leader, a coach or he really wrote. A failed fetch keeps what this phone already knew.
     func refreshClosures(_ challenges: [String: String]) async {
@@ -114,12 +130,21 @@ extension CrewCloud {
         let ids = challenges.keys.filter { !$0.isEmpty }.map { CKRecord.ID(recordName: ChallengeClosure.recordName($0)) }
         guard let results = try? await db.records(for: ids) else { return }
         var closed = ChallengeClosure.all
+        var levels: [String: Int] = [:]
         for (id, result) in results {
             guard let record = try? result.get(), let crewID = record["crewID"] as? String,
                   let notice = record["text"] as? String,
                   ChallengeClosure.recordName(crewID) == id.recordName else { continue }
             let leader = challenges[crewID].flatMap { $0.isEmpty ? myID : $0 }
-            if isModerator(writer(of: record), leaderID: leader) {
+            let writer = writer(of: record)
+            var counts = isModerator(writer, leaderID: leader)
+            // His rule 2026-10-31: a member at the leader's level or above may close it too.
+            if !counts, let writer, let leader {
+                if levels[writer] == nil { levels[writer] = await memberAccess(writer).level }
+                if levels[leader] == nil { levels[leader] = await memberAccess(leader).level }
+                counts = levels[writer]! >= levels[leader]!
+            }
+            if counts {
                 closed[crewID] = notice
                 if let date = record.creationDate { ChallengeClosure.setClosedAt(date, for: crewID) }
             }

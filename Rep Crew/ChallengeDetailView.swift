@@ -24,6 +24,8 @@ struct ChallengeDetailView: View {
     @AppStorage(CrewSettings.closedChallenges) private var closedChallenges = ""
     /// The leader removed you; your own reps stay, the crew parts go.
     @State private var removed = false
+    /// True when this member may close the challenge (CrewCloud.mayClose), read once the levels load.
+    @State private var mayClose = false
     /// People asking to join, when you lead this challenge.
     @State private var joinRequests: [JoinRequest] = []
 
@@ -109,6 +111,15 @@ struct ChallengeDetailView: View {
                 Button { ContactsPresenter.shared.invite(text: shareText) } label: {
                     Label("Invite a Contact", systemImage: "person.crop.circle.badge.plus").font(AppFont.bodyBold)
                 }
+                // REM: his TestFlight note on build 209: "You should be able to close challenge from within the
+                // challenge" — it was in the ⋯ menu and he couldn't find it. His word 2026-10-31: "yes put it on
+                // the page". Moved here, one place only (not also in ⋯), for the leader, a coach, or anyone at the
+                // leader's level or above (CrewCloud.mayClose).
+                if canClose {
+                    Button(role: .destructive) { confirmingClose = true } label: {
+                        Label("Close Challenge", systemImage: "lock.fill").font(AppFont.bodyBold)
+                    }
+                }
             }
         }
         .navigationTitle(challenge.title)
@@ -121,11 +132,6 @@ struct ChallengeDetailView: View {
                     if challenge.leaderID.isEmpty && !challenge.isFinished {
                         Button { editingExercises = true } label: {
                             Label("Edit Exercises", systemImage: "slider.horizontal.3")
-                        }
-                    }
-                    if canClose {
-                        Button { confirmingClose = true } label: {
-                            Label("Close Challenge", systemImage: "lock")
                         }
                     }
                     Button(role: .destructive) { confirmingDelete = true } label: {
@@ -146,6 +152,7 @@ struct ChallengeDetailView: View {
         // Only once something is paired, so opening a challenge never asks for Health access by itself.
         .task { if challenge.countsHealth { await HealthLibrary.shared.refresh() } else { await DailyStats.refreshHealthIfAllowed() } }
         .task(id: challenge.crewID) { joinRequests = await JoinRequestsSection.load(challenge) }
+        .task(id: challenge.crewID) { mayClose = await CrewCloud.shared.mayClose(leaderID: challenge.leaderID) }
         .task(id: challenge.crewID) {
             guard !challenge.leaderID.isEmpty, let me = CrewCloud.shared.myID else { return }
             removed = await CrewCloud.shared.banned(crewID: challenge.crewID, leaderID: challenge.leaderID).contains(me)
@@ -173,10 +180,11 @@ struct ChallengeDetailView: View {
 
     private var closingNotice: String? { _ = closedChallenges; return ChallengeClosure.notice(challenge.crewID) }
 
-    /// His rule: the crew leader closes their own challenge; a coach can close anyone's.
+    /// His rule: the crew leader closes their own challenge; a coach can close anyone's; and (2026-10-31)
+    /// anyone whose level is at least the leader's.
     private var canClose: Bool {
         guard !challenge.crewID.isEmpty, !challenge.isFinished else { return false }
-        return challenge.leaderID.isEmpty || challenge.leaderID == CrewCloud.shared.myID || GodMode.isOn
+        return mayClose
     }
 
     private func close() async {
