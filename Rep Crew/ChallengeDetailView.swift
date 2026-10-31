@@ -117,7 +117,7 @@ struct ChallengeDetailView: View {
                 // leader's level or above (CrewCloud.mayClose).
                 if canClose {
                     Button(role: .destructive) { confirmingClose = true } label: {
-                        Label("Close Challenge", systemImage: "lock.fill").font(AppFont.bodyBold)
+                        Label("Archive Challenge", systemImage: "archivebox.fill").font(AppFont.bodyBold)
                     }
                 }
             }
@@ -166,12 +166,15 @@ struct ChallengeDetailView: View {
         } message: {
             Text("This can't be undone.")
         }
-        .confirmationDialog("Close \(challenge.title)?", isPresented: $confirmingClose, titleVisibility: .visible) {
-            Button("Close Challenge for Everyone") { Task { await close() } }
+        .confirmationDialog("Archive \(challenge.title)?", isPresented: $confirmingClose, titleVisibility: .visible) {
+            // REM: his TestFlight note 10-30 07:12, "Archive challenge change the wording of this prompt", and his
+            // "yes build it" 2026-10-31 to: Archive …? / Start Again from it / Archive for Everyone. It isn't
+            // final (his word: "you just make a new one from the closed one"), so "can't be undone" is gone.
+            Button("Archive for Everyone", role: .destructive) { Task { await close() } }
         } message: {
-            Text("It ends today for the whole crew and moves to Finished. Everyone's reps stay. This can't be undone.")
+            Text("It ends today for the whole crew and moves to Finished. Everyone's reps stay, and you can Start Again from it anytime.")
         }
-        .alert("Couldn't close the challenge", isPresented: Binding(get: { closeFailed != nil }, set: { if !$0 { closeFailed = nil } })) {
+        .alert("Couldn't archive the challenge", isPresented: Binding(get: { closeFailed != nil }, set: { if !$0 { closeFailed = nil } })) {
             Button("OK") { closeFailed = nil }
         } message: {
             Text(closeFailed ?? "")
@@ -194,7 +197,7 @@ struct ChallengeDetailView: View {
         if ok {
             closedChallenges = UserDefaults.standard.string(forKey: CrewSettings.closedChallenges) ?? ""
         } else {
-            closeFailed = CrewCloud.shared.status.hasPrefix("Couldn't close") ? CrewCloud.shared.status : "Check that you're signed in to iCloud, then try again."
+            closeFailed = CrewCloud.shared.status.hasPrefix("Couldn't archive") ? CrewCloud.shared.status : "Check that you're signed in to iCloud, then try again."
         }
     }
 
@@ -237,7 +240,7 @@ struct ChallengeDetailView: View {
     private var summary: some View {
         VStack(alignment: .leading, spacing: 8) {
             if challenge.isClosed {
-                Text("Closed").font(AppFont.title)
+                Text("Archived").font(AppFont.title)
             } else if let day = challenge.dayNumber() {
                 Text("Day \(day) of \(challenge.days)").font(AppFont.title)
                 if challenge.isComplete(on: .now) {

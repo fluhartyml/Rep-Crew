@@ -327,7 +327,7 @@ struct ChallengeByline: View {
         VStack(alignment: .leading, spacing: 2) {
             Text("Started by \(leader) · \(challenge.startDate.formatted(.dateTime.month(.abbreviated).day()))")
             if challenge.isClosed {
-                Text("Closed " + (ChallengeClosure.closedAt(challenge.crewID)?.formatted(.dateTime.month(.abbreviated).day()) ?? ""))
+                Text("Archived " + (ChallengeClosure.closedAt(challenge.crewID)?.formatted(.dateTime.month(.abbreviated).day()) ?? ""))
             }
         }
         .font(AppFont.body).foregroundStyle(.secondary)
@@ -411,7 +411,7 @@ struct CrewsYouLeadSection: View {
                     // The lock red like the words (his word, 2026-10-25: "yes make the lock red").
                     Button(role: .destructive) { closing = challenge } label: {
                         Label {
-                            Text("Close Challenge")
+                            Text("Archive Challenge")
                         } icon: {
                             Image(systemName: "lock.fill").foregroundStyle(.red)
                         }
@@ -425,14 +425,14 @@ struct CrewsYouLeadSection: View {
                 Text("Crew Leader").font(AppFont.bodyBold).textCase(nil)
             }
             .task(id: challenges.map(\.crewID)) { await load() }
-            .confirmationDialog("Close \(closing?.title ?? "this challenge")?",
+            .confirmationDialog("Archive \(closing?.title ?? "this challenge")?",
                                 isPresented: Binding(get: { closing != nil }, set: { if !$0 { closing = nil } }),
                                 titleVisibility: .visible) {
-                Button("Close Challenge for Everyone", role: .destructive) {
+                Button("Archive for Everyone", role: .destructive) {
                     if let challenge = closing { Task { await close(challenge) } }
                 }
             } message: {
-                Text("It ends today for the whole crew and moves to Finished. Everyone's reps stay. This can't be undone.")
+                Text("It ends today for the whole crew and moves to Finished. Everyone's reps stay, and you can Start Again from it anytime.")
             }
         }
     }

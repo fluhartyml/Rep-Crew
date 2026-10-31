@@ -73,7 +73,7 @@ enum ChallengeClosure {
     /// What the crew reads. His rule: your own challenge → Crew Leader; a coach → Coach; anyone else at
     /// the leader's level or above → the name of their level's band (e.g. Moderator).
     static func notice(role: String, name: String) -> String {
-        "\(role) \(name) closed this challenge."
+        "\(role) \(name) archived this challenge."
     }
 }
 
@@ -100,7 +100,7 @@ extension CrewCloud {
         } catch let error as CKError where error.code == .serverRecordChanged {
             // Someone already closed it; their notice stands and is read on the next refresh.
         } catch {
-            status = "Couldn't close the challenge: \(error.localizedDescription)"
+            status = "Couldn't archive the challenge: \(error.localizedDescription)"
             return false
         }
         if mine, let challenge = try? await db.record(for: CKRecord.ID(recordName: crewID)) {

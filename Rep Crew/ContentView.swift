@@ -489,7 +489,7 @@ struct ChallengeRow: View {
 
     private var status: String {
         if challenge.isClosed {
-            return "Closed · \(challenge.completedDays) of \(challenge.days) days completed"
+            return "Archived · \(challenge.completedDays) of \(challenge.days) days completed"
         } else if let day = challenge.dayNumber() {
             return "Day \(day) of \(challenge.days)"
         } else if !challenge.hasStarted {
