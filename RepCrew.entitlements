@@ -15,6 +15,7 @@
 	<key>com.apple.developer.icloud-container-identifiers</key>
 	<array>
 		<string>iCloud.com.accountability.dailyrepcrew</string>
+		<string>iCloud.com.legend.linchpin</string>
 	</array>
 	<key>com.apple.developer.icloud-services</key>
 	<array>

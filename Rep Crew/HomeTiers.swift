@@ -522,6 +522,9 @@ struct HeadCoachToolsSection: View {
             NavigationLink { AccessTableView() } label: {
                 Label("Access Levels", systemImage: "list.number").font(AppFont.bodyBold)
             }
+            NavigationLink { LegendAffiliatesView() } label: {
+                Label("Legend Affiliates", systemImage: "globe").font(AppFont.bodyBold)
+            }
             ViewAsMenu { RowLabel("View Home As…", systemImage: "eye.fill") }
         } header: {
             Text("Head Coach").font(AppFont.bodyBold).textCase(nil)
