@@ -7,6 +7,9 @@
 //  possibilities for i didnt eat" · "yes build the i didn't eat challenge". One skip = one time you passed on
 //  something. Each thing is its own exercise named "I didn't eat …", so a challenge can hold as many as you add.
 //  Uses the existing unitName field: no new CloudKit field, nothing to deploy. Older builds read "skips" as reps.
+//  REM: OUNCES — Smitty's water challenge (his word 2026-11-01: "yes build the water challenge"; from the call:
+//  "drink 8 ounces of water", counted from the Health app). +8 a glass, +16 a bottle; From Health brings in
+//  today's water from Health (only what someone logs there; the Watch doesn't measure water).
 //  REM: CALORIES SKIPPED — his word 2026-11-01: "log what you didnt eat with optional calori count where it totals at the
 //  end of the day so you can race to cut junkfood calories" · "yes build the calorie race". The count IS the calories,
 //  so the goal, the day's total and the crew's leaderboard race in calories. "I didn't eat…" items use it.
@@ -23,7 +26,7 @@
 import HealthKit
 
 enum ExerciseUnit: String, CaseIterable, Identifiable, Codable {
-    case reps, steps, minutes, miles, laps, skips, calories
+    case reps, steps, minutes, miles, laps, skips, calories, ounces
 
     var id: String { rawValue }
 
@@ -52,6 +55,7 @@ enum ExerciseUnit: String, CaseIterable, Identifiable, Codable {
         case .laps: one ? "lap" : "laps"
         case .skips: one ? "skip" : "skips"
         case .calories: one ? "calorie skipped" : "calories skipped"
+        case .ounces: one ? "ounce" : "ounces"
         }
         return "\(amount(count)) \(word)"
     }
@@ -81,6 +85,7 @@ enum ExerciseUnit: String, CaseIterable, Identifiable, Codable {
         case .miles: [5, 10]   // half a mile, one mile
         case .laps: [1, 5]
         case .skips, .calories: []   // logged through the "I didn't eat…" box, never a blind +
+        case .ounces: [8, 16]   // a glass, a bottle
         }
     }
 
@@ -92,6 +97,7 @@ enum ExerciseUnit: String, CaseIterable, Identifiable, Codable {
         case .miles: 1
         // REM: his word 2026-11-01: "or by ten because some calorie smart snacks are 90 or 150" · "yes start at 100 step by 10".
         case .calories: 10
+        case .ounces: 8
         default: target < 20 ? 1 : (target < 100 ? 5 : 10)
         }
     }
@@ -106,11 +112,12 @@ enum ExerciseUnit: String, CaseIterable, Identifiable, Codable {
         case .laps: 10
         case .skips: 1
         case .calories: 100   // his word 2026-11-01: "yes start at 100" (500 was too large)
+        case .ounces: 64   // eight 8-ounce glasses
         }
     }
 
     /// Counted by tapping, never timed: no Start Set.
-    var isTimed: Bool { !logsFood }
+    var isTimed: Bool { !logsFood && self != .ounces }
     /// Logged through the "I didn't eat…" box (FoodLog.swift): skips and calories skipped.
     var logsFood: Bool { self == .skips || self == .calories }
 
@@ -171,5 +178,19 @@ extension HealthSets {
         guard let value = try? await descriptor.result(for: store)?.sumQuantity()?.doubleValue(for: hkUnit) else { return nil }
         let count = Int((value * Double(unit.scale)).rounded())
         return count > 0 ? count : nil
+    }
+}
+
+extension HealthSets {
+    /// Today's water in Health, in whole ounces; nil when there's none, Health isn't here, or you said no.
+    static func waterToday() async -> Int? {
+        guard HKHealthStore.isHealthDataAvailable() else { return nil }
+        try? await store.requestAuthorization(toShare: shareTypes, read: readTypes)
+        let today = HKQuery.predicateForSamples(withStart: Calendar.current.startOfDay(for: .now), end: .now)
+        let descriptor = HKStatisticsQueryDescriptor(predicate: .quantitySample(type: HKQuantityType(.dietaryWater), predicate: today),
+                                                     options: .cumulativeSum)
+        guard let value = try? await descriptor.result(for: store)?.sumQuantity()?.doubleValue(for: .fluidOunceUS()) else { return nil }
+        let ounces = Int(value.rounded())
+        return ounces > 0 ? ounces : nil
     }
 }

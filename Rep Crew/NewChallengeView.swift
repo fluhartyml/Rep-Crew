@@ -115,6 +115,8 @@ struct NewChallengeView: View {
                         Button("Other exercise") { drafts.append(Draft(name: "", target: 50)) }
                         // REM: Smitty's "I didn't eat…" challenge (his word 2026-11-01). Finish the sentence; add as many as you like.
                         Button("I didn't eat…") { drafts.append(Draft(name: "I didn't eat junk food", target: ExerciseUnit.calories.startingTarget, unit: .calories)) }
+                        // REM: Smitty's water challenge (his word 2026-11-01). Counts in ounces; From Health brings in today's water.
+                        Button("Water") { drafts.append(Draft(name: "Water", target: ExerciseUnit.ounces.startingTarget, unit: .ounces)) }
                     } label: {
                         Label("Add an exercise", systemImage: "plus.circle").font(AppFont.bodyBold)
                     }

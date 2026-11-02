@@ -325,6 +325,7 @@ private struct GoalRow: View {
                 Spacer(minLength: 0)
             }
             }
+            if goal.unit == .ounces { WaterFromHealthButton(goal: goal) }
             // Times a set and saves it to Health as a workout (SetTimer.swift). Not for skips: nothing to time.
             if goal.unit.isTimed {
                 Button { onStartSet() } label: {

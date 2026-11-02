@@ -23,7 +23,8 @@ enum HealthSets {
     static let readTypes: Set<HKObjectType> = [HKObjectType.workoutType(), HKQuantityType(.activeEnergyBurned),
                                                HKQuantityType(.heartRate), HKQuantityType(.stepCount),
                                                HKQuantityType(.distanceWalkingRunning), HKQuantityType(.distanceCycling),
-                                               HKQuantityType(.distanceSwimming)]
+                                               HKQuantityType(.distanceSwimming),
+                                               HKQuantityType(.dietaryWater)]   // Smitty's water challenge (2026-11-01)
 
     /// The Health workout type for an exercise, by its name. Anything not named here stays strength training.
     /// REM: tester feedback he passed on, 2026-10-25: "When I did a walk (I clicked start set in the Rep Crew app) it
@@ -175,7 +176,7 @@ struct SetTimerPanel: View {
                                 reps = unit.amount(measured).replacingOccurrences(of: ",", with: "")
                             }
                         }
-                    case .reps, .laps, .skips, .calories:   // skips never reach a set (no Start Set); here for completeness
+                    case .reps, .laps, .skips, .calories, .ounces:   // skips and ounces never reach a set (no Start Set); here for completeness
                         reps = "0"
                     }
                     repsFocused = true
