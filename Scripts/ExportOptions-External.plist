@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  REM Rep Crew's OWN export file — never borrow Mediaworks' (that one is internal only).
+  REM His rule 2026-10-28: the day's FIRST and LAST TestFlight go to external testers (real people);
+  REM every push in between uses ExportOptions-Internal.plist. Exception: Smitty is with him → any push external.
+  REM Apple fixes the internal-only mark at upload; a build marked internal can NEVER go external later
+  REM (215 and 216 learned that, 2026-11-02).
+  REM manageAppVersionAndBuildNumber OFF: the build number must name its commit (post-commit hook).
+-->
+<plist version="1.0"><dict>
+<key>method</key><string>app-store-connect</string>
+<key>destination</key><string>upload</string>
+<key>teamID</key><string>3X3F6UJ44H</string>
+<key>signingStyle</key><string>automatic</string>
+<key>testFlightInternalTestingOnly</key><false/>
+<key>manageAppVersionAndBuildNumber</key><false/>
+</dict></plist>
