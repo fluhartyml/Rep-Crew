@@ -364,7 +364,9 @@ struct MyProfileSection: View {
     @State private var note: String?
     @State private var pickedBanner: PhotosPickerItem?
     @State private var bannerNote: String?
-    @State private var hasBanner = false
+    /// Your banner as iCloud has it, shown above your photo once chosen (his feedback, build 218).
+    @State private var bannerImage: UIImage?
+    private var hasBanner: Bool { bannerImage != nil }
     @State private var showingMine = false
     @AppStorage(CrewSettings.name) private var myName = ""
 
@@ -372,10 +374,19 @@ struct MyProfileSection: View {
 
     var body: some View {
         Section {
-            HStack(spacing: 16) {
-                ProfilePhoto(image: photoID.isEmpty ? nil : MyProfile.photo, size: 72, seed: CrewCloud.shared.myID ?? "")
+            // REM: his feedback, build 218 (2026-11-02): "When choosing a banner and after it's been selected it
+            // should show in the profile above the avatar or selfie". Same header crewmates see (Timeline.swift).
+            if let bannerImage {
+                ProfileHeader(memberID: CrewCloud.shared.myID ?? "", photo: photoID.isEmpty ? nil : MyProfile.photo, banner: bannerImage)
                     .id(photoID)
-                Text(photoID.isEmpty ? "No photo" : "Your photo").font(AppFont.body)
+                    .listRowInsets(EdgeInsets())
+                    .padding(.bottom, 12)
+            } else {
+                HStack(spacing: 16) {
+                    ProfilePhoto(image: photoID.isEmpty ? nil : MyProfile.photo, size: 72, seed: CrewCloud.shared.myID ?? "")
+                        .id(photoID)
+                    Text(photoID.isEmpty ? "No photo" : "Your photo").font(AppFont.body)
+                }
             }
             // One button per row, as on the photo board (two buttons in one row both fire).
             if cameraAvailable {
@@ -492,7 +503,7 @@ struct MyProfileSection: View {
     private func checkBanner() async {
         await CrewCloud.shared.connect()
         guard let me = CrewCloud.shared.myID else { return }
-        hasBanner = await CrewCloud.shared.banner(of: me) != nil
+        bannerImage = await CrewCloud.shared.banner(of: me)?.image
     }
 
     private func coachesOnly(_ isOn: Binding<Bool>) -> some View {
