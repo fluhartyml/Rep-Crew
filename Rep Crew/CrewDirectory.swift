@@ -2,7 +2,7 @@
 //  CrewDirectory.swift
 //  Rep Crew
 //
-//  Everyone in your challenges, in one list. His words, 2026-10-23: "can it show profile picture
+//  Everyone in the app, in one list (his word 2026-11-02; it was everyone in your challenges). His words, 2026-10-23: "can it show profile picture
 //  thumbnails that if you click on their name shows their profile? maybe it displays prefered
 //  contact method on the directory list but if you click on the name it opens the profile and with
 //  the opened profile you can share to your apple contacts with the contact photo?"
@@ -99,9 +99,18 @@ extension CrewCloud {
         // REM: his finding, 2026-10-24: "hanna and brendan have accessed but dont have profiles in the crew
         // REM: directory". The list was only people who share a challenge with you, so a coach couldn't reach
         // REM: a new member to message them. A coach now sees everyone the User List knows (UserList.swift).
-        if GodMode.isOn {
-            for user in await allUsers() where user.id != myID && people[user.id] == nil && !Blocklist.ids.contains(user.id) {
-                people[user.id] = user.name
+        // REM: his word, 2026-11-02: "a 'crew dirrectory' should list everyone in the app" — not only coaches.
+        // Contact details still follow each person's own coaches-only switches (Profile.swift).
+        for user in await allUsers() where user.id != myID && people[user.id] == nil && !Blocklist.ids.contains(user.id) {
+            people[user.id] = user.name
+        }
+        // Applicants with no profile yet: the application's plain name (the answers stay sealed to coaches).
+        let applied = CKQuery(recordType: "CrewApplication", predicate: NSPredicate(value: true))
+        if let (results, _) = try? await db.records(matching: applied, resultsLimit: 400) {
+            for record in results.compactMap({ try? $0.1.get() }) {
+                guard let id = record["memberID"] as? String, id != myID, people[id] == nil,
+                      !Blocklist.ids.contains(id), writer(of: record) == id else { continue }
+                people[id] = record["name"] as? String ?? "Crew member"
             }
         }
         let heads = GodMode.ids.filter { !Blocklist.ids.contains($0) }

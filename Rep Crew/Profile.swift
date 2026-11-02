@@ -647,6 +647,14 @@ struct ProfileView: View {
                 } header: {
                     Text("Contact").font(AppFont.bodyBold).textCase(nil)
                 }
+                // REM: 2026-11-02, the Home card came off ("that is the profile tab"), so Edit Profile lives here now.
+                if isMine {
+                    Section {
+                        NavigationLink { EditProfileView() } label: {
+                            Label("Edit Profile", systemImage: "person.crop.circle").font(AppFont.bodyBold)
+                        }
+                    }
+                }
                 // REM: his word, 2026-10-24: "as a coach go into a crew directory and tap into a user card and
                 // have a button to send a message to the crew members inbox" — reaches people who shared nothing.
                 if !isMine && (canMessage || GodMode.isOn) {

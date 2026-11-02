@@ -971,3 +971,31 @@
 //    Scripts/install-hooks.sh on every clone. Never hand-stamp.
 //  • No placeholders or dead buttons — every control does something real.
 //  • Every setting persists across launches (@AppStorage), never plain @State.
+//
+//  ── THREE SEPARATE CHECKS (his word, 2026-11-02 ~14:1x) ──
+//  "verified is separate from verified email or verified zip code" · "verified email is an email with a
+//  verify your email address and a verified zip code is not just a typed zip code but a geolocation
+//  verified zip code".
+//  • Email verified — a "verify your email address" message is sent; the user confirms from their inbox.
+//  • Zip code verified — the zip comes from the phone's location (geolocation), not typed.
+//  • Verified (the seal) — a coach's verification. Separate from both.
+//  Found the same day: "email given" lives only in a local flag (applicationEmailGiven), so a reinstall drops
+//  an applicant back to Level 6 and the welcome card asks for an email they already gave. Not fixed yet.
+//  His order, same day: "it should have a verified email and zip before given to a coach BUT a coach can
+//  overide verifications". → Email verified + zip verified first, then the application reaches a coach for
+//  Verified. A coach may override (verify someone missing either check).
+//  And: "if you log in with apple that is verification enough to be a regular user". → Sign in with Apple
+//  alone = a regular user. Email + zip verification are for reaching a coach's Verified, not for using the app.
+//  The ladder, his word same day: "regular user is verified but minimally verified location/zip is higher than
+//  verified email but the levels are verified with sign in with apple full access to legend or smittys app
+//  verified email next step and verified location and email max level of a new user".
+//    1. Sign in with Apple            → Verified (minimal) — FULL ACCESS to the app (Rep Crew and Legend).
+//    2. + email verified              → next step up.
+//    3. + email AND location/zip      → the top level a new user can reach on their own.
+//    Above that: a coach (who may override 2 and 3).
+//  Levels, his "yes use 11 12 and 13": Sign in with Apple = 11 · + verified email = 12 · + verified location = 13.
+//  XP idea, his word same day: "maybe they get 5 xp points for each or 10 xp for location verification 10xp for
+//  email verification and 50 xp if you do them all and 100xp bonus if you sign up for the mailing list".
+//  → 10 XP location · 10 XP email · 50 XP for doing them all · 100 XP bonus for joining the mailing list.
+//  XP = the existing POINTS system (Rewards.swift: points, Rep Level, leagues) — add these as one-time awards
+//  like the widget's 25. No mailing list exists yet.

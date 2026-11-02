@@ -163,26 +163,9 @@ struct ProfileCardSection: View {
     init(tier: HomeTier) { self.tier = tier }
 
     var body: some View {
+        // REM: his word, 2026-11-02: "maybe the crew mebers card shouldnt even be on the home tab because that is
+        // the profile tab" · "remove the card and upload it". Only Log Weight stays on Home (his 2026-10-25 ask).
         Section {
-            HStack(spacing: 16) {
-                ProfilePhoto(image: photoID.isEmpty ? nil : MyProfile.photo, size: 72, seed: cloud.myID ?? "")
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Text(name.trimmingCharacters(in: .whitespaces).isEmpty ? "You" : name).font(AppFont.heading)
-                        if cloud.effectiveLevel >= CrewCloud.approvedLevel {
-                            Image(systemName: "checkmark.seal.fill").font(.system(size: 22)).foregroundStyle(Color.oliveDrab)
-                                .accessibilityLabel("Verified")
-                        }
-                    }
-                    Text(tier.roleName).font(AppFont.bodyBold).foregroundStyle(.tint)
-                    Text(detail).font(AppFont.body).foregroundStyle(.secondary)
-                }
-            }
-            .padding(.vertical, 4)
-            .accessibilityElement(children: .combine)
-            NavigationLink { EditProfileView() } label: {
-                Label("Edit Profile", systemImage: "person.crop.circle").font(AppFont.bodyBold)
-            }
             // REM: his word, 2026-10-25: "log weight is okay where it is but it should also appear in a more obvious
             // location so the user doesnt have to go tapping through so many sheets". One tap from Home.
             // REM: his "yes add it", 2026-10-25: the row shows your current weight, like "182 lb · Today".

@@ -353,7 +353,9 @@ extension CrewCloud {
 
 // MARK: - Home: swipe between your groups
 
-/// The Smitty Bunch first, then each group you're in, one card per page. Tap a group's card for its home page.
+/// Each group you're in, one card per page. Tap a group's card for its home page.
+//  REM: his word, 2026-11-02: "we need to define The Smitty Bunch as a Parent container of all groups. there fore
+//  it 'the Smitty Bunch' should never be refered to or listed as a group". It's the app's title, not a card here.
 struct GroupsPagerSection: View {
     @AppStorage(CrewSettings.crewName) private var crewName = ""
     @AppStorage(CrewSettings.name) private var myName = ""
@@ -368,17 +370,21 @@ struct GroupsPagerSection: View {
 
     var body: some View {
         Section {
-            TabView(selection: $page) {
-                crewCard.tag(0)
-                ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
-                    NavigationLink(value: group) { GroupCard(group: group) }
-                        .buttonStyle(.plain)
-                        .tag(index + 1)
+            if groups.isEmpty {
+                Text("You're not in a group yet. Find one below\(canMake ? ", or start your own" : "").")
+                    .font(AppFont.body).foregroundStyle(.secondary)
+            } else {
+                TabView(selection: $page) {
+                    ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
+                        NavigationLink(value: group) { GroupCard(group: group) }
+                            .buttonStyle(.plain)
+                            .tag(index)
+                    }
                 }
+                .tabViewStyle(.page(indexDisplayMode: groups.count > 1 ? .always : .never))
+                .frame(height: 230)
+                .listRowInsets(EdgeInsets())
             }
-            .tabViewStyle(.page(indexDisplayMode: groups.isEmpty ? .never : .always))
-            .frame(height: 230)
-            .listRowInsets(EdgeInsets())
             ForEach(invites, id: \.invite.id) { item in
                 VStack(alignment: .leading, spacing: 8) {
                     Text(item.invite.text).font(AppFont.body)
@@ -406,21 +412,10 @@ struct GroupsPagerSection: View {
             }
             if let note { Text(note).font(AppFont.body) }
         } header: {
-            Text(groups.isEmpty ? "Groups" : "Your groups — swipe").font(AppFont.bodyBold).textCase(nil)
+            Text(groups.count > 1 ? "Your groups — swipe" : "Your groups").font(AppFont.bodyBold).textCase(nil)
         }
         .task { await load() }
         .sheet(isPresented: $making, onDismiss: { Task { await load() } }) { GroupEditView(group: nil) }
-    }
-
-    /// The head coach's crew, as Home already shows it.
-    private var crewCard: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "figure.strengthtraining.traditional").font(.system(size: 44)).foregroundStyle(.white)
-            Text(CrewCloud.displayName(crewName)).font(AppFont.title).foregroundStyle(.white)
-            Text("Everyone on the app").font(AppFont.body).foregroundStyle(.white.opacity(0.9))
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.oliveDrab)
     }
 
     private func accept(_ group: CrewGroup) async {
