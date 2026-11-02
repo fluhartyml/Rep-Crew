@@ -311,14 +311,17 @@ private struct GoalRow: View {
                     .buttonStyle(.bordered)
                     .lineLimit(1)
                     .fixedSize()
-                addButton(goal.dailyTarget)
+                // REM: a skips goal is usually 1, the same as its +1 button; don't show it twice.
+                if !(goal.unit == .skips && goal.unit.quickAdds.contains(goal.dailyTarget)) { addButton(goal.dailyTarget) }
                 Spacer(minLength: 0)
             }
-            // Times a set and saves it to Health as a workout (SetTimer.swift).
-            Button { onStartSet() } label: {
-                Label("Start Set", systemImage: "timer").font(AppFont.bodyBold)
+            // Times a set and saves it to Health as a workout (SetTimer.swift). Not for skips: nothing to time.
+            if goal.unit.isTimed {
+                Button { onStartSet() } label: {
+                    Label("Start Set", systemImage: "timer").font(AppFont.bodyBold)
+                }
+                .buttonStyle(.bordered)
             }
-            .buttonStyle(.bordered)
         }
         .padding(.vertical, 8)
     }

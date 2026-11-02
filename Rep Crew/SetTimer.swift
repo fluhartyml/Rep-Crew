@@ -175,7 +175,7 @@ struct SetTimerPanel: View {
                                 reps = unit.amount(measured).replacingOccurrences(of: ",", with: "")
                             }
                         }
-                    case .reps, .laps:
+                    case .reps, .laps, .skips:   // skips never reach a set (no Start Set); here for completeness
                         reps = "0"
                     }
                     repsFocused = true

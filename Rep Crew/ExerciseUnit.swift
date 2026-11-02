@@ -2,7 +2,11 @@
 //  ExerciseUnit.swift
 //  Rep Crew
 //
-//  What one count of an exercise is: reps, steps, minutes, miles or laps.
+//  What one count of an exercise is: reps, steps, minutes, miles, laps or skips.
+//  REM: SKIPS — Smitty's idea, by his word 2026-11-01: the "i didn't eat. . . " challenge, "it can be infinite in
+//  possibilities for i didnt eat" · "yes build the i didn't eat challenge". One skip = one time you passed on
+//  something. Each thing is its own exercise named "I didn't eat …", so a challenge can hold as many as you add.
+//  Uses the existing unitName field: no new CloudKit field, nothing to deploy. Older builds read "skips" as reps.
 //  His ask, 2026-10-25, after "what is a rep in this set? is it steps?" → a unit picked per exercise,
 //  and "or laps if they[re] on a track or in a pool for a swim challenge".
 //
@@ -16,7 +20,7 @@
 import HealthKit
 
 enum ExerciseUnit: String, CaseIterable, Identifiable, Codable {
-    case reps, steps, minutes, miles, laps
+    case reps, steps, minutes, miles, laps, skips
 
     var id: String { rawValue }
 
@@ -43,6 +47,7 @@ enum ExerciseUnit: String, CaseIterable, Identifiable, Codable {
         case .minutes: one ? "minute" : "minutes"
         case .miles: one ? "mile" : "miles"
         case .laps: one ? "lap" : "laps"
+        case .skips: one ? "skip" : "skips"
         }
         return "\(amount(count)) \(word)"
     }
@@ -57,7 +62,11 @@ enum ExerciseUnit: String, CaseIterable, Identifiable, Codable {
 
     /// The goal in words for invites and messages: "100 push-ups", "10,000 steps of walking".
     func goalText(_ target: Int, name: String) -> String {
-        self == .reps ? "\(target.formatted()) \(name.lowercased())" : "\(label(target)) of \(name.lowercased())"
+        switch self {
+        case .reps: "\(target.formatted()) \(name.lowercased())"
+        case .skips: "\(name) (\(label(target)) a day)"
+        default: "\(label(target)) of \(name.lowercased())"
+        }
     }
 
     /// The quick-add buttons on a goal, before Other.
@@ -67,6 +76,7 @@ enum ExerciseUnit: String, CaseIterable, Identifiable, Codable {
         case .steps: [500, 1000]
         case .miles: [5, 10]   // half a mile, one mile
         case .laps: [1, 5]
+        case .skips: [1]
         }
     }
 
@@ -88,8 +98,12 @@ enum ExerciseUnit: String, CaseIterable, Identifiable, Codable {
         case .minutes: 30
         case .miles: 20
         case .laps: 10
+        case .skips: 1
         }
     }
+
+    /// Counted by tapping, never timed: no Start Set.
+    var isTimed: Bool { self != .skips }
 
     /// Typed with a decimal point.
     var takesDecimal: Bool { scale > 1 }
