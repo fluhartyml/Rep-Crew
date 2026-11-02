@@ -90,6 +90,8 @@ enum ExerciseUnit: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .steps: target < 2000 ? 100 : 500
         case .miles: 1
+        // REM: his word 2026-11-01: "or by ten because some calorie smart snacks are 90 or 150" · "yes start at 100 step by 10".
+        case .calories: 10
         default: target < 20 ? 1 : (target < 100 ? 5 : 10)
         }
     }
@@ -103,7 +105,7 @@ enum ExerciseUnit: String, CaseIterable, Identifiable, Codable {
         case .miles: 20
         case .laps: 10
         case .skips: 1
-        case .calories: 500
+        case .calories: 100   // his word 2026-11-01: "yes start at 100" (500 was too large)
         }
     }
 
