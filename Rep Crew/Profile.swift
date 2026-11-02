@@ -564,6 +564,8 @@ struct ProfileView: View {
     let target: ProfileTarget
     /// Message shows for coaches, and for anyone answering a direct message (the Inbox passes true).
     var canMessage = false
+    /// False on the Profile tab (RootTabs.swift), where there is nothing to close.
+    var showsDone = true
     @AppStorage(CrewSettings.name) private var myName = ""
     @State private var draft = ""
     @State private var sending = false
@@ -665,8 +667,10 @@ struct ProfileView: View {
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }.font(AppFont.bodyBold)
+                if showsDone {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { dismiss() }.font(AppFont.bodyBold)
+                    }
                 }
                 if !isMine {
                     ToolbarItem(placement: .topBarLeading) {

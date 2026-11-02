@@ -56,7 +56,8 @@ struct RootView: View {
             } else if !applicationDone {
                 ApplicationView()
             } else {
-                ContentView(openedURL: $openedURL)
+                // REM: his word, 2026-11-02: "yes bring the tabs over to rep crew" (RootTabs.swift).
+                RootTabs(openedURL: $openedURL)
             }
         }
         .onOpenURL { openedURL = $0 }
