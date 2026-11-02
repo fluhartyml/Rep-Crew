@@ -7,6 +7,9 @@
 //  possibilities for i didnt eat" · "yes build the i didn't eat challenge". One skip = one time you passed on
 //  something. Each thing is its own exercise named "I didn't eat …", so a challenge can hold as many as you add.
 //  Uses the existing unitName field: no new CloudKit field, nothing to deploy. Older builds read "skips" as reps.
+//  REM: CALORIES SKIPPED — his word 2026-11-01: "log what you didnt eat with optional calori count where it totals at the
+//  end of the day so you can race to cut junkfood calories" · "yes build the calorie race". The count IS the calories,
+//  so the goal, the day's total and the crew's leaderboard race in calories. "I didn't eat…" items use it.
 //  His ask, 2026-10-25, after "what is a rep in this set? is it steps?" → a unit picked per exercise,
 //  and "or laps if they[re] on a track or in a pool for a swim challenge".
 //
@@ -20,14 +23,14 @@
 import HealthKit
 
 enum ExerciseUnit: String, CaseIterable, Identifiable, Codable {
-    case reps, steps, minutes, miles, laps, skips
+    case reps, steps, minutes, miles, laps, skips, calories
 
     var id: String { rawValue }
 
     /// The stored value: an empty or unknown one is reps, so older exercises keep working.
     init(stored: String?) { self = ExerciseUnit(rawValue: stored ?? "") ?? .reps }
 
-    var title: String { rawValue.capitalized }
+    var title: String { self == .calories ? "Calories skipped" : rawValue.capitalized }
 
     /// Stored counts per one shown unit.
     var scale: Int { self == .miles ? 10 : 1 }
@@ -48,6 +51,7 @@ enum ExerciseUnit: String, CaseIterable, Identifiable, Codable {
         case .miles: one ? "mile" : "miles"
         case .laps: one ? "lap" : "laps"
         case .skips: one ? "skip" : "skips"
+        case .calories: one ? "calorie skipped" : "calories skipped"
         }
         return "\(amount(count)) \(word)"
     }
@@ -64,7 +68,7 @@ enum ExerciseUnit: String, CaseIterable, Identifiable, Codable {
     func goalText(_ target: Int, name: String) -> String {
         switch self {
         case .reps: "\(target.formatted()) \(name.lowercased())"
-        case .skips: "\(name) (\(label(target)) a day)"
+        case .skips, .calories: "\(name) (\(label(target)) a day)"
         default: "\(label(target)) of \(name.lowercased())"
         }
     }
@@ -76,7 +80,7 @@ enum ExerciseUnit: String, CaseIterable, Identifiable, Codable {
         case .steps: [500, 1000]
         case .miles: [5, 10]   // half a mile, one mile
         case .laps: [1, 5]
-        case .skips: [1]
+        case .skips, .calories: []   // logged through the "I didn't eat…" box, never a blind +
         }
     }
 
@@ -99,11 +103,14 @@ enum ExerciseUnit: String, CaseIterable, Identifiable, Codable {
         case .miles: 20
         case .laps: 10
         case .skips: 1
+        case .calories: 500
         }
     }
 
     /// Counted by tapping, never timed: no Start Set.
-    var isTimed: Bool { self != .skips }
+    var isTimed: Bool { !logsFood }
+    /// Logged through the "I didn't eat…" box (FoodLog.swift): skips and calories skipped.
+    var logsFood: Bool { self == .skips || self == .calories }
 
     /// Typed with a decimal point.
     var takesDecimal: Bool { scale > 1 }

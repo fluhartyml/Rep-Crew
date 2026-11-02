@@ -206,7 +206,8 @@ private struct SetRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(entry.goal?.name ?? "Exercise").font(AppFont.bodyBold)
+                // REM: an "I didn't eat…" entry shows the food you skipped (his word 2026-11-01).
+                Text(entry.note.isEmpty ? (entry.goal?.name ?? "Exercise") : "I didn't eat \(entry.note)").font(AppFont.bodyBold)
                 Spacer()
                 Text((entry.goal?.unit ?? .reps).label(entry.count)).font(AppFont.bodyBold).monospacedDigit()
             }

@@ -173,6 +173,10 @@ final class RepEntry {
     /// When a timed set started (Start Set or Start Routine). Nil for reps added with the + buttons,
     /// and for sets timed before build 92; their time is read back from Health (DailyStats.swift).
     var startedAt: Date? = nil
+    /// "I didn't eat…" entries: what you didn't eat (FoodLog.swift). Empty on every other entry.
+    /// REM: a new synced field — Production needs it deployed in CloudKit Console (CD_RepEntry.CD_note) before TestFlight
+    /// builds can save it. His word 2026-11-01: "yes build the calorie race".
+    var note: String = ""
     var goal: ExerciseGoal?
 
     init(count: Int, loggedAt: Date = .now) {

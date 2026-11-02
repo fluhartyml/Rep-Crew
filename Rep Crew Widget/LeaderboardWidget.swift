@@ -270,7 +270,7 @@ struct BoardWidgetView: View {
 
     /// + buttons for exercises not yet met today: one on the small widget, up to two otherwise.
     private func buttons(_ board: WidgetBoard) -> [WidgetBoard.Goal] {
-        let open = board.withTaps(WidgetBoardStore.taps()).goals.filter { $0.today < $0.target }
+        let open = board.withTaps(WidgetBoardStore.taps()).goals.filter { $0.today < $0.target && $0.quickAdd > 0 }   // no + for "I didn't eat…" (quickAdd 0)
         return Array(open.prefix(family == .systemSmall ? 1 : 2))
     }
 

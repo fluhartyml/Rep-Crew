@@ -32,7 +32,8 @@ final class WatchBridge: NSObject, WCSessionDelegate {
               WCSession.default.isPaired, WCSession.default.isWatchAppInstalled else { return }
         let goals: [[String: Any]] = challenges.filter(\.isActive).flatMap { challenge in
             challenge.sortedGoals.compactMap { goal -> [String: Any]? in
-                guard let id = Self.encode(goal.persistentModelID) else { return nil }
+                // REM: "I didn't eat…" goals are logged in the iPhone's box (what you didn't eat), not as a Watch set.
+                guard !goal.unit.logsFood, let id = Self.encode(goal.persistentModelID) else { return nil }
                 return ["id": id, "challenge": challenge.title, "name": goal.name,
                         "done": goal.total(on: .now), "target": goal.dailyTarget,
                         "unit": goal.unit.rawValue, "scale": goal.unit.scale]

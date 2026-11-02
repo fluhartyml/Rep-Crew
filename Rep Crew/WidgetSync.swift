@@ -25,7 +25,8 @@ enum WidgetSync {
             board.meDay = challenge.dayNumber() ?? 0
             board.meStreak = challenge.streak
             board.goals = challenge.sortedGoals.map { goal in
-                let add = goal.unit.quickAdds.last ?? 10
+                // REM: "I didn't eat…" goals need the box (what you didn't eat), so the widget gets no + for them.
+                let add = goal.unit.logsFood ? 0 : (goal.unit.quickAdds.last ?? 10)
                 return .init(order: goal.order, name: goal.name, target: goal.dailyTarget, today: goal.total(on: .now),
                              quickAdd: add,
                              quickLabel: "+" + (goal.unit == .reps ? "\(add) \(goal.name.lowercased())" : goal.unit.label(add)))

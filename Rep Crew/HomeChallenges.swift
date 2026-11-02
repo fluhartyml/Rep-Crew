@@ -85,6 +85,7 @@ private struct HomeChallengeCard: View {
 private struct HomeGoalRow: View {
     let goal: ExerciseGoal
     @Environment(\.modelContext) private var context
+    @State private var loggingFood = false
 
     var body: some View {
         let done = goal.total(on: .now)
@@ -99,6 +100,14 @@ private struct HomeGoalRow: View {
             ProgressView(value: Double(min(done, goal.dailyTarget)), total: Double(max(goal.dailyTarget, 1)))
                 .tint(left == 0 ? .green : .accentColor)
             HStack(spacing: 10) {
+                if goal.unit.logsFood {
+                    // REM: Smitty's "I didn't eat…" (his word 2026-11-01): the box asks what you didn't eat.
+                    Button("I Didn't Eat…") { loggingFood = true }
+                        .font(AppFont.bodyBold)
+                        .buttonStyle(.bordered)
+                        .lineLimit(1)
+                        .fixedSize()
+                }
                 ForEach(goal.unit.quickAdds, id: \.self) { amount in
                     Button("+\(goal.unit.amount(amount))") { log(amount) }
                         .font(AppFont.bodyBold)
@@ -113,6 +122,9 @@ private struct HomeGoalRow: View {
             }
         }
         .padding(.vertical, 4)
+        .sheet(isPresented: $loggingFood) {
+            FoodLogSheet(unit: goal.unit) { count, food in goal.logFood(count: count, food: food, in: context) }
+        }
     }
 
     private func log(_ count: Int) {

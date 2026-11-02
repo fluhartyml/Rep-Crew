@@ -267,6 +267,7 @@ private struct GoalRow: View {
     let goal: ExerciseGoal
     let onCustom: () -> Void
     let onStartSet: () -> Void
+    @State private var loggingFood = false
 
     var body: some View {
         let done = goal.total(on: .now)
@@ -301,6 +302,14 @@ private struct GoalRow: View {
                     .font(AppFont.body)
                     .foregroundStyle(.secondary)
             }
+            if goal.unit.logsFood {
+                // REM: Smitty's "I didn't eat…" (his word 2026-11-01): one button opens the box; today's list below it.
+                Button { loggingFood = true } label: {
+                    Label("I Didn't Eat…", systemImage: "fork.knife").font(AppFont.bodyBold)
+                }
+                .buttonStyle(.borderedProminent)
+                FoodTodayList(goal: goal)
+            } else {
             // +5, +10, Other, then the whole daily goal in one tap (Michael's layout).
             HStack(spacing: 10) {
                 ForEach(goal.unit.quickAdds, id: \.self) { amount in
@@ -312,8 +321,9 @@ private struct GoalRow: View {
                     .lineLimit(1)
                     .fixedSize()
                 // REM: a skips goal is usually 1, the same as its +1 button; don't show it twice.
-                if !(goal.unit == .skips && goal.unit.quickAdds.contains(goal.dailyTarget)) { addButton(goal.dailyTarget) }
+                addButton(goal.dailyTarget)
                 Spacer(minLength: 0)
+            }
             }
             // Times a set and saves it to Health as a workout (SetTimer.swift). Not for skips: nothing to time.
             if goal.unit.isTimed {
@@ -324,6 +334,9 @@ private struct GoalRow: View {
             }
         }
         .padding(.vertical, 8)
+        .sheet(isPresented: $loggingFood) {
+            FoodLogSheet(unit: goal.unit) { count, food in goal.logFood(count: count, food: food, in: context) }
+        }
     }
 
     private func addButton(_ amount: Int) -> some View {

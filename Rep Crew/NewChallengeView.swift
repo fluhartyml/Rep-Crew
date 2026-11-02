@@ -114,7 +114,7 @@ struct NewChallengeView: View {
                         }
                         Button("Other exercise") { drafts.append(Draft(name: "", target: 50)) }
                         // REM: Smitty's "I didn't eat…" challenge (his word 2026-11-01). Finish the sentence; add as many as you like.
-                        Button("I didn't eat…") { drafts.append(Draft(name: "I didn't eat ", target: 1, unit: .skips)) }
+                        Button("I didn't eat…") { drafts.append(Draft(name: "I didn't eat junk food", target: 500, unit: .calories)) }
                     } label: {
                         Label("Add an exercise", systemImage: "plus.circle").font(AppFont.bodyBold)
                     }
