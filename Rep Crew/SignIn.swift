@@ -33,6 +33,7 @@ struct RootView: View {
     @AppStorage(CrewSettings.appleUser) private var appleUser = ""
     @AppStorage(CrewSettings.name) private var name = ""
     @AppStorage(CrewSettings.applicationDone) private var applicationDone = false
+    @AppStorage(CrewSettings.permissionSetupDone) private var permissionSetupDone = false
     @AppStorage(CrewSettings.profileRestored) private var accountChecked = false
     /// The iCloud lookup was tried; if iCloud didn't answer, the name is asked as before.
     @State private var lookedUp = false
@@ -55,6 +56,9 @@ struct RootView: View {
                 NameView()
             } else if !applicationDone {
                 ApplicationView()
+            } else if !permissionSetupDone {
+                // REM: his yes, 2026-11-06 (amber line 001.10): say why before Apple asks (PermissionSetup.swift).
+                PermissionSetupView()
             } else {
                 // REM: his word, 2026-11-02: "yes bring the tabs over to rep crew" (RootTabs.swift).
                 RootTabs(openedURL: $openedURL)

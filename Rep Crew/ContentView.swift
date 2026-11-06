@@ -403,7 +403,8 @@ struct ContentView: View {
         let skip = Set(challenges.map(\.crewID).filter { !$0.isEmpty })
             .union(declined.split(separator: "\n").map(String.init))
         await cloud.refreshPending(skipping: skip)
-        await CrewNotifications.requestPermission()
+        // REM: Home no longer raises the notification pop-up on its own (amber line 001.2, his yes 2026-11-06).
+        // The setup screen asks with a reason (PermissionSetup.swift); rep reminders still ask when turned on.
         // A leader's Edit Exercises reaches your copy of their challenge (EditExercises.swift).
         await GoalSync.run(challenges, context: context)
         let found = await cloud.crewChallenges()
