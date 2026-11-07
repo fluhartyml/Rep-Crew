@@ -87,14 +87,19 @@ private func initializeCloudKitSchema(at url: URL) {
 /// REM: his rule (feedback_18pt_minimum_font, 11-04): "18 point rule is my personal assistive setting" —
 /// 18 pt at the DEFAULT text size, and the person's own text-size setting wins. Until 2026-11-06 these
 /// were fixed .system(size:) fonts that never scaled; the shakedown robot's accessibility audit caught it
-/// ("Dynamic Type font sizes are unsupported"). Font.custom(_:size:relativeTo:) scales a size with the
-/// matching text style; the name isn't an installed font, so SwiftUI draws the system font (San Francisco).
+/// ("Dynamic Type font sizes are unsupported").
+/// ⚠️ Don't use Font.custom(name, size:, relativeTo:) for this: no name reaches San Francisco, so it fell
+/// back to a serif (Times) — seen in the robot's screenshot 2026-11-06, and the audit never flagged it.
+/// So each size is Apple's system font scaled by UIFontMetrics for the current text size, and RootView
+/// rebuilds when the text size changes (.id(dynamicTypeSize) in SignIn.swift) so every screen picks it up.
 enum AppFont {
-    private static let system = UIFont.systemFont(ofSize: 18).fontName
-    static let body = Font.custom(system, size: 18, relativeTo: .body)
-    static let bodyBold = Font.custom(system, size: 18, relativeTo: .body).weight(.semibold)
-    static let heading = Font.custom(system, size: 22, relativeTo: .title3).weight(.semibold)
-    static let title = Font.custom(system, size: 28, relativeTo: .title).weight(.bold)
+    private static func scaled(_ size: CGFloat, _ weight: UIFont.Weight, _ style: UIFont.TextStyle) -> Font {
+        Font(UIFontMetrics(forTextStyle: style).scaledFont(for: .systemFont(ofSize: size, weight: weight)))
+    }
+    static var body: Font { scaled(18, .regular, .body) }
+    static var bodyBold: Font { scaled(18, .semibold, .body) }
+    static var heading: Font { scaled(22, .semibold, .title3) }
+    static var title: Font { scaled(28, .bold, .title1) }
     /// .largeTitle is 34 pt at the default size, so the rounded numbers keep their look and still scale.
     static let bigNumber = Font.system(.largeTitle, design: .rounded, weight: .bold)
 }
