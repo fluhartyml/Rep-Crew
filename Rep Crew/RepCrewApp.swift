@@ -102,3 +102,18 @@ enum AppFont {
     /// .largeTitle is 34 pt at the default size, so the rounded numbers keep their look and still scale.
     static let bigNumber = Font.system(.largeTitle, design: .rounded, weight: .bold)
 }
+
+/// Deeper greens for buttons that carry text, so the words pass contrast.
+/// REM: the shakedown robot's audit (2026-11-06) failed Allow Notifications, Allow Health and I Agree on
+/// contrast — the accent green (0.31, 0.56, 0) is too light for text on its own pale tint, and too light
+/// behind white text. His word 21:1x: "yes fix the 3 buttons". The accent color itself is unchanged.
+enum ButtonGreen {
+    /// Behind white text (.borderedProminent): one dark green in both light and dark mode, ~6:1 with white.
+    static let filled = Color(red: 0.20, green: 0.42, blue: 0.0)
+    /// For green text on a pale tint (.bordered): dark green in light mode, bright green in dark mode.
+    static let text = Color(UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.45, green: 0.80, blue: 0.20, alpha: 1)
+            : UIColor(red: 0.20, green: 0.42, blue: 0.0, alpha: 1)
+    })
+}

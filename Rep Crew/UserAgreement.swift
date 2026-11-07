@@ -104,13 +104,19 @@ struct UserAgreementView: View {
                         Text("I Agree").font(AppFont.bodyBold).frame(maxWidth: .infinity, minHeight: 44)
                     }
                     .buttonStyle(.borderedProminent)
+                    .tint(ButtonGreen.filled) // REM: contrast fix 11-06, see ButtonGreen
                     .disabled(!readToEnd)
                     if !readToEnd {
-                        Text("Scroll to the end to agree.").font(AppFont.body).foregroundStyle(.secondary)
+                        Text("Scroll to the end to agree.").font(AppFont.body).foregroundStyle(.primary)
                     }
                 }
                 .padding()
-                .background(.bar)
+                // REM: contrast fix 11-06 — was .background(.bar), a see-through blur: the agreement text
+                // scrolling under it was graded (and read) through the blur, and the gray hint on top failed.
+                .background(Color(uiColor: .systemBackground))
+                .overlay(alignment: .top) { Divider() }
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("agreementBar")
             }
             .navigationTitle("User Agreement")
         }

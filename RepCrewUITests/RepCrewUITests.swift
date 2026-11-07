@@ -60,10 +60,22 @@ final class RepCrewUITests: XCTestCase {
         // REM: 2026-11-06 — the audit's Dynamic Type and Text-clipped checks flag ANY custom-sized font (his
         // 18 pt needs one), even though the text measurably grows 11x and wraps (testTextGrowsWithTextSize +
         // robot screenshots at Accessibility XXXL). Those two are guarded by the measured test instead.
+        // REM: 2026-11-06 — the agreement screen's solid bottom bar (I Agree) covers the text scrolling under it;
+        // the bar's own contents are graded, text hidden behind it is skipped and logged, like the tab bar.
+        let bottomBar = app.otherElements["agreementBar"]
+        let barFrame: CGRect? = bottomBar.exists ? bottomBar.frame : nil
+        if let barFrame { visible.size.height = min(visible.maxY, barFrame.minY) - visible.minY }
         try app.performAccessibilityAudit(for: XCUIAccessibilityAuditType.all.subtracting([.dynamicType, .textClipped])) { issue in
             let label = issue.element?.label ?? "no element"
-            if let element = issue.element, element.exists, !visible.contains(element.frame) {
+            if let element = issue.element, element.exists, !visible.contains(element.frame),
+               !(barFrame?.contains(element.frame) ?? false) {
                 print("AUDIT-SKIPPED [\(screen)] not fully on screen: \(issue.compactDescription) — '\(label)'")
+                return true
+            }
+            // REM: a turned-off button (I Agree before the end is read) wears Apple's standard dimmed look,
+            // which contrast rules exempt for inactive controls. Logged, and graded again once it's on.
+            if let element = issue.element, element.exists, element.elementType == .button, !element.isEnabled {
+                print("AUDIT-SKIPPED [\(screen)] turned off: \(issue.compactDescription) — '\(label)'")
                 return true
             }
             // Report every issue with the screen it was on, so the fix knows where to look.
@@ -86,8 +98,14 @@ final class RepCrewUITests: XCTestCase {
 
     func testUserAgreementScreen() throws {
         let app = launch(agreed: false)
-        XCTAssertTrue(app.buttons["I Agree"].waitForExistence(timeout: 10), "The I Agree button has no accessible name")
+        let agree = app.buttons["I Agree"]
+        XCTAssertTrue(agree.waitForExistence(timeout: 10), "The I Agree button has no accessible name")
         try auditScrolling(app, "User Agreement")
+        // Read to the end, the way a person must, then grade I Agree turned on.
+        let scroller = app.scrollViews.firstMatch
+        for _ in 0..<25 where !agree.isEnabled { scroller.swipeUp() }
+        XCTAssertTrue(agree.isEnabled, "I Agree never turned on after scrolling to the end")
+        try audit(app, "User Agreement (end)")
     }
 
     func testBeforeYouStartScreen() throws {

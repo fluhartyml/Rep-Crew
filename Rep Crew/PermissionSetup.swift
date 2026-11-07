@@ -119,6 +119,7 @@ struct PermissionSetupView: View {
                         Text(allow).font(AppFont.bodyBold)
                     }
                     .buttonStyle(.bordered)
+                    .tint(ButtonGreen.text) // REM: contrast fix 11-06, see ButtonGreen
                 case .on(let words):
                     Label(words, systemImage: "checkmark.circle.fill")
                         .font(AppFont.bodyBold).foregroundStyle(.green)
