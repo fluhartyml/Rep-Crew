@@ -38,7 +38,6 @@ struct RootView: View {
     /// The iCloud lookup was tried; if iCloud didn't answer, the name is asked as before.
     @State private var lookedUp = false
     @State private var openedURL: URL?
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// Read so the screen changes the moment I Agree is tapped (UserAgreement.swift).
     @AppStorage(CrewSettings.agreementVersion) private var agreementVersion = 0
 
@@ -65,9 +64,6 @@ struct RootView: View {
                 RootTabs(openedURL: $openedURL)
             }
         }
-        // REM: AppFont sizes are read from the current text size (RepCrewApp.swift); rebuilding on a change
-        // makes every screen follow the person's text-size setting without a relaunch.
-        .id(dynamicTypeSize)
         .onOpenURL { openedURL = $0 }
         .task(id: appleUser) {
             guard !appleUser.isEmpty else { return }

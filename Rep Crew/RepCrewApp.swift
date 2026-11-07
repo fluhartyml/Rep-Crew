@@ -90,16 +90,15 @@ private func initializeCloudKitSchema(at url: URL) {
 /// ("Dynamic Type font sizes are unsupported").
 /// ⚠️ Don't use Font.custom(name, size:, relativeTo:) for this: no name reaches San Francisco, so it fell
 /// back to a serif (Times) — seen in the robot's screenshot 2026-11-06, and the audit never flagged it.
-/// So each size is Apple's system font scaled by UIFontMetrics for the current text size, and RootView
-/// rebuilds when the text size changes (.id(dynamicTypeSize) in SignIn.swift) so every screen picks it up.
+/// A rebuild-on-text-size-change (.id) was tried next and reset every screen to Home — removed.
 enum AppFont {
-    private static func scaled(_ size: CGFloat, _ weight: UIFont.Weight, _ style: UIFont.TextStyle) -> Font {
-        Font(UIFontMetrics(forTextStyle: style).scaledFont(for: .systemFont(ofSize: size, weight: weight)))
-    }
-    static var body: Font { scaled(18, .regular, .body) }
-    static var bodyBold: Font { scaled(18, .semibold, .body) }
-    static var heading: Font { scaled(22, .semibold, .title3) }
-    static var title: Font { scaled(28, .bold, .title1) }
+    /// ".AppleSystemUIFont" is the name Core Text gives San Francisco itself, so it resolves (no serif
+    /// fallback) and relativeTo: keeps it scaling live with the text size, with no rebuild.
+    private static let sf = ".AppleSystemUIFont"
+    static let body = Font.custom(sf, size: 18, relativeTo: .body)
+    static let bodyBold = Font.custom(sf, size: 18, relativeTo: .body).weight(.semibold)
+    static let heading = Font.custom(sf, size: 22, relativeTo: .title3).weight(.semibold)
+    static let title = Font.custom(sf, size: 28, relativeTo: .title).weight(.bold)
     /// .largeTitle is 34 pt at the default size, so the rounded numbers keep their look and still scale.
     static let bigNumber = Font.system(.largeTitle, design: .rounded, weight: .bold)
 }

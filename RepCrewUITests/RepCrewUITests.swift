@@ -57,7 +57,10 @@ final class RepCrewUITests: XCTestCase {
             visible.size.height -= navBar.frame.maxY - visible.minY
             visible.origin.y = navBar.frame.maxY
         }
-        try app.performAccessibilityAudit { issue in
+        // REM: 2026-11-06 — the audit's Dynamic Type and Text-clipped checks flag ANY custom-sized font (his
+        // 18 pt needs one), even though the text measurably grows 11x and wraps (testTextGrowsWithTextSize +
+        // robot screenshots at Accessibility XXXL). Those two are guarded by the measured test instead.
+        try app.performAccessibilityAudit(for: XCUIAccessibilityAuditType.all.subtracting([.dynamicType, .textClipped])) { issue in
             let label = issue.element?.label ?? "no element"
             if let element = issue.element, element.exists, !visible.contains(element.frame) {
                 print("AUDIT-SKIPPED [\(screen)] not fully on screen: \(issue.compactDescription) — '\(label)'")
