@@ -67,6 +67,16 @@ struct RootView: View {
         .onOpenURL { openedURL = $0 }
         .task(id: appleUser) {
             guard !appleUser.isEmpty else { return }
+            #if DEBUG
+            // REM: his word 2026-11-06 19:2x, "have an xcode robot shake each edit down … navigate without
+            // human eyes or a track pad". The robot (RepCrewUITests) can't do Sign in with Apple in the
+            // Simulator, so it launches with -UITestRobot plus the settings it needs as arguments, and the
+            // Apple ID and iCloud checks are skipped. Debug builds only; never in TestFlight or the App Store.
+            if ProcessInfo.processInfo.arguments.contains("-UITestRobot") {
+                lookedUp = true
+                return
+            }
+            #endif
             if let state = try? await ASAuthorizationAppleIDProvider().credentialState(forUserID: appleUser),
                state == .revoked || state == .notFound {
                 appleUser = ""

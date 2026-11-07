@@ -84,10 +84,17 @@ private func initializeCloudKitSchema(at url: URL) {
 #endif
 
 /// Text sizes. 18 pt is the floor for every piece of text in the app.
+/// REM: his rule (feedback_18pt_minimum_font, 11-04): "18 point rule is my personal assistive setting" —
+/// 18 pt at the DEFAULT text size, and the person's own text-size setting wins. Until 2026-11-06 these
+/// were fixed .system(size:) fonts that never scaled; the shakedown robot's accessibility audit caught it
+/// ("Dynamic Type font sizes are unsupported"). Font.custom(_:size:relativeTo:) scales a size with the
+/// matching text style; the name isn't an installed font, so SwiftUI draws the system font (San Francisco).
 enum AppFont {
-    static let body = Font.system(size: 18)
-    static let bodyBold = Font.system(size: 18, weight: .semibold)
-    static let heading = Font.system(size: 22, weight: .semibold)
-    static let title = Font.system(size: 28, weight: .bold)
-    static let bigNumber = Font.system(size: 34, weight: .bold, design: .rounded)
+    private static let system = UIFont.systemFont(ofSize: 18).fontName
+    static let body = Font.custom(system, size: 18, relativeTo: .body)
+    static let bodyBold = Font.custom(system, size: 18, relativeTo: .body).weight(.semibold)
+    static let heading = Font.custom(system, size: 22, relativeTo: .title3).weight(.semibold)
+    static let title = Font.custom(system, size: 28, relativeTo: .title).weight(.bold)
+    /// .largeTitle is 34 pt at the default size, so the rounded numbers keep their look and still scale.
+    static let bigNumber = Font.system(.largeTitle, design: .rounded, weight: .bold)
 }

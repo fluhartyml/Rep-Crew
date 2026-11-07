@@ -88,7 +88,8 @@ struct UserAgreementView: View {
                     Text(UserAgreement.styled("Please read this before using \(UserAgreement.formalName).")).font(AppFont.body)
                     ForEach(UserAgreement.sections, id: \.heading) { section in
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(UserAgreement.styled(section.heading)).font(AppFont.heading)
+                            // REM: shakedown robot 2026-11-06: the heading clipped at large text sizes; it grows like its body now.
+                            Text(UserAgreement.styled(section.heading)).font(AppFont.heading).fixedSize(horizontal: false, vertical: true)
                             Text(UserAgreement.styled(section.body)).font(AppFont.body).fixedSize(horizontal: false, vertical: true)
                         }
                     }
