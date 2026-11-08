@@ -199,4 +199,25 @@ final class RepCrewUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Body Metrics"].waitForExistence(timeout: 5), "Screen title isn't Body Metrics")
         try audit(app, "Body Metrics")
     }
+
+    /// Amber 100.1: tapping a direct message in the Inbox opens it in full; the sender's name is a button.
+    func testInboxMessageOpensInFull() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-UITestRobot", "-UITestInboxLetter", "-agreementVersion", "999", "-appleUserID", "ui-test-member",
+                               "-yourName", "Test Member", "-profileRestored", "YES", "-applicationDone", "YES", "-permissionSetupDone", "YES"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Home"].firstMatch.waitForExistence(timeout: 15), "Home never appeared")
+        app.buttons["Home"].firstMatch.tap()
+        let inbox = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Inbox'")).firstMatch
+        XCTAssertTrue(inbox.waitForExistence(timeout: 5), "No Inbox on Home")
+        inbox.tap()
+        let letter = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Sample Coach'")).firstMatch
+        XCTAssertTrue(letter.waitForExistence(timeout: 10), "Sample letter not in the Inbox")
+        letter.tap()
+        let text = app.staticTexts["messageText"]
+        XCTAssertTrue(text.waitForExistence(timeout: 5), "The message didn't open")
+        XCTAssertTrue(text.label.contains("Line 12 of the welcome letter."), "The whole message isn't shown")
+        XCTAssertTrue(app.buttons["messageSender"].exists, "No sender button")
+        try audit(app, "Message")
+    }
 }

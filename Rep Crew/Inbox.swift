@@ -185,6 +185,9 @@ struct InboxView: View {
     /// Unread when this visit began; their blue dots stay for the visit.
     @State private var unread: Set<String> = []
     @State private var profileOf: ProfileTarget?
+    /// A direct message open in full (amber 100.1). Its sender button closes it, then opens their profile.
+    @State private var reading: InboxItem?
+    @State private var profileAfterReading: ProfileTarget?
     /// The first load ran past `slowAfter` seconds: say so instead of a blank page.
     @State private var slow = false
     private static let slowAfter: Duration = .seconds(15)
@@ -219,6 +222,13 @@ struct InboxView: View {
             if !loaded { slow = true }
         }
         .sheet(item: $profileOf) { ProfileView(target: $0, canMessage: true) }
+        .sheet(item: $reading, onDismiss: {
+            if let sender = profileAfterReading { profileAfterReading = nil; profileOf = sender }
+        }) { item in
+            if case .person(let sender) = item.destination {
+                MessageReader(item: item, sender: sender) { profileAfterReading = sender; reading = nil }
+            }
+        }
     }
 
     private func delete(_ item: InboxItem) {
@@ -261,18 +271,71 @@ struct InboxView: View {
         case .newMembers:
             NavigationLink(value: CrewScreen.newMembers) { label }.simultaneousGesture(opened)
         case .person(let sender):
-            Button { unread.remove(item.id); profileOf = sender } label: { label }
+            // REM: FIXED 2026-11-07 — his report on build 168 (amber 100): "When I click on the welcome letter from James to
+            // REM: read more, it takes me to his account. I can't read the rest of the letter." The row shows 3 lines and
+            // REM: tapping opened the sender's profile, so no screen ever showed a whole message. Now tapping opens the
+            // REM: message in full; the sender's name at the top is the button to their profile (amber 100.1).
+            Button { unread.remove(item.id); reading = item } label: { label }
+                .accessibilityHint("Opens the whole message.")
         }
     }
 
     private func load() async {
         items = await CrewCloud.shared.inbox(crewIDs: challenges.map(\.crewID).filter { !$0.isEmpty },
                                              led: challenges.filter { $0.leaderID.isEmpty && !$0.crewID.isEmpty }.map(\.crewID))
+        #if DEBUG
+        // REM: the robot's sample letter (amber 100.1): a long direct message so it can check the whole text opens.
+        // Debug builds only; neutral sample text, never anyone's real message.
+        if ProcessInfo.processInfo.arguments.contains("-UITestInboxLetter") {
+            let letter = (1...12).map { "Line \($0) of the welcome letter." }.joined(separator: "\n")
+            items.insert(InboxItem(id: "ui-test-letter", date: .now, icon: "envelope.fill", title: "✉️ Sample Coach",
+                                   detail: letter, destination: .person(ProfileTarget(id: "ui-test-coach", name: "Sample Coach"))), at: 0)
+        }
+        #endif
         let seen = Set(InboxState.seen)
         unread.formUnion(items.filter { InboxState.isUnread($0, since: openedAt, seen: seen) }.map(\.id))
         InboxState.markSeen(items)
         openedAt = Date.now.timeIntervalSince1970
         await InboxBadge.set(0)
         loaded = true
+    }
+}
+
+/// One direct message, in full: who it's from (a button to their profile), when, and every line of it (amber 100.1).
+private struct MessageReader: View {
+    let item: InboxItem
+    let sender: ProfileTarget
+    let openProfile: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Button(action: openProfile) {
+                        Label("From \(sender.name)", systemImage: "person.crop.circle.fill").font(AppFont.bodyBold)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(ButtonGreen.text) // REM: contrast fix 11-06, see ButtonGreen
+                    .accessibilityHint("Opens \(sender.name)'s profile, where you can answer.")
+                    .accessibilityIdentifier("messageSender")
+                    if let date = item.shownDate ?? item.date {
+                        Text(date.formatted(date: .abbreviated, time: .shortened))
+                            .font(AppFont.body).foregroundStyle(.secondary)
+                    }
+                    Text(item.detail)
+                        .font(AppFont.body)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .accessibilityIdentifier("messageText")
+                }
+                .padding(20)
+            }
+            .navigationTitle("Message")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.font(AppFont.bodyBold) }
+            }
+        }
     }
 }
