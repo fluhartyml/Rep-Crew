@@ -163,4 +163,24 @@ final class RepCrewUITests: XCTestCase {
         XCTAssertTrue(greeting.waitForExistence(timeout: 5), "No \"Hello, Test Member\" on Home")
         let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "Home greeting"; shot.lifetime = .keepAlways; add(shot)
     }
+
+    /// Amber 002.2: Settings shows Notifications and Health, each on or off, each with an Access button.
+    func testSettingsHasAccessButtons() throws {
+        let app = launch()
+        XCTAssertTrue(app.buttons["Home"].firstMatch.waitForExistence(timeout: 15), "Home never appeared")
+        app.buttons["Home"].firstMatch.tap()
+        let gear = app.buttons["Settings"].firstMatch
+        XCTAssertTrue(gear.waitForExistence(timeout: 5), "No Settings button on Home")
+        gear.tap()
+        for (button, status) in [("accessHealth", "healthStatus"), ("accessNotifications", "notificationsStatus")] {
+            let b = app.buttons[button]
+            var swipes = 0
+            while !(b.exists && b.isHittable) && swipes < 10 { app.swipeUp(); swipes += 1 }
+            XCTAssertTrue(b.exists && b.isHittable, "No \(button) button in Settings")
+            let s = app.descendants(matching: .any)[status].firstMatch
+            XCTAssertTrue(s.exists, "No \(status) line in Settings")
+            print("ACCESS \(button): \(s.label)")
+            try audit(app, "Settings \(button)")
+        }
+    }
 }

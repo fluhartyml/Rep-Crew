@@ -6,6 +6,7 @@
 //  once; everyone after gets it filled in when they join an invite.
 //
 
+import HealthKit
 import SwiftUI
 import SwiftData
 
@@ -51,6 +52,8 @@ struct SettingsView: View {
                 BodyStatsSection()
 
                 Section {
+                    // REM: amber 002.2 — the Health permission, on or off, and a way to change it.
+                    if HKHealthStore.isHealthDataAvailable() { PermissionAccessRow(kind: .health) }
                     NavigationLink { HealthMatchView() } label: {
                         Text("Match Health Workouts").font(AppFont.bodyBold)
                     }
@@ -65,6 +68,8 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    // REM: amber 002.2 — the Notifications permission, on or off, and a way to change it.
+                    PermissionAccessRow(kind: .notifications)
                     NavigationLink { NotificationSettingsView() } label: {
                         Text("Notifications").font(AppFont.bodyBold)
                     }

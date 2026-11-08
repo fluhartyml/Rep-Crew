@@ -155,3 +155,92 @@ struct PermissionSetupView: View {
         if healthHere { healthSaving = HealthSets.store.authorizationStatus(for: HKObjectType.workoutType()) }
     }
 }
+
+// MARK: - Settings: take a permission back (amber 002.2)
+
+/// One Access row in Settings: whether the permission is on, and a button that works in every state.
+/// REM: his rule 2026-11-06, line 002.2, every app: "in settings you should always be able to change your mind
+/// REM: and take back a permission." Not asked yet → Apple's pop-up. Answered → Apple lets no app flip its own
+/// REM: permission, so the button opens the place you flip it: Settings → Notifications → Rep Crew, or the Health app.
+/// REM: Health READING has no on/off an app can see (line 001.4), so the Health row reports saving only, and says so.
+struct PermissionAccessRow: View {
+    enum Kind { case notifications, health }
+    let kind: Kind
+
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.openURL) private var openURL
+    @State private var notifications: UNAuthorizationStatus = .notDetermined
+    @State private var healthSaving: HKAuthorizationStatus = .notDetermined
+    @State private var asking = false
+
+    private var notAsked: Bool {
+        kind == .notifications ? notifications == .notDetermined : healthSaving == .notDetermined
+    }
+    private var isOn: Bool {
+        switch kind {
+        case .notifications: notifications == .authorized || notifications == .provisional || notifications == .ephemeral
+        case .health: healthSaving == .sharingAuthorized
+        }
+    }
+    private var words: String {
+        switch kind {
+        case .notifications:
+            notAsked ? "Not asked yet" : isOn ? "Notifications are on" : "Notifications are off"
+        case .health:
+            notAsked ? "Not asked yet" : isOn ? "Saving your sets is on" : "Saving your sets is off"
+        }
+    }
+    private var buttonTitle: String { kind == .notifications ? "Access Notifications" : "Access Health" }
+    private var footnote: String {
+        switch kind {
+        case .notifications:
+            notAsked ? "Tap Access Notifications and Apple asks whether Rep Crew may notify you."
+                     : "Tap Access Notifications to change it in the Settings app, under Notifications, Rep Crew."
+        case .health:
+            notAsked ? "Tap Access Health and Apple asks what Rep Crew may save and read."
+                     : "Tap Access Health to open the Health app, then tap your picture, Apps, Rep Crew. Apple never tells an app whether it may read your Health data."
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(words, systemImage: isOn ? "checkmark.circle.fill" : notAsked ? "questionmark.circle" : "xmark.circle.fill")
+                .font(AppFont.bodyBold)
+                .foregroundStyle(isOn ? Color.green : Color.secondary)
+                .accessibilityIdentifier(kind == .notifications ? "notificationsStatus" : "healthStatus")
+            Button { Task { await tap() } } label: {
+                Text(buttonTitle).font(AppFont.bodyBold)
+            }
+            .buttonStyle(.bordered)
+            .tint(ButtonGreen.text) // REM: contrast fix 11-06, see ButtonGreen
+            .disabled(asking)
+            .accessibilityIdentifier(kind == .notifications ? "accessNotifications" : "accessHealth")
+            Text(footnote).font(AppFont.body).foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 4)
+        // Back from Settings or Health: show what changed there.
+        .task(id: scenePhase) { if scenePhase == .active { await refresh() } }
+    }
+
+    private func tap() async {
+        if notAsked {
+            asking = true
+            switch kind {
+            case .notifications: await CrewNotifications.requestPermission()
+            case .health: try? await HealthSets.store.requestAuthorization(toShare: HealthSets.shareTypes, read: HealthSets.readTypes)
+            }
+            await refresh()
+            asking = false
+            return
+        }
+        let address = kind == .notifications ? UIApplication.openNotificationSettingsURLString : "x-apple-health://"
+        if let url = URL(string: address) { openURL(url) }
+    }
+
+    private func refresh() async {
+        notifications = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+        if HKHealthStore.isHealthDataAvailable() {
+            healthSaving = HealthSets.store.authorizationStatus(for: HKObjectType.workoutType())
+        }
+    }
+}
