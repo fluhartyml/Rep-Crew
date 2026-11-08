@@ -6,6 +6,8 @@
 //  their profile privately by default and not shown to other crew members" — and on the plan (weight,
 //  height, body fat, resting heart rate, read from Health, kept on the phone with a history): "yes
 //  build the body stats".
+//  REM: renamed on screen to "Body Metrics" — his feedback on build 220 (2026-11-05, amber 161): "Body metrics instead
+//  of body ststs." Code names stay BodyStats; only what you read changed.
 //
 //  REM: read from Health every time, never copied into SwiftData or iCloud, so nothing here can reach the
 //  crew. Health stays the record. Asked for only when you tap the button here, in its own prompt, so
@@ -150,7 +152,7 @@ struct BodyStatsSection: View {
     var body: some View {
         Section {
             NavigationLink { BodyStatsView() } label: {
-                Label("Body Stats", systemImage: "figure").font(AppFont.bodyBold)
+                Label("Body Metrics", systemImage: "figure").font(AppFont.bodyBold)
             }
         } footer: {
             Text("Weight, height, body fat and resting heart rate from Health, with their history. Private: only you see them, on this iPhone.")
@@ -183,7 +185,7 @@ struct BodyStatsView: View {
                             await load()
                         }
                     } label: {
-                        Label("Read Body Stats from Health", systemImage: "heart.text.square.fill").font(AppFont.bodyBold)
+                        Label("Read Body Metrics from Health", systemImage: "heart.text.square.fill").font(AppFont.bodyBold)
                     }
                 } footer: {
                     Text("Health asks which stats Rep Crew may read. Nothing is saved to iCloud or shown to your crewmates.")
@@ -208,7 +210,7 @@ struct BodyStatsView: View {
                 }
             }
         }
-        .navigationTitle("Body Stats")
+        .navigationTitle("Body Metrics")
         .navigationBarTitleDisplayMode(.inline)
         .task { if asked { await load() } }
         .refreshable { await load() }

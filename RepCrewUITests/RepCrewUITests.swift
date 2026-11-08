@@ -183,4 +183,20 @@ final class RepCrewUITests: XCTestCase {
             try audit(app, "Settings \(button)")
         }
     }
+
+    /// Amber 161: Settings and its screen say "Body Metrics", never "Body Stats".
+    func testBodyMetricsName() throws {
+        let app = launch()
+        XCTAssertTrue(app.buttons["Home"].firstMatch.waitForExistence(timeout: 15), "Home never appeared")
+        app.buttons["Home"].firstMatch.tap()
+        app.buttons["Settings"].firstMatch.tap()
+        let row = app.buttons["Body Metrics"].firstMatch
+        var swipes = 0
+        while !(row.exists && row.isHittable) && swipes < 10 { app.swipeUp(); swipes += 1 }
+        XCTAssertTrue(row.exists, "No Body Metrics row in Settings")
+        XCTAssertFalse(app.staticTexts["Body Stats"].exists, "Settings still says Body Stats")
+        row.tap()
+        XCTAssertTrue(app.navigationBars["Body Metrics"].waitForExistence(timeout: 5), "Screen title isn't Body Metrics")
+        try audit(app, "Body Metrics")
+    }
 }
