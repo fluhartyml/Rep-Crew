@@ -220,4 +220,22 @@ final class RepCrewUITests: XCTestCase {
         XCTAssertTrue(app.buttons["messageSender"].exists, "No sender button")
         try audit(app, "Message")
     }
+
+    /// Amber 160: Find a Group opens and passes the audit. Its + (New Group) shows only at level 11 and up; the robot's
+    /// test member is a new member, so the + must NOT show for it. (Level 11+ is his to try on a real account.)
+    func testFindAGroupPlusFollowsLevel() throws {
+        let app = launch()
+        XCTAssertTrue(app.buttons["Home"].firstMatch.waitForExistence(timeout: 15), "Home never appeared")
+        app.buttons["Home"].firstMatch.tap()
+        let find = app.buttons["Find a Group"].firstMatch
+        var swipes = 0
+        while !(find.exists && find.isHittable) && swipes < 10 { app.swipeUp(); swipes += 1 }
+        XCTAssertTrue(find.exists, "No Find a Group on Home")
+        find.tap()
+        XCTAssertTrue(app.navigationBars["Find a Group"].waitForExistence(timeout: 5), "Find a Group didn't open")
+        let newGroupOnHome = false   // the robot member is below level 11
+        XCTAssertEqual(app.buttons["findGroupNew"].exists, newGroupOnHome, "+ shown to a member below level 11")
+        print("FINDGROUP plus shown: \(app.buttons["findGroupNew"].exists)")
+        try audit(app, "Find a Group")
+    }
 }

@@ -816,6 +816,9 @@ struct FindGroupsView: View {
     @State private var loaded = false
     @State private var failed = false
     @State private var search = ""
+    @State private var making = false
+    /// The same rule as New Group on Home (level 11 and up).
+    private var canMake: Bool { CrewCloud.shared.effectiveLevel >= 11 }
 
     private var shown: [CrewGroup] {
         let text = search.trimmingCharacters(in: .whitespaces)
@@ -848,6 +851,17 @@ struct FindGroupsView: View {
         }
         .navigationTitle("Find a Group")
         .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always), prompt: "Group or crew leader")
+        // REM: amber 160, his feedback on build 220 (2026-11-05): "Is there only one group? Why isnt there a plus? How do
+        // REM: you make a group?" A + here for anyone allowed to make a group; New Group stays on Home too.
+        .toolbar {
+            if canMake {
+                ToolbarItem(placement: .primaryAction) {
+                    Button { making = true } label: { Label("New Group", systemImage: "plus") }
+                        .accessibilityIdentifier("findGroupNew")
+                }
+            }
+        }
+        .sheet(isPresented: $making, onDismiss: { Task { await load() } }) { GroupEditView(group: nil) }
         .task { await load() }
         .refreshable { await load() }
     }
