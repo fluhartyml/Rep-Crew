@@ -320,10 +320,15 @@ extension CrewCloud {
         let old = await groupPhotoRecords(board, leaderID: group.leaderID).map(\.recordID)
         guard await postPhotoID(image, crewID: board, senderName: leaderName) != nil else { return false }
         if !old.isEmpty { _ = try? await db.modifyRecords(saving: [], deleting: old) }
+        GroupPhotoCache.images[board] = image
         return true
     }
 
     func groupPhoto(_ group: CrewGroup, kind: String) async -> UIImage? {
+        // REM  HIS FEEDBACK, build 221 (2026-11-08 06:30): "the avatar and banners didnt show after choosing them". iCloud's
+        // REM  search can take a while to find a photo just saved, so the card asked and got nothing. The leader's own
+        // REM  just-saved photo is kept here and shown at once; everyone else gets it from iCloud as before.
+        if let mine = GroupPhotoCache.images[Self.groupPhotoBoard(group.id, kind)] { return mine }
         let newest = await groupPhotoRecords(Self.groupPhotoBoard(group.id, kind), leaderID: group.leaderID)
             .filter { !Blocklist.hiddenPhotos.contains($0.recordID.recordName) }
             .max { ($0["takenAt"] as? Date ?? .distantPast) < ($1["takenAt"] as? Date ?? .distantPast) }
@@ -437,11 +442,20 @@ struct GroupsPagerSection: View {
     }
 }
 
-/// A group's banner, avatar and name in its own color and font.
-struct GroupCard: View {
-    let group: CrewGroup
-    @State private var banner: UIImage?
-    @State private var avatar: UIImage?
+/// The leader's own just-saved group photos, by board — shown at once while iCloud's search catches up.
+@MainActor enum GroupPhotoCache {
+    static var images: [String: UIImage] = [:]
+}
+
+/// The face of a group card: banner (or its color), avatar (or the dumbbell), name and leader.
+/// Shared by the card on Home and the live preview in New Group / Edit Group.
+struct GroupCardFace: View {
+    let name: String
+    let leaderName: String
+    let theme: GroupTheme
+    let font: GroupFont
+    let banner: UIImage?
+    let avatar: UIImage?
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
@@ -449,22 +463,34 @@ struct GroupCard: View {
                 if let banner {
                     Image(uiImage: banner).resizable().scaledToFill()
                 } else {
-                    group.theme.color
+                    theme.color
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipped()
             LinearGradient(colors: [.clear, .black.opacity(0.6)], startPoint: .center, endPoint: .bottom)
             HStack(spacing: 12) {
-                GroupAvatar(image: avatar, theme: group.theme, size: 64)
+                GroupAvatar(image: avatar, theme: theme, size: 64)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(group.details.name).font(group.font.font(28, bold: true)).foregroundStyle(.white)
-                    Text("Crew leader \(group.leaderName)").font(group.font.font(18)).foregroundStyle(.white.opacity(0.9))
+                    Text(name).font(font.font(28, bold: true)).foregroundStyle(.white)
+                    Text("Crew leader \(leaderName)").font(font.font(18)).foregroundStyle(.white.opacity(0.9))
                 }
             }
             .padding()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+/// A group's banner, avatar and name in its own color and font.
+struct GroupCard: View {
+    let group: CrewGroup
+    @State private var banner: UIImage?
+    @State private var avatar: UIImage?
+
+    var body: some View {
+        GroupCardFace(name: group.details.name, leaderName: group.leaderName, theme: group.theme, font: group.font,
+                      banner: banner, avatar: avatar)
         .task(id: group) {
             banner = await CrewCloud.shared.groupPhoto(group, kind: "banner")
             avatar = await CrewCloud.shared.groupPhoto(group, kind: "avatar")
@@ -660,6 +686,15 @@ struct GroupEditView: View {
     @State private var pickedAvatar: PhotosPickerItem?
     @State private var saving = false
     @State private var note: String?
+    /// The group's photos already in iCloud (Edit Group) — shown in the preview until a new one is chosen.
+    @State private var savedBanner: UIImage?
+    @State private var savedAvatar: UIImage?
+    @State private var askDiscard = false
+
+    // REM  HIS FEEDBACK, build 221 (2026-11-08 06:30): "The group i was making accidentally swiped down and dissapeared".
+    // REM  Once anything is typed or chosen, a swipe down no longer closes the sheet, and Cancel asks before it throws the
+    // REM  work away. An untouched sheet still swipes away as before.
+    private var changed: Bool { details != (group?.details ?? GroupDetails()) || banner != nil || avatar != nil }
 
     /// Challenges you lead that are still running: what a group can start with.
     private var yours: [Challenge] { allChallenges.filter { $0.leaderID.isEmpty && !$0.crewID.isEmpty && !$0.isFinished } }
@@ -691,6 +726,23 @@ struct GroupEditView: View {
                     Text("Pick at least one.").font(AppFont.body)
                 }
                 Section {
+                    // REM  HIS FEEDBACK, build 221: "the avatar and banners didnt show after choosing them. They need to show
+                    // REM  samples beforet they get replaced by the creator". The card as it will look on Home, live: the
+                    // REM  sample (the group's color and the dumbbell) until a banner or avatar is chosen, then the choice.
+                    GroupCardFace(name: trimmedName.isEmpty ? "Group name" : trimmedName,
+                                  leaderName: group?.leaderName ?? (myName.trimmingCharacters(in: .whitespaces).isEmpty ? "You" : myName),
+                                  theme: GroupTheme(rawValue: details.theme) ?? .olive,
+                                  font: GroupFont(rawValue: details.font) ?? .standard,
+                                  banner: banner ?? savedBanner, avatar: avatar ?? savedAvatar)
+                        .frame(height: 180)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .listRowInsets(EdgeInsets())
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("Card preview")
+                        .accessibilityIdentifier("groupCardPreview")
+                    if banner == nil && savedBanner == nil || avatar == nil && savedAvatar == nil {
+                        Text("This is a sample. Choose a banner and an avatar to replace it.").font(AppFont.body)
+                    }
                     Picker(selection: $details.theme) {
                         ForEach(GroupTheme.allCases) { Text($0.title).font(AppFont.body).tag($0.rawValue) }
                     } label: { Text("Color").font(AppFont.body) }
@@ -713,7 +765,15 @@ struct GroupEditView: View {
             .navigationTitle(group == nil ? "New Group" : "Edit Group")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.font(AppFont.body) }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { if changed { askDiscard = true } else { dismiss() } }
+                        .font(AppFont.body)
+                        .confirmationDialog(group == nil ? "Throw away this group?" : "Throw away your changes?",
+                                            isPresented: $askDiscard, titleVisibility: .visible) {
+                            Button(group == nil ? "Throw Away Group" : "Throw Away Changes", role: .destructive) { dismiss() }
+                            Button("Keep Editing", role: .cancel) {}
+                        }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(group == nil ? "Make Group" : "Save") { Task { await save() } }
                         .font(AppFont.bodyBold).disabled(!canSave)
@@ -722,6 +782,12 @@ struct GroupEditView: View {
             .onAppear {
                 if let group, details == GroupDetails() { details = group.details }
             }
+            .task {
+                guard let group else { return }
+                savedBanner = await CrewCloud.shared.groupPhoto(group, kind: "banner")
+                savedAvatar = await CrewCloud.shared.groupPhoto(group, kind: "avatar")
+            }
+            .interactiveDismissDisabled(changed)
             .onChange(of: pickedBanner) { _, item in Task { banner = await load(item); pickedBanner = nil } }
             .onChange(of: pickedAvatar) { _, item in Task { avatar = await load(item); pickedAvatar = nil } }
         }
