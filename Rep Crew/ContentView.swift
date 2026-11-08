@@ -186,6 +186,10 @@ struct ContentView: View {
                 }
             }
             .navigationTitle(CrewCloud.displayName(crewName))   // the head coach's name for the crew (CrewName.swift)
+            // REM: amber line 002.1, his word 2026-11-06 ("yes for both apps"): "Rep Crew greets you by the name from
+            // REM: your application and doesn't ask again." A subtitle under the crew name, not a row, so Your
+            // REM: challenges stay first on Home (his word 10-29). The name changes in Edit Profile / Settings.
+            .modifier(HomeGreeting(name: name))
             .navigationDestination(for: Challenge.self) { ChallengeDetailView(challenge: $0) }
             .navigationDestination(for: CrewListing.self) { CrewChallengeView(listing: $0) }
             .navigationDestination(for: CrewGroup.self) { GroupHomeView(group: $0) }
@@ -509,4 +513,18 @@ struct ChallengeRow: View {
 private struct AgainItem: Identifiable {
     let info: Invite.ChallengeInfo
     var id: String { info.crewID + info.title }
+}
+
+/// "Hello, <name>" under the crew name on Home (amber 002.1). iOS 26 added subtitles to the iPhone's
+/// navigation bar; on older iOS there is no greeting. No name saved, no greeting.
+private struct HomeGreeting: ViewModifier {
+    let name: String
+    func body(content: Content) -> some View {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        if #available(iOS 26.0, *), !trimmed.isEmpty {
+            content.navigationSubtitle("Hello, \(trimmed)")
+        } else {
+            content
+        }
+    }
 }

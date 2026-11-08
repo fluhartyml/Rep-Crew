@@ -142,14 +142,25 @@ final class RepCrewUITests: XCTestCase {
 
     func testEveryTabReachableByNameAndPassesAudit() throws {
         let app = launch()
-        let tabBar = app.tabBars.firstMatch
-        XCTAssertTrue(tabBar.waitForExistence(timeout: 15), "Home never appeared")
+        // REM: 2026-11-07 — on iOS 27 (iPhone Duo sim) the tab bar no longer reports as a TabBar element (Milestones saw
+        // REM: it the same morning), so the tabs are found by name, the way VoiceOver and Voice Control find them.
+        XCTAssertTrue(app.buttons["Home"].firstMatch.waitForExistence(timeout: 15), "Home never appeared")
         for tab in ["Home", "Leaderboard", "Feed", "Comms", "Profile"] {
-            let button = tabBar.buttons[tab]
+            let button = app.buttons[tab].firstMatch
             XCTAssertTrue(button.exists, "Tab \(tab) can't be found by its name")
             button.tap()
             XCTAssertTrue(button.isSelected, "Tab \(tab) didn't open")
             try auditScrolling(app, tab)
         }
+    }
+
+    /// Amber 002.1: Home greets you by the name from your application ("Test Member"), under the crew name.
+    func testHomeGreetsYouByName() throws {
+        let app = launch()
+        XCTAssertTrue(app.buttons["Home"].firstMatch.waitForExistence(timeout: 15), "Home never appeared")
+        app.buttons["Home"].firstMatch.tap()
+        let greeting = app.staticTexts["Hello, Test Member"].firstMatch
+        XCTAssertTrue(greeting.waitForExistence(timeout: 5), "No \"Hello, Test Member\" on Home")
+        let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "Home greeting"; shot.lifetime = .keepAlways; add(shot)
     }
 }
